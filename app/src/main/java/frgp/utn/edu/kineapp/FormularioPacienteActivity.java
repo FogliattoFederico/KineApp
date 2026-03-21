@@ -380,6 +380,19 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         new TimePickerDialog(this, (view, hourOfDay, minute) -> campo.setText(String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute)), cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), true).show();
     }
 
+    private boolean esHoraValida(String inicio, String fin) {
+        if (inicio == null || fin == null || inicio.isEmpty() || fin.isEmpty()) return true;
+        try {
+            String[] partsInicio = inicio.split(":");
+            String[] partsFin = fin.split(":");
+            int minInicio = Integer.parseInt(partsInicio[0]) * 60 + Integer.parseInt(partsInicio[1]);
+            int minFin = Integer.parseInt(partsFin[0]) * 60 + Integer.parseInt(partsFin[1]);
+            return minFin > minInicio;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
     private void guardarPaciente() {
         if (pacienteExistente == null) {
             Toast.makeText(this, "Primero buscá al paciente", Toast.LENGTH_SHORT).show();
@@ -397,8 +410,12 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         
         // --- VALIDACIÓN DE FECHA Y HORA (Fix BUG) ---
         for (HorarioAtencion h : horariosNuevos) {
-            if (h.getFecha() == null || h.getFecha().isEmpty() || h.getHoraInicio() == null || h.getHoraInicio().isEmpty()) {
-                Toast.makeText(this, "Completá fecha y hora para todos los horarios", Toast.LENGTH_SHORT).show();
+            if (h.getFecha() == null || h.getFecha().isEmpty() || h.getHoraInicio() == null || h.getHoraInicio().isEmpty() || h.getHoraFin() == null || h.getHoraFin().isEmpty()) {
+                Toast.makeText(this, "Completá fecha, hora de inicio y fin para todos los horarios", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (!esHoraValida(h.getHoraInicio(), h.getHoraFin())) {
+                Toast.makeText(this, "La hora de finalización debe ser posterior a la de inicio", Toast.LENGTH_SHORT).show();
                 return;
             }
         }
