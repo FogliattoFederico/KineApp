@@ -8,6 +8,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -55,7 +56,7 @@ public class FacturaAdapter extends RecyclerView.Adapter<FacturaAdapter.ViewHold
                 "$ %,.0f", factura.getImporte()));
 
         if (factura.getFecha() != null) {
-            holder.tvFecha.setText(sdf.format(factura.getFecha().toDate()));
+            holder.tvFecha.setText("Emisión: " + sdf.format(factura.getFecha().toDate()));
         }
 
         actualizarEstado(holder, factura.isCobrada());
@@ -68,7 +69,6 @@ public class FacturaAdapter extends RecyclerView.Adapter<FacturaAdapter.ViewHold
                 cobradaListener.onChange(factura, nuevoCobrada);
         });
 
-        // GESTOS UNIFICADOS
         holder.layoutFactura.setOnClickListener(v -> {
             if (clickListener != null) clickListener.onClick(factura);
         });
@@ -82,7 +82,8 @@ public class FacturaAdapter extends RecyclerView.Adapter<FacturaAdapter.ViewHold
     private void actualizarEstado(ViewHolder holder, boolean cobrada) {
         if (cobrada) {
             holder.ivCobrada.setImageResource(R.drawable.ic_checkbox_checked);
-            holder.layoutFactura.setBackgroundColor(Color.parseColor("#F1F8E9"));
+            // Usamos el color semántico que definimos antes para la agenda
+            holder.layoutFactura.setBackgroundColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.color_atendido));
         } else {
             holder.ivCobrada.setImageResource(R.drawable.ic_checkbox_unchecked);
             holder.layoutFactura.setBackgroundColor(Color.TRANSPARENT);
