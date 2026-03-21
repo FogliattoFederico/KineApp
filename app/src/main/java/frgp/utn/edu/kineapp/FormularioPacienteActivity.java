@@ -381,7 +381,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
     }
 
     private boolean esHoraValida(String inicio, String fin) {
-        if (inicio == null || fin == null || inicio.isEmpty() || fin.isEmpty()) return true;
+        if (inicio == null || fin == null || inicio.isEmpty() || fin.isEmpty()) return false;
         try {
             String[] partsInicio = inicio.split(":");
             String[] partsFin = fin.split(":");
@@ -389,7 +389,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             int minFin = Integer.parseInt(partsFin[0]) * 60 + Integer.parseInt(partsFin[1]);
             return minFin > minInicio;
         } catch (Exception e) {
-            return true;
+            return false;
         }
     }
 
@@ -409,6 +409,11 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         List<HorarioAtencion> horariosNuevos = obtenerHorarios();
         
         // --- VALIDACIÓN DE FECHA Y HORA (Fix BUG) ---
+        if (horariosNuevos.size() < containerHorarios.getChildCount()) {
+             Toast.makeText(this, "Completá fecha y horas para todos los turnos", Toast.LENGTH_SHORT).show();
+             return;
+        }
+
         for (HorarioAtencion h : horariosNuevos) {
             if (h.getFecha() == null || h.getFecha().isEmpty() || h.getHoraInicio() == null || h.getHoraInicio().isEmpty() || h.getHoraFin() == null || h.getHoraFin().isEmpty()) {
                 Toast.makeText(this, "Completá fecha, hora de inicio y fin para todos los horarios", Toast.LENGTH_SHORT).show();
@@ -420,8 +425,13 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             }
         }
 
-        if ((horariosNuevos == null || horariosNuevos.isEmpty()) && modoEdicion) {
+        if (horariosNuevos.isEmpty() && modoEdicion) {
             Toast.makeText(this, "El paciente debe tener al menos un horario", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        if (horariosNuevos.isEmpty() && !modoEdicion) {
+            Toast.makeText(this, "Asigná al menos un horario al turno", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -564,8 +574,8 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             String fin = etFin.getText().toString().trim();
             Object tag = etFecha.getTag();
 
-            if (tag == null) {
-                // Si no hay tag, es que no se seleccionó fecha
+            if (tag == null || inicio.isEmpty() || fin.isEmpty()) {
+                // Si no hay tag (fecha) o faltan horas, no lo tomamos como válido
                 continue;
             }
 
