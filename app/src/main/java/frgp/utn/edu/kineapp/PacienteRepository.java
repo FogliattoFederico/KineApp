@@ -1,10 +1,12 @@
 package frgp.utn.edu.kineapp;
 
+import android.util.Log;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.WriteBatch;
 
 public class PacienteRepository {
@@ -19,7 +21,6 @@ public class PacienteRepository {
         uidKinesiologo = FirebaseAuth.getInstance().getCurrentUser().getUid();
     }
 
-    // Guardar nuevo paciente
     public Task<Void> guardar(Paciente paciente) {
         paciente.setUidKinesiologo(uidKinesiologo);
         if (paciente.getId() == null || paciente.getId().isEmpty()) {
@@ -29,44 +30,50 @@ public class PacienteRepository {
         return coleccion.document(paciente.getId()).set(paciente);
     }
 
-    // Obtener todos los pacientes del kinesiólogo logueado
-    public Task<com.google.firebase.firestore.QuerySnapshot> obtenerTodos() {
+    public Task<QuerySnapshot> obtenerTodos() {
         return coleccion
                 .whereEqualTo("uidKinesiologo", uidKinesiologo)
                 .get();
     }
 
-    // Actualizar paciente existente
     public Task<Void> actualizar(Paciente paciente) {
         return coleccion.document(paciente.getId()).set(paciente);
     }
 
-    // Eliminar paciente y sus atenciones de forma robusta
+    // ELIMINAR MEJORADO: Incluye filtro de seguridad y logs
     public Task<Void> eliminar(String idPaciente) {
-        // 1. Buscamos todas las atenciones que coincidan con el pacienteId
+        Log.d("KineApp", "Iniciando eliminación de paciente: " + idPaciente);
+
+        // Importante: Incluimos uidKinesiologo en la consulta para cumplir con las reglas de seguridad
         return db.collection("atenciones")
+                .whereEqualTo("uidKinesiologo", uidKinesiologo)
                 .whereEqualTo("pacienteId", idPaciente)
                 .get()
                 .continueWithTask(task -> {
                     WriteBatch batch = db.batch();
-
-                    // 2. Si la consulta fue exitosa, agregamos cada atención al borrado
+                    
                     if (task.isSuccessful() && task.getResult() != null) {
+                        int cantidadAtenciones = task.getResult().size();
+                        Log.d("KineApp", "Atenciones encontradas para borrar: " + cantidadAtenciones);
+                        
                         for (DocumentSnapshot doc : task.getResult()) {
                             batch.delete(doc.getReference());
                         }
+                    } else {
+                        Log.e("KineApp", "Error al buscar atenciones", task.getException());
                     }
 
-                    // 3. Agregamos el documento del paciente al borrado
+                    // Borrar el paciente
                     batch.delete(coleccion.document(idPaciente));
+                    Log.d("KineApp", "Paciente añadido al batch de borrado");
 
-                    // 4. Ejecutamos el lote (batch)
                     return batch.commit();
+                }).addOnFailureListener(e -> {
+                    Log.e("KineApp", "EL BATCH FALLÓ: " + e.getMessage());
                 });
     }
 
-    // Buscar por DNI
-    public Task<com.google.firebase.firestore.QuerySnapshot> buscarPorDni(String dni) {
+    public Task<QuerySnapshot> buscarPorDni(String dni) {
         return coleccion
                 .whereEqualTo("uidKinesiologo", uidKinesiologo)
                 .whereEqualTo("dni", dni)
