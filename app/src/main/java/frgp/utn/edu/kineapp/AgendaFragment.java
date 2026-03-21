@@ -55,13 +55,18 @@ public class AgendaFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        // PROTECCIÓN: Verificar si el spacer existe antes de manipularlo
         View spacer = view.findViewById(R.id.status_bar_spacer);
-        int resourceId = getResources().getIdentifier(
-                "status_bar_height", "dimen", "android");
-        if (resourceId > 0) {
-            int height = getResources().getDimensionPixelSize(resourceId);
-            spacer.getLayoutParams().height = height;
-            spacer.requestLayout();
+        if (spacer != null) {
+            int resourceId = getResources().getIdentifier(
+                    "status_bar_height", "dimen", "android");
+            if (resourceId > 0) {
+                int height = getResources().getDimensionPixelSize(resourceId);
+                if (spacer.getLayoutParams() != null) {
+                    spacer.getLayoutParams().height = height;
+                    spacer.requestLayout();
+                }
+            }
         }
 
         tvNombreDia = view.findViewById(R.id.tv_nombre_dia);
@@ -130,14 +135,14 @@ public class AgendaFragment extends Fragment {
                     if (mod != null) {
                         modalidadTrabajoPerfil = mod;
                         if ("domicilio".equals(mod)) {
-                            btnToggleConsultorio.setVisibility(View.GONE);
+                            if (btnToggleConsultorio != null) btnToggleConsultorio.setVisibility(View.GONE);
                             modalidadActual = "domicilio";
                         } else if ("consultorio".equals(mod)) {
-                            btnToggleDomicilio.setVisibility(View.GONE);
+                            if (btnToggleDomicilio != null) btnToggleDomicilio.setVisibility(View.GONE);
                             modalidadActual = "consultorio";
                         } else {
-                            btnToggleDomicilio.setVisibility(View.VISIBLE);
-                            btnToggleConsultorio.setVisibility(View.VISIBLE);
+                            if (btnToggleDomicilio != null) btnToggleDomicilio.setVisibility(View.VISIBLE);
+                            if (btnToggleConsultorio != null) btnToggleConsultorio.setVisibility(View.VISIBLE);
                         }
                     }
                     determinarModalidadInicial();
@@ -191,15 +196,23 @@ public class AgendaFragment extends Fragment {
         if (!isAdded() || context == null) return;
         
         if ("domicilio".equals(modalidadActual)) {
-            btnToggleDomicilio.setBackgroundResource(R.drawable.bg_toggle_activo);
-            btnToggleDomicilio.setTextColor(Color.parseColor("#1565C0"));
-            btnToggleConsultorio.setBackgroundColor(Color.TRANSPARENT);
-            btnToggleConsultorio.setTextColor(Color.parseColor("#BBDEFB"));
+            if (btnToggleDomicilio != null) {
+                btnToggleDomicilio.setBackgroundResource(R.drawable.bg_toggle_activo);
+                btnToggleDomicilio.setTextColor(Color.parseColor("#1565C0"));
+            }
+            if (btnToggleConsultorio != null) {
+                btnToggleConsultorio.setBackgroundColor(Color.TRANSPARENT);
+                btnToggleConsultorio.setTextColor(Color.parseColor("#BBDEFB"));
+            }
         } else {
-            btnToggleConsultorio.setBackgroundResource(R.drawable.bg_toggle_activo);
-            btnToggleConsultorio.setTextColor(Color.parseColor("#1565C0"));
-            btnToggleDomicilio.setBackgroundColor(Color.TRANSPARENT);
-            btnToggleDomicilio.setTextColor(Color.parseColor("#BBDEFB"));
+            if (btnToggleConsultorio != null) {
+                btnToggleConsultorio.setBackgroundResource(R.drawable.bg_toggle_activo);
+                btnToggleConsultorio.setTextColor(Color.parseColor("#1565C0"));
+            }
+            if (btnToggleDomicilio != null) {
+                btnToggleDomicilio.setBackgroundColor(Color.TRANSPARENT);
+                btnToggleDomicilio.setTextColor(Color.parseColor("#BBDEFB"));
+            }
         }
     }
 
@@ -208,17 +221,17 @@ public class AgendaFragment extends Fragment {
         if (!isAdded() || context == null) return;
         
         int diaSemana = fechaActual.get(Calendar.DAY_OF_WEEK) - 1;
-        tvNombreDia.setText(DIAS_COMPLETOS[diaSemana]);
+        if (tvNombreDia != null) tvNombreDia.setText(DIAS_COMPLETOS[diaSemana]);
         SimpleDateFormat sdf = new SimpleDateFormat(
                 "d 'de' MMMM 'de' yyyy", new Locale("es", "AR"));
-        tvFechaCompleta.setText(sdf.format(fechaActual.getTime()));
+        if (tvFechaCompleta != null) tvFechaCompleta.setText(sdf.format(fechaActual.getTime()));
         actualizarChipsSemana();
         cargarTurnosDelDia(DIAS_KINE[diaSemana]);
     }
 
     private void actualizarChipsSemana() {
         Context context = getContext();
-        if (!isAdded() || context == null) return;
+        if (!isAdded() || context == null || containerDiasSemana == null) return;
         
         containerDiasSemana.removeAllViews();
         Calendar lunes = (Calendar) fechaActual.clone();
@@ -272,6 +285,7 @@ public class AgendaFragment extends Fragment {
         if (!isAdded() || context == null) return;
         
         adapter.setFechaAgenda(fechaActual);
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         listaTurnos.clear();
 
@@ -317,7 +331,12 @@ public class AgendaFragment extends Fragment {
                             }
                         }
                     }
-                    listaTurnos.sort((a, b) -> a.hora.compareTo(b.hora));
+                    // PROTECCIÓN: Ordenar manejando posibles nulos en la hora
+                    listaTurnos.sort((a, b) -> {
+                        if (a.hora == null) return 1;
+                        if (b.hora == null) return -1;
+                        return a.hora.compareTo(b.hora);
+                    });
                     cargarAtencionesDel(nombreDia);
                 });
     }
@@ -336,6 +355,7 @@ public class AgendaFragment extends Fragment {
         finDia.set(Calendar.MINUTE, 59);
         finDia.set(Calendar.SECOND, 59);
 
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
         FirebaseFirestore.getInstance()
@@ -362,17 +382,17 @@ public class AgendaFragment extends Fragment {
                         }
                     }
                     adapter.actualizar(listaTurnos);
-                    layoutEmpty.setVisibility(
+                    if (layoutEmpty != null) layoutEmpty.setVisibility(
                             listaTurnos.isEmpty() ? View.VISIBLE : View.GONE);
-                    rvPacientes.setVisibility(
+                    if (rvPacientes != null) rvPacientes.setVisibility(
                             listaTurnos.isEmpty() ? View.GONE : View.VISIBLE);
                 })
                 .addOnFailureListener(e -> {
                     if (!isAdded() || getContext() == null) return;
                     adapter.actualizar(listaTurnos);
-                    layoutEmpty.setVisibility(
+                    if (layoutEmpty != null) layoutEmpty.setVisibility(
                             listaTurnos.isEmpty() ? View.VISIBLE : View.GONE);
-                    rvPacientes.setVisibility(
+                    if (rvPacientes != null) rvPacientes.setVisibility(
                             listaTurnos.isEmpty() ? View.GONE : View.VISIBLE);
                 });
     }
@@ -381,6 +401,7 @@ public class AgendaFragment extends Fragment {
         Context context = getContext();
         if (!isAdded() || context == null) return;
         
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
         FirebaseFirestore.getInstance()

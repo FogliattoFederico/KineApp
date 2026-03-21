@@ -18,7 +18,7 @@ import java.util.Map;
 
 public class RegisterActivity extends AppCompatActivity {
 
-    private EditText etNombre, etApellido, etEmail, etPassword,
+    private EditText etNombre, etApellido, etMatricula, etEmail, etPassword,
             etConfirmPassword, etBoxes;
     private TextInputLayout tilBoxes;
     private ChipGroup chipGroupModalidad;
@@ -37,6 +37,7 @@ public class RegisterActivity extends AppCompatActivity {
 
         etNombre = findViewById(R.id.et_nombre);
         etApellido = findViewById(R.id.et_apellido);
+        etMatricula = findViewById(R.id.et_matricula);
         etEmail = findViewById(R.id.et_email);
         etPassword = findViewById(R.id.et_password);
         etConfirmPassword = findViewById(R.id.et_confirm_password);
@@ -65,11 +66,12 @@ public class RegisterActivity extends AppCompatActivity {
     private void registerUser() {
         String nombre = etNombre.getText().toString().trim();
         String apellido = etApellido.getText().toString().trim();
+        String matricula = etMatricula.getText().toString().trim();
         String email = etEmail.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
         String confirmPassword = etConfirmPassword.getText().toString().trim();
 
-        if (nombre.isEmpty() || apellido.isEmpty() ||
+        if (nombre.isEmpty() || apellido.isEmpty() || matricula.isEmpty() ||
                 email.isEmpty() || password.isEmpty()) {
             Toast.makeText(this, "Completá todos los campos",
                     Toast.LENGTH_SHORT).show();
@@ -125,12 +127,13 @@ public class RegisterActivity extends AppCompatActivity {
         btnRegister.setEnabled(false);
         final String modalidadFinal = modalidad;
         final int boxesFinal = boxes;
+        final String matriculaFinal = matricula;
 
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         String uid = mAuth.getCurrentUser().getUid();
-                        guardarPerfil(uid, nombre, apellido, email,
+                        guardarPerfil(uid, nombre, apellido, matriculaFinal, email,
                                 modalidadFinal, boxesFinal);
                     } else {
                         btnRegister.setEnabled(true);
@@ -141,11 +144,12 @@ public class RegisterActivity extends AppCompatActivity {
                 });
     }
 
-    private void guardarPerfil(String uid, String nombre, String apellido,
+    private void guardarPerfil(String uid, String nombre, String apellido, String matricula,
                                String email, String modalidad, int boxes) {
         Map<String, Object> usuario = new HashMap<>();
         usuario.put("nombre", nombre);
         usuario.put("apellido", apellido);
+        usuario.put("matricula", matricula);
         usuario.put("email", email);
         usuario.put("rol", "kinesiologo");
         usuario.put("modalidadTrabajo", modalidad);
