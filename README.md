@@ -14,6 +14,14 @@
 *   **💰 Facturación y Rendimiento:** Módulo para visualizar honorarios generados y valor de las sesiones.
 *   **☁️ Sincronización en Tiempo Real:** Integración completa con **Firebase** (Firestore y Authentication).
 
+## 🔒 Seguridad y Privacidad
+
+Para garantizar la confidencialidad de los datos de salud de los pacientes, la app implementa:
+*   **🛡️ Autenticación Biométrica:** Bloqueo de acceso mediante huella dactilar o reconocimiento facial.
+*   **🔑 Cifrado de Credenciales:** Almacenamiento seguro de datos locales mediante `EncryptedSharedPreferences` (AES-256).
+*   **🕵️ Ofuscación de Código:** Protección mediante R8/ProGuard para evitar ingeniería inversa.
+*   **📜 Reglas de Firebase:** Acceso restringido a nivel de base de datos; cada profesional solo puede acceder a su propia información.
+
 ## 🛠️ Stack Tecnológico
 
 *   **Lenguaje:** Java (Android SDK)

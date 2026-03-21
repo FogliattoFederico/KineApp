@@ -12,9 +12,13 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
+import androidx.security.crypto.EncryptedSharedPreferences;
+import androidx.security.crypto.MasterKeys;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.concurrent.Executor;
 
 public class LoginActivity extends AppCompatActivity {
@@ -36,7 +40,22 @@ public class LoginActivity extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance();
         executor = ContextCompat.getMainExecutor(this);
-        prefs = getSharedPreferences("KineAppPrefs", MODE_PRIVATE);
+        
+        // Inicializar SharedPreferences CIFRADAS
+        try {
+            String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
+            prefs = EncryptedSharedPreferences.create(
+                "KineAppPrefs",
+                masterKeyAlias,
+                this,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
+        } catch (GeneralSecurityException | IOException e) {
+            e.printStackTrace();
+            // Fallback a prefs normales solo si falla el cifrado (no recomendado en prod)
+            prefs = getSharedPreferences("KineAppPrefs", MODE_PRIVATE);
+        }
 
         etEmail = findViewById(R.id.et_email);
         etPassword = findViewById(R.id.et_password);
@@ -46,7 +65,6 @@ public class LoginActivity extends AppCompatActivity {
         tvForgotPassword = findViewById(R.id.tv_forgot_password);
 
         btnLogin.setOnClickListener(v -> loginUser());
-        
         btnBiometric.setOnClickListener(v -> biometricPrompt.authenticate(promptInfo));
 
         tvRegister.setOnClickListener(v ->
@@ -59,7 +77,7 @@ public class LoginActivity extends AppCompatActivity {
 
         setupBiometrics();
         
-        // Cargar el último email guardado (si existe)
+        // Cargar email cifrado
         String savedEmail = prefs.getString("last_email", "");
         if (!savedEmail.isEmpty()) {
             etEmail.setText(savedEmail);
@@ -81,13 +99,10 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
                 super.onAuthenticationSucceeded(result);
-                // Si la huella es correcta, intentamos entrar directamente si tenemos la contraseña
                 String savedPassword = prefs.getString("last_pass", "");
                 if (!savedPassword.isEmpty()) {
                     etPassword.setText(savedPassword);
                     loginUser();
-                } else {
-                    Toast.makeText(LoginActivity.this, "Por favor, ingresá tu contraseña una vez más", Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -100,7 +115,7 @@ public class LoginActivity extends AppCompatActivity {
 
         promptInfo = new BiometricPrompt.PromptInfo.Builder()
                 .setTitle("Acceso Biométrico")
-                .setSubtitle("Ingresá rápido a tu agenda")
+                .setSubtitle("Protegiendo los datos de tus pacientes")
                 .setNegativeButtonText("Usar contraseña")
                 .build();
     }
@@ -112,11 +127,8 @@ public class LoginActivity extends AppCompatActivity {
         if (currentUser != null) {
             btnBiometric.setVisibility(View.VISIBLE);
             biometricPrompt.authenticate(promptInfo);
-        } else {
-            // Si la sesión se cerró por los 30 seg, pero tenemos datos guardados, mostramos el botón
-            if (!prefs.getString("last_email", "").isEmpty()) {
-                btnBiometric.setVisibility(View.VISIBLE);
-            }
+        } else if (!prefs.getString("last_email", "").isEmpty()) {
+            btnBiometric.setVisibility(View.VISIBLE);
         }
     }
 
@@ -135,7 +147,7 @@ public class LoginActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     btnLogin.setEnabled(true);
                     if (task.isSuccessful()) {
-                        // Guardamos los datos para la próxima vez (biometría)
+                        // Guardar datos de forma CIFRADA
                         prefs.edit().putString("last_email", email).apply();
                         prefs.edit().putString("last_pass", password).apply();
                         goToMain();

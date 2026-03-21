@@ -19,7 +19,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -44,4 +44,5 @@ dependencies {
     implementation 'androidx.navigation:navigation-ui:2.7.7'
     implementation 'androidx.viewpager2:viewpager2:1.1.0'
     implementation 'androidx.biometric:biometric:1.2.0-alpha05'
+    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
 }
