@@ -41,19 +41,14 @@ public class LoginActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         executor = ContextCompat.getMainExecutor(this);
         
-        // Inicializar SharedPreferences CIFRADAS
         try {
             String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
             prefs = EncryptedSharedPreferences.create(
-                "KineAppPrefs",
-                masterKeyAlias,
-                this,
+                "KineAppPrefs", masterKeyAlias, this,
                 EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             );
         } catch (GeneralSecurityException | IOException e) {
-            e.printStackTrace();
-            // Fallback a prefs normales solo si falla el cifrado (no recomendado en prod)
             prefs = getSharedPreferences("KineAppPrefs", MODE_PRIVATE);
         }
 
@@ -76,46 +71,31 @@ public class LoginActivity extends AppCompatActivity {
         );
 
         setupBiometrics();
-        
-        // Cargar email cifrado
-        String savedEmail = prefs.getString("last_email", "");
-        if (!savedEmail.isEmpty()) {
-            etEmail.setText(savedEmail);
-            btnBiometric.setVisibility(View.VISIBLE);
-        }
     }
 
     private void setupBiometrics() {
         biometricPrompt = new BiometricPrompt(LoginActivity.this,
                 executor, new BiometricPrompt.AuthenticationCallback() {
             @Override
-            public void onAuthenticationError(int errorCode, @NonNull CharSequence errString) {
-                super.onAuthenticationError(errorCode, errString);
-                if (errorCode != BiometricPrompt.ERROR_USER_CANCELED && errorCode != BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
-                    Toast.makeText(getApplicationContext(), errString, Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            @Override
             public void onAuthenticationSucceeded(@NonNull BiometricPrompt.AuthenticationResult result) {
                 super.onAuthenticationSucceeded(result);
+                String savedEmail = prefs.getString("last_email", "");
                 String savedPassword = prefs.getString("last_pass", "");
-                if (!savedPassword.isEmpty()) {
+                
+                // SEGURIDAD: Solo loguear si tenemos credenciales guardadas
+                if (!savedEmail.isEmpty() && !savedPassword.isEmpty()) {
+                    etEmail.setText(savedEmail);
                     etPassword.setText(savedPassword);
                     loginUser();
+                } else {
+                    Toast.makeText(LoginActivity.this, "Iniciá sesión manualmente una vez", Toast.LENGTH_SHORT).show();
                 }
-            }
-
-            @Override
-            public void onAuthenticationFailed() {
-                super.onAuthenticationFailed();
-                Toast.makeText(getApplicationContext(), "Huella no reconocida", Toast.LENGTH_SHORT).show();
             }
         });
 
         promptInfo = new BiometricPrompt.PromptInfo.Builder()
                 .setTitle("Acceso Biométrico")
-                .setSubtitle("Protegiendo los datos de tus pacientes")
+                .setSubtitle("Protegiendo tus datos")
                 .setNegativeButtonText("Usar contraseña")
                 .build();
     }
@@ -124,11 +104,19 @@ public class LoginActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser != null) {
+        String savedEmail = prefs.getString("last_email", "");
+        
+        // MOSTRAR HUELLA SOLO SI HAY DATOS GUARDADOS
+        if (!savedEmail.isEmpty()) {
             btnBiometric.setVisibility(View.VISIBLE);
-            biometricPrompt.authenticate(promptInfo);
-        } else if (!prefs.getString("last_email", "").isEmpty()) {
-            btnBiometric.setVisibility(View.VISIBLE);
+            etEmail.setText(savedEmail);
+            
+            // Si hay sesión activa en Firebase Y datos locales, pedimos huella
+            if (currentUser != null) {
+                biometricPrompt.authenticate(promptInfo);
+            }
+        } else {
+            btnBiometric.setVisibility(View.GONE);
         }
     }
 
@@ -136,23 +124,17 @@ public class LoginActivity extends AppCompatActivity {
         String email = etEmail.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
 
-        if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Completá todos los campos", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        if (email.isEmpty() || password.isEmpty()) return;
 
         btnLogin.setEnabled(false);
-
         mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
                     btnLogin.setEnabled(true);
                     if (task.isSuccessful()) {
-                        // Guardar datos de forma CIFRADA
-                        prefs.edit().putString("last_email", email).apply();
-                        prefs.edit().putString("last_pass", password).apply();
+                        prefs.edit().putString("last_email", email).putString("last_pass", password).apply();
                         goToMain();
                     } else {
-                        Toast.makeText(this, "Error: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "Error de acceso", Toast.LENGTH_SHORT).show();
                     }
                 });
     }

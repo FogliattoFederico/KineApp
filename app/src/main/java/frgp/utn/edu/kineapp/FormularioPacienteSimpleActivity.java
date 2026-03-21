@@ -33,7 +33,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
             "Caja de Ingenieros", "Caja Forense 1ra. Circ.",
             "Caja Forense 2da. Circ.", "Centro Asistencial Rafaela",
             "Ciencias Económicas", "Colonia Suiza ART",
-            "Conferencia Episcopal Argentina", "Corte de Crédito",
+            "Conferencia Episcopal Argentina",
             "Dasuten", "Docto Red", "Docthos", "Energía Salud",
             "Ensalud S.A.", "Federación Médica", "Galeno ART",
             "Grupo San Nicolás", "IAPOS", "IAPOS - Accidente de Tránsito",

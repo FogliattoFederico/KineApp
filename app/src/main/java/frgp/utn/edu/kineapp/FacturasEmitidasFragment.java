@@ -90,6 +90,7 @@ public class FacturasEmitidasFragment extends Fragment {
         chipGroupEstado.setOnCheckedStateChangeListener((group, checkedIds) -> aplicarFiltros());
 
         cargarFacturas();
+        cargarObrasSocialesChips();
     }
 
     private void confirmarEliminacion(Factura factura) {
@@ -131,50 +132,35 @@ public class FacturasEmitidasFragment extends Fragment {
                         return b.getFecha().compareTo(a.getFecha());
                     });
                     
-                    cargarObrasSocialesChips();
                     aplicarFiltros();
                 });
     }
 
     private void cargarObrasSocialesChips() {
-        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        FirebaseFirestore.getInstance()
-                .collection("pacientes")
-                .whereEqualTo("uidKinesiologo", uid)
-                .get()
-                .addOnSuccessListener(query -> {
-                    if (!isAdded()) return;
-                    List<String> obrasSociales = new ArrayList<>();
-                    for (var doc : query.getDocuments()) {
-                        Paciente p = doc.toObject(Paciente.class);
-                        if (p != null && p.getObraSocial() != null && !p.getObraSocial().isEmpty()) {
-                            String os = p.getObraSocial();
-                            if (!os.equalsIgnoreCase("IAPOS") && 
-                                !os.equalsIgnoreCase("Colegio de Kinesiologos") &&
-                                !obrasSociales.contains(os)) {
-                                obrasSociales.add(os);
-                            }
-                        }
-                    }
-                    
-                    chipGroupObrasSociales.removeAllViews();
-                    for (String os : obrasSociales) {
-                        Chip chip = (Chip) getLayoutInflater().inflate(R.layout.layout_chip_filter, chipGroupObrasSociales, false);
-                        chip.setText(os);
-                        
-                        if (os.equals(obraSocialSeleccionada)) chip.setChecked(true);
-                        
-                        chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                            if (isChecked) {
-                                obraSocialSeleccionada = os;
-                            } else if (obraSocialSeleccionada != null && obraSocialSeleccionada.equals(os)) {
-                                obraSocialSeleccionada = null;
-                            }
-                            aplicarFiltros();
-                        });
-                        chipGroupObrasSociales.addView(chip);
-                    }
-                });
+        // Usamos el listado oficial provisto (del PDF)
+        List<String> obrasSociales = new ArrayList<>(Arrays.asList(FormularioPacienteSimpleActivity.OBRAS_SOCIALES));
+        
+        // Eliminamos "Corte de Crédito" si existiera en el listado y ordenamos
+        obrasSociales.remove("Corte de Crédito");
+        Collections.sort(obrasSociales);
+        
+        chipGroupObrasSociales.removeAllViews();
+        for (String os : obrasSociales) {
+            Chip chip = (Chip) getLayoutInflater().inflate(R.layout.layout_chip_filter, chipGroupObrasSociales, false);
+            chip.setText(os);
+            
+            if (os.equals(obraSocialSeleccionada)) chip.setChecked(true);
+            
+            chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked) {
+                    obraSocialSeleccionada = os;
+                } else if (obraSocialSeleccionada != null && obraSocialSeleccionada.equals(os)) {
+                    obraSocialSeleccionada = null;
+                }
+                aplicarFiltros();
+            });
+            chipGroupObrasSociales.addView(chip);
+        }
     }
 
     private void aplicarFiltros() {
@@ -280,9 +266,10 @@ public class FacturasEmitidasFragment extends Fragment {
                 facturaExistente.setFecha(fecha);
                 facturaExistente.setImporte(importe);
                 facturaExistente.setObraSocial(obraSocial);
-                repository.actualizar(facturaExistente).addOnSuccessListener(a -> { cargarFacturas(); dialog.dismiss(); });
+                repository.guardar(facturaExistente).addOnSuccessListener(a -> { cargarFacturas(); dialog.dismiss(); });
             }
         });
+
         dialog.show();
     }
 }
