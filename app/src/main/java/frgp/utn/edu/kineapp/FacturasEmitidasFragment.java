@@ -133,14 +133,16 @@ public class FacturasEmitidasFragment extends Fragment {
                     });
                     
                     aplicarFiltros();
+                })
+                .addOnFailureListener(e -> {
+                    if (isAdded()) {
+                        Toast.makeText(getContext(), "Error de permisos al cargar facturas", Toast.LENGTH_SHORT).show();
+                    }
                 });
     }
 
     private void cargarObrasSocialesChips() {
-        // Usamos el listado oficial provisto (del PDF)
         List<String> obrasSociales = new ArrayList<>(Arrays.asList(FormularioPacienteSimpleActivity.OBRAS_SOCIALES));
-        
-        // Eliminamos "Corte de Crédito" si existiera en el listado y ordenamos
         obrasSociales.remove("Corte de Crédito");
         Collections.sort(obrasSociales);
         
@@ -256,9 +258,10 @@ public class FacturasEmitidasFragment extends Fragment {
             String numero = parte1 + "-" + parte2;
             double importe = Double.parseDouble(importeStr);
             Timestamp fecha = new Timestamp(new Date(fechaSeleccionada[0].getTimeInMillis()));
+            String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
             if (facturaExistente == null) {
-                Factura nueva = new Factura(tipo, numero, fecha, importe, obraSocial, "");
+                Factura nueva = new Factura(tipo, numero, fecha, importe, obraSocial, uid);
                 repository.guardar(nueva).addOnSuccessListener(a -> { cargarFacturas(); dialog.dismiss(); });
             } else {
                 facturaExistente.setTipoComprobante(tipo);
@@ -266,6 +269,7 @@ public class FacturasEmitidasFragment extends Fragment {
                 facturaExistente.setFecha(fecha);
                 facturaExistente.setImporte(importe);
                 facturaExistente.setObraSocial(obraSocial);
+                facturaExistente.setUidKinesiologo(uid);
                 repository.guardar(facturaExistente).addOnSuccessListener(a -> { cargarFacturas(); dialog.dismiss(); });
             }
         });

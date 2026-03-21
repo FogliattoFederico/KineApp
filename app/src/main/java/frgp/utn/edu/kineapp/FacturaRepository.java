@@ -18,22 +18,26 @@ public class FacturaRepository {
     }
 
     public Task<Void> guardar(Factura factura) {
+        // VITAL: Asignar siempre el dueño del dato
         factura.setUidKinesiologo(uid);
-        String id = coleccion.document().getId();
-        factura.setId(id);
-        return coleccion.document(id).set(factura);
+        
+        if (factura.getId() == null || factura.getId().isEmpty()) {
+            // Si es nueva, generamos ID
+            String id = coleccion.document().getId();
+            factura.setId(id);
+        }
+        
+        // Usamos el ID de la factura (sea nuevo o existente) para no duplicar
+        return coleccion.document(factura.getId()).set(factura);
     }
 
-    public Task<Void> actualizar(Factura factura) {
-        return coleccion.document(factura.getId()).set(factura);
+    public Task<Void> actualizarCobrada(String id, boolean cobrada) {
+        // Al usar update, Firebase mantiene el uidKinesiologo existente, por lo que las reglas permiten el cambio
+        return coleccion.document(id).update("cobrada", cobrada);
     }
 
     public Task<Void> eliminar(String id) {
         return coleccion.document(id).delete();
-    }
-
-    public Task<Void> actualizarCobrada(String id, boolean cobrada) {
-        return coleccion.document(id).update("cobrada", cobrada);
     }
 
     public Task<QuerySnapshot> obtenerTodas() {
