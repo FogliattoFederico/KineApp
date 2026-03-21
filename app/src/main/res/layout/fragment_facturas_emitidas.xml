@@ -42,14 +42,14 @@
                     style="@style/Widget.MaterialComponents.Chip.Filter"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Cobradas" />
+                    android:text="Abonadas" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_no_cobradas"
                     style="@style/Widget.MaterialComponents.Chip.Filter"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="No Cobradas" />
+                    android:text="Pendientes de Pago" />
 
             </com.google.android.material.chip.ChipGroup>
         </HorizontalScrollView>

@@ -41,16 +41,22 @@ public class LiquidacionAdapter extends RecyclerView.Adapter<LiquidacionAdapter.
         holder.tvFecha.setText(liq.getFechaLiquidacion() != null ? sdf.format(liq.getFechaLiquidacion().toDate()) : "—");
         holder.tvImporte.setText(String.format(new Locale("es", "AR"), "$ %,.2f", liq.getImporte()));
 
-        long dias = liq.getDiasPendientes();
-        holder.tvDias.setText(dias + " días");
-
-        if (dias >= 60) {
-            holder.tvDias.setTextColor(Color.RED);
-            holder.tvDias.setText(dias + " días (RIESGO DE RETENCIÓN)");
-        } else if (dias >= 45) {
-            holder.tvDias.setTextColor(Color.parseColor("#EF6C00")); // Naranja
+        // Si la liquidación ya está facturada, ocultamos los días pendientes
+        if (liq.isFacturada()) {
+            holder.tvDias.setVisibility(View.GONE);
         } else {
-            holder.tvDias.setTextColor(Color.parseColor("#757575"));
+            holder.tvDias.setVisibility(View.VISIBLE);
+            long dias = liq.getDiasPendientes();
+            holder.tvDias.setText(dias + " días");
+
+            if (dias >= 60) {
+                holder.tvDias.setTextColor(Color.RED);
+                holder.tvDias.setText(dias + " días (RIESGO DE RETENCIÓN)");
+            } else if (dias >= 45) {
+                holder.tvDias.setTextColor(Color.parseColor("#EF6C00")); // Naranja
+            } else {
+                holder.tvDias.setTextColor(Color.parseColor("#757575"));
+            }
         }
 
         holder.itemView.setOnLongClickListener(v -> {
