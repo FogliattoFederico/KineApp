@@ -19,14 +19,14 @@
             android:layout_height="96dp"
             android:layout_marginTop="48dp"
             android:layout_marginBottom="8dp"
-            android:src="@drawable/ic_launcher_foreground"
+            android:src="@mipmap/ic_launcher"
             android:contentDescription="Logo" />
 
         <!-- Título -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="KinesioApp"
+            android:text="KineApp"
             android:textSize="28sp"
             android:textStyle="bold"
             android:textColor="@color/primary"
