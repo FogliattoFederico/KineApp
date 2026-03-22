@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/bg_dialog_rounded">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Finalizar Sesión"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="@color/primary"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Registrá la evolución técnica de hoy."
+        android:textSize="14sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="24dp"/>
+
+    <!-- Campo Objetivos (Abierto para todos) -->
+    <com.google.android.material.textfield.TextInputLayout
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Objetivo de hoy"
+        android:layout_marginBottom="16dp">
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/et_objetivos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textCapSentences"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Campo Observaciones (BLOQUEADO SI ES FREE) -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/til_observaciones"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Observaciones clínicas..."
+        app:counterEnabled="true"
+        app:counterMaxLength="1000">
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/et_observaciones"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="top"
+            android:inputType="textMultiLine"
+            android:lines="4"
+            android:minLines="3"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:id="@+id/tv_premium_hint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="⭐ Las observaciones clínicas requieren el Plan Premium"
+        android:textSize="12sp"
+        android:textColor="@color/primary"
+        android:layout_marginTop="8dp"
+        android:padding="4dp"
+        android:visibility="gone"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_guardar_sesion"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Guardar y Finalizar"
+        android:layout_marginTop="24dp"
+        app:cornerRadius="12dp"/>
+
+</LinearLayout>

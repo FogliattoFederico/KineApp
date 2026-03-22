@@ -152,6 +152,7 @@ public class RegisterActivity extends AppCompatActivity {
         usuario.put("matricula", matricula);
         usuario.put("email", email);
         usuario.put("rol", "kinesiologo");
+        usuario.put("plan", "free"); // Agregamos el plan por defecto para monetización
         usuario.put("modalidadTrabajo", modalidad);
         usuario.put("cantidadBoxes", boxes);
         usuario.put("fechaRegistro", com.google.firebase.Timestamp.now());

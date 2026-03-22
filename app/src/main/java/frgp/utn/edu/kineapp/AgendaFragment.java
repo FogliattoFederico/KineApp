@@ -131,6 +131,12 @@ public class AgendaFragment extends Fragment {
                     Context context = getContext();
                     if (!isAdded() || context == null) return;
                     
+                    // Actualizar el plan del usuario en el adaptador para monetización
+                    String plan = doc.getString("plan");
+                    if (adapter != null) {
+                        adapter.setUserPlan(plan);
+                    }
+
                     String mod = doc.getString("modalidadTrabajo");
                     if (mod != null) {
                         modalidadTrabajoPerfil = mod;

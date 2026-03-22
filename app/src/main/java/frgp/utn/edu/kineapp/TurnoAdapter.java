@@ -8,7 +8,6 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
@@ -61,6 +60,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
     private List<Turno> turnos;
     private OnAtendidoChangeListener listener;
     private Calendar fechaAgenda;
+    private String userPlan = "free"; // Por defecto todos son free hasta que se verifique
 
     public TurnoAdapter(List<Turno> turnos, OnAtendidoChangeListener listener) {
         this.turnos = turnos;
@@ -70,6 +70,10 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
 
     public void setFechaAgenda(Calendar fecha) {
         this.fechaAgenda = fecha != null ? (Calendar) fecha.clone() : Calendar.getInstance();
+    }
+
+    public void setUserPlan(String plan) {
+        this.userPlan = plan != null ? plan : "free";
     }
 
     @NonNull
@@ -156,33 +160,32 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
 
         // Click en el Checkbox para marcar como ATENDIDO
         holder.ivAtendido.setOnClickListener(v -> {
-            if ("Orden".equals(turno.tipoCobertura) && turno.sesionesRestantes <= 0 && !turno.atendido) {
-                new AlertDialog.Builder(v.getContext())
-                        .setTitle("Sesiones finalizadas")
-                        .setMessage(turno.nombrePaciente + " no tiene sesiones restantes.")
-                        .setPositiveButton("Registrar igual", (d, w) -> procesarAtencion(holder, turno))
-                        .setNegativeButton("Cancelar", null).show();
-                return;
+            if (turno.atendido) {
+                desmarcarAtencion(holder, turno);
+            } else {
+                if ("Orden".equals(turno.tipoCobertura) && turno.sesionesRestantes <= 0) {
+                    new AlertDialog.Builder(v.getContext())
+                            .setTitle("Sesiones finalizadas")
+                            .setMessage(turno.nombrePaciente + " no tiene sesiones restantes.")
+                            .setPositiveButton("Registrar igual", (d, w) -> mostrarDialogoRegistroSesion(holder, turno))
+                            .setNegativeButton("Cancelar", null).show();
+                } else {
+                    mostrarDialogoRegistroSesion(holder, turno);
+                }
             }
-            procesarAtencion(holder, turno);
         });
 
-        // --- GESTOS UNIFICADOS ---
-        
-        // TOQUE SIMPLE: Editar turno
         holder.layoutTurno.setOnClickListener(v -> {
             Intent intent = new Intent(v.getContext(), FormularioPacienteActivity.class);
             intent.putExtra("pacienteId", turno.pacienteId);
             v.getContext().startActivity(intent);
         });
 
-        // TOQUE MANTENIDO: Eliminar turno
         holder.layoutTurno.setOnLongClickListener(v -> {
             mostrarConfirmacionEliminar(v.getContext(), turno);
             return true;
         });
 
-        // Ocultamos el icono de menú ya que no se usa más
         holder.ivMenu.setVisibility(View.GONE);
     }
 
@@ -222,11 +225,51 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         });
     }
 
-    private void procesarAtencion(ViewHolder holder, Turno turno) {
+    private void desmarcarAtencion(ViewHolder holder, Turno turno) {
         AtencionRepository repo = new AtencionRepository();
-        turno.atendido = !turno.atendido;
-        if (turno.atendido) {
+        turno.atendido = false;
+        if ("Orden".equals(turno.tipoCobertura)) turno.sesionesRestantes++;
+        if (turno.atencionId != null) {
+            repo.eliminar(turno.atencionId);
+            if ("Orden".equals(turno.tipoCobertura)) {
+                FirebaseFirestore.getInstance().collection("pacientes").document(turno.pacienteId)
+                        .update("sesionesAtendidas", com.google.firebase.firestore.FieldValue.increment(-1));
+            }
+        }
+        actualizarEstado(holder, false);
+        if (listener != null) listener.onChange(turno, false);
+    }
+
+    private void mostrarDialogoRegistroSesion(ViewHolder holder, Turno turno) {
+        View dialogView = LayoutInflater.from(holder.itemView.getContext())
+                .inflate(R.layout.dialog_registro_sesion, null);
+
+        AlertDialog dialog = new AlertDialog.Builder(holder.itemView.getContext(), R.style.CustomDialogTheme)
+                .setView(dialogView)
+                .create();
+
+        com.google.android.material.textfield.TextInputEditText etObjetivos = dialogView.findViewById(R.id.et_objetivos);
+        com.google.android.material.textfield.TextInputEditText etObservaciones = dialogView.findViewById(R.id.et_observaciones);
+        TextView tvPremiumHint = dialogView.findViewById(R.id.tv_premium_hint);
+        com.google.android.material.button.MaterialButton btnGuardar = dialogView.findViewById(R.id.btn_guardar_sesion);
+
+        // --- LÓGICA DE MONETIZACIÓN ---
+        boolean esPremium = "premium".equals(userPlan);
+
+        if (!esPremium) {
+            etObservaciones.setEnabled(false);
+            etObservaciones.setHint("Notas clínicas (Solo Premium ⭐️)");
+            tvPremiumHint.setVisibility(View.VISIBLE);
+        }
+
+        btnGuardar.setOnClickListener(v -> {
+            String objetivos = etObjetivos.getText().toString().trim();
+            String observaciones = esPremium ? etObservaciones.getText().toString().trim() : "";
+
+            AtencionRepository repo = new AtencionRepository();
+            turno.atendido = true;
             if ("Orden".equals(turno.tipoCobertura)) turno.sesionesRestantes--;
+
             int sesionNum = turno.sesionesOrden > 0 ? turno.sesionesOrden - turno.sesionesRestantes : 0;
             Calendar cal = (Calendar) fechaAgenda.clone();
             String[] partes = turno.hora.split(":");
@@ -234,26 +277,26 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
                 cal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(partes[0]));
                 cal.set(Calendar.MINUTE, Integer.parseInt(partes[1]));
             }
-            Atencion atencion = new Atencion(turno.pacienteId, turno.nombrePaciente, turno.modalidad, turno.tipoCobertura, turno.valorSesion, sesionNum, turno.sesionesOrden, "", new com.google.firebase.Timestamp(cal.getTime()));
+
+            Atencion atencion = new Atencion(turno.pacienteId, turno.nombrePaciente, turno.modalidad,
+                    turno.tipoCobertura, turno.valorSesion, sesionNum, turno.sesionesOrden, "",
+                    new com.google.firebase.Timestamp(cal.getTime()));
+            atencion.setObjetivos(objetivos);
+            atencion.setObservaciones(observaciones);
+
             repo.guardar(atencion).addOnSuccessListener(a -> {
                 turno.atencionId = atencion.getId();
                 if ("Orden".equals(turno.tipoCobertura)) {
-                    com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("pacientes").document(turno.pacienteId)
+                    FirebaseFirestore.getInstance().collection("pacientes").document(turno.pacienteId)
                             .update("sesionesAtendidas", com.google.firebase.firestore.FieldValue.increment(1));
                 }
+                actualizarEstado(holder, true);
+                if (listener != null) listener.onChange(turno, true);
+                dialog.dismiss();
             });
-        } else {
-            if ("Orden".equals(turno.tipoCobertura)) turno.sesionesRestantes++;
-            if (turno.atencionId != null) {
-                repo.eliminar(turno.atencionId);
-                if ("Orden".equals(turno.tipoCobertura)) {
-                    com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("pacientes").document(turno.pacienteId)
-                            .update("sesionesAtendidas", com.google.firebase.firestore.FieldValue.increment(-1));
-                }
-            }
-        }
-        actualizarEstado(holder, turno.atendido);
-        if (listener != null) listener.onChange(turno, turno.atendido);
+        });
+
+        dialog.show();
     }
 
     private void actualizarEstado(ViewHolder holder, boolean atendido) {

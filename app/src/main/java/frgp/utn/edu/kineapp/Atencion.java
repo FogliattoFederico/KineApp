@@ -14,6 +14,8 @@ public class Atencion {
     private int sesionNumero;
     private int sesionesTotal;
     private String uidKinesiologo;
+    private String observaciones;
+    private String objetivos;
 
     public Atencion() {}
 
@@ -61,4 +63,10 @@ public class Atencion {
 
     public String getUidKinesiologo() { return uidKinesiologo; }
     public void setUidKinesiologo(String uidKinesiologo) { this.uidKinesiologo = uidKinesiologo; }
+
+    public String getObservaciones() { return observaciones; }
+    public void setObservaciones(String observaciones) { this.observaciones = observaciones; }
+
+    public String getObjetivos() { return objetivos; }
+    public void setObjetivos(String objetivos) { this.objetivos = objetivos; }
 }
