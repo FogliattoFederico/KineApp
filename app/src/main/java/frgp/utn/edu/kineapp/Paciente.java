@@ -1,6 +1,7 @@
 package frgp.utn.edu.kineapp;
 
 import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.Exclude;
 import java.util.List;
 
 public class Paciente {
@@ -35,8 +36,6 @@ public class Paciente {
     private int edad;
     private String email;
 
-
-
     // Constructor vacío requerido por Firestore
     public Paciente() {}
 
@@ -57,7 +56,6 @@ public class Paciente {
         this.fechaAlta = Timestamp.now();
         this.ultimaActualizacion = Timestamp.now();
         this.uidKinesiologo = uidKinesiologo;
-
     }
 
     // Getters y Setters
@@ -105,6 +103,7 @@ public class Paciente {
     public String getUidKinesiologo() { return uidKinesiologo; }
     public void setUidKinesiologo(String uidKinesiologo) { this.uidKinesiologo = uidKinesiologo; }
 
+    @Exclude
     public String getNombreCompleto() {
         return nombre + " " + apellido;
     }

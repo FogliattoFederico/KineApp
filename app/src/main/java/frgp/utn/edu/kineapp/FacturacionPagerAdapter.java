@@ -13,12 +13,15 @@ public class FacturacionPagerAdapter extends FragmentStateAdapter {
     @NonNull
     @Override
     public Fragment createFragment(int position) {
-        if (position == 0) return new FacturasEmitidasFragment();
-        return new PagosColegioFragment();
+        switch (position) {
+            case 0: return new FacturasEmitidasFragment();
+            case 1: return new RemitosFragment();
+            default: return new PagosColegioFragment();
+        }
     }
 
     @Override
     public int getItemCount() {
-        return 2;
+        return 3;
     }
 }

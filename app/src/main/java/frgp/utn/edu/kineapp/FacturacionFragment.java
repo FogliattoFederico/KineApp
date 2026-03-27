@@ -29,8 +29,10 @@ public class FacturacionFragment extends Fragment {
                 "status_bar_height", "dimen", "android");
         if (resourceId > 0) {
             int height = getResources().getDimensionPixelSize(resourceId);
-            spacer.getLayoutParams().height = height;
-            spacer.requestLayout();
+            if (spacer != null) {
+                spacer.getLayoutParams().height = height;
+                spacer.requestLayout();
+            }
         }
         TabLayout tabLayout = view.findViewById(R.id.tab_layout);
         ViewPager2 viewPager = view.findViewById(R.id.view_pager);
@@ -40,7 +42,11 @@ public class FacturacionFragment extends Fragment {
         viewPager.setAdapter(pagerAdapter);
 
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
-            tab.setText(position == 0 ? "Facturas emitidas" : "Pagos del colegio");
+            switch (position) {
+                case 0: tab.setText("Facturas"); break;
+                case 1: tab.setText("Remitos"); break;
+                case 2: tab.setText("Pagos"); break;
+            }
         }).attach();
     }
 }
