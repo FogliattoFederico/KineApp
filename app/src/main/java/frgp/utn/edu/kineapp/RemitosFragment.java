@@ -2,6 +2,8 @@ package frgp.utn.edu.kineapp;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +16,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.textfield.TextInputEditText;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,6 +27,7 @@ public class RemitosFragment extends Fragment {
     private List<Remito> listaRemitos = new ArrayList<>();
     private RemitoRepository repository;
     private RemitoAdapter adapter;
+    private TextInputEditText etBuscar;
 
     @Nullable
     @Override
@@ -40,6 +44,7 @@ public class RemitosFragment extends Fragment {
         repository = new RemitoRepository();
         rvRemitos = view.findViewById(R.id.rv_remitos);
         layoutEmpty = view.findViewById(R.id.layout_empty);
+        etBuscar = view.findViewById(R.id.et_buscar_remito);
         FloatingActionButton fab = view.findViewById(R.id.fab_agregar_remito);
 
         rvRemitos.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -47,7 +52,6 @@ public class RemitosFragment extends Fragment {
         adapter = new RemitoAdapter(listaRemitos, new RemitoAdapter.OnRemitoClickListener() {
             @Override
             public void onClick(Remito remito) {
-                // Ahora al hacer click abrimos el formulario para editar
                 Intent intent = new Intent(getContext(), FormularioRemitoActivity.class);
                 intent.putExtra("remitoId", remito.getId());
                 startActivity(intent);
@@ -59,6 +63,19 @@ public class RemitosFragment extends Fragment {
             }
         });
         rvRemitos.setAdapter(adapter);
+
+        etBuscar.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                adapter.filtrar(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
 
         fab.setOnClickListener(v -> {
             Intent intent = new Intent(getContext(), FormularioRemitoActivity.class);
@@ -85,7 +102,6 @@ public class RemitosFragment extends Fragment {
                 }
             }
             
-            // Ordenamos por fecha (Descendente) en Java para evitar error de índice
             listaRemitos.sort((a, b) -> {
                 if (a.getFechaCreacion() == null) return 1;
                 if (b.getFechaCreacion() == null) return -1;
@@ -93,6 +109,12 @@ public class RemitosFragment extends Fragment {
             });
 
             actualizarVista();
+            
+            // Si había un filtro aplicado, lo volvemos a aplicar
+            if (etBuscar.getText() != null && !etBuscar.getText().toString().isEmpty()) {
+                adapter.filtrar(etBuscar.getText().toString());
+            }
+            
         }).addOnFailureListener(e -> {
             if (isAdded()) {
                 Toast.makeText(getContext(), "Error al cargar remitos: " + e.getMessage(), Toast.LENGTH_SHORT).show();

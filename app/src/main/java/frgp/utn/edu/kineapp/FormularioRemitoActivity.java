@@ -241,10 +241,14 @@ public class FormularioRemitoActivity extends AppCompatActivity {
             remito.setNumeroRemito(numRemito);
         }
 
+        // Deshabilitamos el botón para evitar múltiples guardados
+        btnGuardarRemito.setEnabled(false);
+
         repository.guardar(remito).addOnSuccessListener(unused -> {
             Toast.makeText(this, "Remito guardado correctamente", Toast.LENGTH_SHORT).show();
             finish();
         }).addOnFailureListener(e -> {
+            btnGuardarRemito.setEnabled(true);
             Toast.makeText(this, "Error al guardar: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         });
     }
