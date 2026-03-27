@@ -2,12 +2,14 @@ package frgp.utn.edu.kineapp;
 
 import android.content.Intent;
 import android.app.TimePickerDialog;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
@@ -18,6 +20,7 @@ import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.firestore.FirebaseFirestore;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -490,29 +493,75 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         if (!etValorSesion.getText().toString().isEmpty())
             pacienteExistente.setValorSesion(Double.parseDouble(etValorSesion.getText().toString()));
 
-        guardarEnFirestore(pacienteExistente);
+        guardarEnFirestore(pacienteExistente, horariosNuevos);
     }
 
-    private void guardarEnFirestore(Paciente paciente) {
+    private void guardarEnFirestore(Paciente paciente, List<HorarioAtencion> horariosNuevos) {
         if ("domicilio".equals(paciente.getModalidad()) && paciente.getHorarios() != null) {
-            verificarSuperposicionYGuardar(paciente);
+            verificarSuperposicionYGuardar(paciente, horariosNuevos);
         } else if ("consultorio".equals(paciente.getModalidad()) && paciente.getHorarios() != null) {
-            verificarBoxesYGuardar(paciente);
+            verificarBoxesYGuardar(paciente, horariosNuevos);
         } else {
-            ejecutarGuardado(paciente);
+            ejecutarGuardado(paciente, horariosNuevos);
         }
     }
 
-    private void ejecutarGuardado(Paciente paciente) {
+    private void ejecutarGuardado(Paciente paciente, List<HorarioAtencion> horariosNuevos) {
         repository.guardar(paciente)
                 .addOnSuccessListener(unused -> {
                     Toast.makeText(this, "Guardado correctamente", Toast.LENGTH_SHORT).show();
-                    finish();
+                    if (!modoEdicion) {
+                        preguntarEnviarWhatsApp(paciente, horariosNuevos);
+                    } else {
+                        finish();
+                    }
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
     }
 
-    private void verificarSuperposicionYGuardar(Paciente paciente) {
+    private void preguntarEnviarWhatsApp(Paciente paciente, List<HorarioAtencion> horarios) {
+        if (paciente.getTelefono() == null || paciente.getTelefono().isEmpty()) {
+            finish();
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("Turno registrado")
+                .setMessage("¿Deseás enviar una notificación por WhatsApp al paciente?")
+                .setPositiveButton("Enviar", (dialog, which) -> {
+                    enviarWhatsApp(paciente, horarios);
+                    finish();
+                })
+                .setNegativeButton("Ahora no", (dialog, which) -> finish())
+                .setCancelable(false)
+                .show();
+    }
+
+    private void enviarWhatsApp(Paciente paciente, List<HorarioAtencion> horarios) {
+        try {
+            StringBuilder msj = new StringBuilder("Hola " + paciente.getNombre() + "! Te confirmo tu turno de Kinesiología:\n\n");
+            for (HorarioAtencion h : horarios) {
+                msj.append("📅 ").append(h.getFecha()).append(" (").append(h.getDia()).append(")\n");
+                msj.append("🕒 ").append(h.getHoraInicio()).append(" hs\n\n");
+            }
+            msj.append("Te esperamos!");
+
+            String tel = paciente.getTelefono().replaceAll("[^0-9]", "");
+            // Si el teléfono no empieza con código de país, asumimos Argentina (+54 9)
+            if (!tel.startsWith("54")) {
+                tel = "549" + tel;
+            }
+
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            String url = "https://api.whatsapp.com/send?phone=" + tel + "&text=" + URLEncoder.encode(msj.toString(), "UTF-8");
+            intent.setData(Uri.parse(url));
+            startActivity(intent);
+        } catch (Exception e) {
+            Toast.makeText(this, "No se pudo abrir WhatsApp", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void verificarSuperposicionYGuardar(Paciente paciente, List<HorarioAtencion> horariosNuevos) {
         repository.obtenerTodos().addOnSuccessListener(query -> {
             for (var doc : query.getDocuments()) {
                 if (paciente.getId() != null && doc.getId().equals(paciente.getId())) continue;
@@ -531,11 +580,11 @@ public class FormularioPacienteActivity extends AppCompatActivity {
                     }
                 }
             }
-            ejecutarGuardado(paciente);
+            ejecutarGuardado(paciente, horariosNuevos);
         });
     }
 
-    private void verificarBoxesYGuardar(Paciente paciente) {
+    private void verificarBoxesYGuardar(Paciente paciente, List<HorarioAtencion> horariosNuevos) {
         repository.obtenerTodos().addOnSuccessListener(query -> {
             for (HorarioAtencion hNuevo : paciente.getHorarios()) {
                 if (hNuevo.getFecha() == null || hNuevo.getHoraInicio() == null) continue;
@@ -558,7 +607,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
                     return;
                 }
             }
-            ejecutarGuardado(paciente);
+            ejecutarGuardado(paciente, horariosNuevos);
         });
     }
 
