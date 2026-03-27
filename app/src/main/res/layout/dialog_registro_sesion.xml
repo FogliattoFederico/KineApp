@@ -64,18 +64,6 @@
                 android:minLines="3"/>
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Hint Premium con margen extra -->
-        <TextView
-            android:id="@+id/tv_premium_hint"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="⭐ Las observaciones clínicas requieren el Plan Premium"
-            android:textSize="12sp"
-            android:textColor="@color/primary"
-            android:layout_marginTop="16dp" 
-            android:padding="4dp"
-            android:visibility="gone"/>
-
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_guardar_sesion"
             android:layout_width="match_parent"

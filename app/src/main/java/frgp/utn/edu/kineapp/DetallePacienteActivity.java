@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -72,7 +73,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
                         if (modoTurno) {
                             cargarHistorial();
                         } else {
-                            // En modo "Todos" ocultamos secciones operativas de turnos
                             ocultarSeccion(R.id.label_horarios_seccion, containerHorarios);
                             ocultarSeccion(R.id.label_historial_seccion, containerHistorial);
                         }
@@ -101,14 +101,12 @@ public class DetallePacienteActivity extends AppCompatActivity {
             getSupportActionBar().setTitle(paciente.getNombreCompleto());
         }
 
-        // Badge CUD - Se muestra siempre si lo tiene
         if (paciente.isCertificadoDiscapacidad()) {
             tvBadgeCud.setVisibility(View.VISIBLE);
         } else {
             tvBadgeCud.setVisibility(View.GONE);
         }
 
-        // Badge modalidad - solo en modo turno
         if (modoTurno && paciente.getModalidad() != null) {
             tvBadgeModalidad.setVisibility(View.VISIBLE);
             if ("domicilio".equals(paciente.getModalidad())) {
@@ -122,7 +120,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
             tvBadgeModalidad.setVisibility(View.GONE);
         }
 
-        // Datos Personales Base (Siempre visibles)
         mostrarCampo(R.id.tv_telefono, paciente.getTelefono());
         mostrarCampo(R.id.tv_direccion, paciente.getDireccion());
         
@@ -136,7 +133,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
         if (tvEdad != null) tvEdad.setText(paciente.getEdad() > 0 ? paciente.getEdad() + " años" : "—");
 
         if (modoTurno) {
-            // MODO TURNO: Ficha clínica y tratamiento
             findViewById(R.id.label_clinica_seccion).setVisibility(View.VISIBLE);
             findViewById(R.id.card_clinica).setVisibility(View.VISIBLE);
             mostrarCampo(R.id.tv_diagnostico, paciente.getDiagnostico());
@@ -175,7 +171,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
                 mostrarCampo(R.id.tv_sesiones, String.format(new Locale("es", "AR"), "$ %,.0f", paciente.getValorSesion()));
             }
 
-            // Horarios - ACTUALIZADO PARA MOSTRAR FECHA COMPLETA
             containerHorarios.removeAllViews();
             if (paciente.getHorarios() != null) {
                 for (HorarioAtencion h : paciente.getHorarios()) {
@@ -183,7 +178,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
                     TextView tvDia = fila.findViewById(R.id.tv_dia);
                     TextView tvHorario = fila.findViewById(R.id.tv_horario);
                     
-                    // Mostramos la fecha específica si existe, sino el día recurrente
                     String displayFecha = (h.getFecha() != null && !h.getFecha().isEmpty()) 
                         ? h.getFecha() + " (" + h.getDia() + ")" 
                         : h.getDia();
@@ -194,7 +188,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
                 }
             }
         } else {
-            // MODO TODOS: Ficha administrativa
             findViewById(R.id.label_clinica_seccion).setVisibility(View.GONE);
             findViewById(R.id.card_clinica).setVisibility(View.GONE);
 
@@ -256,17 +249,42 @@ public class DetallePacienteActivity extends AppCompatActivity {
                         TextView tvFecha = fila.findViewById(R.id.tv_fecha_atencion);
                         TextView tvInfo = fila.findViewById(R.id.tv_info_atencion);
                         TextView tvMonto = fila.findViewById(R.id.tv_monto_atencion);
+                        
+                        // Nuevos campos expandibles
+                        View layoutDetalle = fila.findViewById(R.id.layout_detalle_clinico);
+                        TextView tvObjetivo = fila.findViewById(R.id.tv_objetivo_detalle);
+                        TextView tvObs = fila.findViewById(R.id.tv_observaciones_detalle);
+                        ImageView ivExpand = fila.findViewById(R.id.iv_expand);
 
                         if (a.getFecha() != null) tvFecha.setText(sdf.format(a.getFecha().toDate()));
                         String info = a.getTipoCobertura();
                         if (a.getSesionNumero() > 0) info += " · Sesión " + a.getSesionNumero() + "/" + a.getSesionesTotal();
                         tvInfo.setText(info);
+                        
                         if (a.getMonto() > 0) {
                             tvMonto.setVisibility(View.VISIBLE);
                             tvMonto.setText(String.format(new Locale("es", "AR"), "$ %,.0f", a.getMonto()));
                         } else {
                             tvMonto.setVisibility(View.GONE);
                         }
+
+                        // Seteamos la información clínica
+                        tvObjetivo.setText(a.getObjetivos() != null && !a.getObjetivos().isEmpty() 
+                            ? a.getObjetivos() : "Sin objetivos registrados");
+                        tvObs.setText(a.getObservaciones() != null && !a.getObservaciones().isEmpty() 
+                            ? a.getObservaciones() : "Sin observaciones registradas");
+
+                        // Lógica de expansión
+                        fila.setOnClickListener(v -> {
+                            if (layoutDetalle.getVisibility() == View.GONE) {
+                                layoutDetalle.setVisibility(View.VISIBLE);
+                                if (ivExpand != null) ivExpand.setRotation(180f);
+                            } else {
+                                layoutDetalle.setVisibility(View.GONE);
+                                if (ivExpand != null) ivExpand.setRotation(0f);
+                            }
+                        });
+
                         containerHistorial.addView(fila);
                     }
                 });

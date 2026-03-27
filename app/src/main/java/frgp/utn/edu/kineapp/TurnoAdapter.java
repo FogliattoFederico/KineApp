@@ -60,7 +60,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
     private List<Turno> turnos;
     private OnAtendidoChangeListener listener;
     private Calendar fechaAgenda;
-    private String userPlan = "free"; // Por defecto todos son free hasta que se verifique
+    private String userPlan = "free"; 
 
     public TurnoAdapter(List<Turno> turnos, OnAtendidoChangeListener listener) {
         this.turnos = turnos;
@@ -250,21 +250,11 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
 
         com.google.android.material.textfield.TextInputEditText etObjetivos = dialogView.findViewById(R.id.et_objetivos);
         com.google.android.material.textfield.TextInputEditText etObservaciones = dialogView.findViewById(R.id.et_observaciones);
-        TextView tvPremiumHint = dialogView.findViewById(R.id.tv_premium_hint);
         com.google.android.material.button.MaterialButton btnGuardar = dialogView.findViewById(R.id.btn_guardar_sesion);
-
-        // --- LÓGICA DE MONETIZACIÓN ---
-        boolean esPremium = "premium".equals(userPlan);
-
-        if (!esPremium) {
-            etObservaciones.setEnabled(false);
-            etObservaciones.setHint("Notas clínicas (Solo Premium ⭐️)");
-            tvPremiumHint.setVisibility(View.VISIBLE);
-        }
 
         btnGuardar.setOnClickListener(v -> {
             String objetivos = etObjetivos.getText().toString().trim();
-            String observaciones = esPremium ? etObservaciones.getText().toString().trim() : "";
+            String observaciones = etObservaciones.getText().toString().trim();
 
             AtencionRepository repo = new AtencionRepository();
             turno.atendido = true;
