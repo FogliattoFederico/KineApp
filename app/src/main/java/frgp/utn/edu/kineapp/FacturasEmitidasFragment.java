@@ -210,10 +210,14 @@ public class FacturasEmitidasFragment extends Fragment {
         etFecha.setText(sdf.format(fechaSeleccionada[0].getTime()));
         etFecha.setOnClickListener(v -> {
             java.util.Calendar cal = fechaSeleccionada[0];
-            new DatePickerDialog(getContext(), (dp, y, m, d) -> {
+            DatePickerDialog datePickerDialog = new DatePickerDialog(getContext(), (dp, y, m, d) -> {
                 cal.set(y, m, d);
                 etFecha.setText(sdf.format(cal.getTime()));
-            }, cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH)).show();
+            }, cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH));
+            
+            // Establecer fecha máxima como la actual
+            datePickerDialog.getDatePicker().setMaxDate(System.currentTimeMillis());
+            datePickerDialog.show();
         });
 
         List<String> todasObrasSociales = new ArrayList<>(Arrays.asList(FormularioPacienteSimpleActivity.OBRAS_SOCIALES));
