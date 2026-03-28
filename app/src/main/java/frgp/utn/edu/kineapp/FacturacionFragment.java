@@ -45,7 +45,8 @@ public class FacturacionFragment extends Fragment {
             switch (position) {
                 case 0: tab.setText("Facturas"); break;
                 case 1: tab.setText("Remitos"); break;
-                case 2: tab.setText("Pagos"); break;
+                case 2: tab.setText("Órdenes"); break;
+                case 3: tab.setText("Pagos"); break;
             }
         }).attach();
     }

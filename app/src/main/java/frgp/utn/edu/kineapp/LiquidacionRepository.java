@@ -1,9 +1,9 @@
 package frgp.utn.edu.kineapp;
 
 import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
-import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
@@ -18,9 +18,13 @@ public class LiquidacionRepository {
         uidKinesiologo = FirebaseAuth.getInstance().getCurrentUser().getUid();
     }
 
-    public Task<DocumentReference> guardar(LiquidacionColegio liq) {
+    public Task<Void> guardar(LiquidacionColegio liq) {
         liq.setUidKinesiologo(uidKinesiologo);
-        return coleccion.add(liq);
+        if (liq.getId() == null || liq.getId().isEmpty()) {
+            String id = coleccion.document().getId();
+            liq.setId(id);
+        }
+        return coleccion.document(liq.getId()).set(liq);
     }
 
     public Task<QuerySnapshot> obtenerTodas() {

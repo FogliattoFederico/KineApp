@@ -42,7 +42,8 @@ public class PagosColegioFragment extends Fragment {
     private TextView tvTotalAdeudado;
 
     // Para la selección de órdenes
-    private List<OrdenRemito> listaTodasLasOrdenes = new ArrayList<>();
+    private List<Remito> listaRemitosParaActualizar = new ArrayList<>();
+    private List<OrdenRemito> listaOrdenesDisponibles = new ArrayList<>();
     private List<OrdenRemito> ordenesSeleccionadas = new ArrayList<>();
 
     @Nullable
@@ -73,7 +74,10 @@ public class PagosColegioFragment extends Fragment {
                         .setTitle("Eliminar liquidación")
                         .setMessage("¿Deseás borrar este registro definitivamente?")
                         .setPositiveButton("Eliminar", (d, w) -> {
-                            repository.eliminar(liq.getId()).addOnSuccessListener(a -> cargarLiquidaciones());
+                            repository.eliminar(liq.getId()).addOnSuccessListener(a -> {
+                                liberarOrdenes(liq);
+                                cargarLiquidaciones();
+                            });
                         })
                         .setNegativeButton("Cancelar", null)
                         .show();
@@ -98,6 +102,11 @@ public class PagosColegioFragment extends Fragment {
                         .setNegativeButton("Cancelar", null)
                         .show();
             }
+
+            @Override
+            public void onEdit(LiquidacionColegio liq) {
+                mostrarDialogoAgregar(liq);
+            }
         });
 
         rvLiquidaciones.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -109,7 +118,7 @@ public class PagosColegioFragment extends Fragment {
         });
 
         FloatingActionButton fab = view.findViewById(R.id.fab_agregar_liquidacion);
-        fab.setOnClickListener(v -> mostrarDialogoAgregar());
+        fab.setOnClickListener(v -> mostrarDialogoAgregar(null));
 
         cargarLiquidaciones();
         cargarOrdenesDisponibles();
@@ -117,11 +126,22 @@ public class PagosColegioFragment extends Fragment {
 
     private void cargarOrdenesDisponibles() {
         remitoRepository.obtenerTodos().addOnSuccessListener(query -> {
-            listaTodasLasOrdenes.clear();
+            listaRemitosParaActualizar.clear();
+            listaOrdenesDisponibles.clear();
             for (var doc : query.getDocuments()) {
                 Remito r = doc.toObject(Remito.class);
-                if (r != null && r.getOrdenes() != null) {
-                    listaTodasLasOrdenes.addAll(r.getOrdenes());
+                if (r != null) {
+                    r.setId(doc.getId());
+                    listaRemitosParaActualizar.add(r);
+                    if (r.getOrdenes() != null) {
+                        for (OrdenRemito o : r.getOrdenes()) {
+                            o.setParentRemitoId(r.getId());
+                            // Agregamos las que NO están asociadas a un pago
+                            if (!o.isAsociadaAPago()) {
+                                listaOrdenesDisponibles.add(o);
+                            }
+                        }
+                    }
                 }
             }
         });
@@ -189,8 +209,37 @@ public class PagosColegioFragment extends Fragment {
         }
     }
 
-    private void mostrarDialogoAgregar() {
+    private void mostrarDialogoAgregar(LiquidacionColegio liqExistente) {
         ordenesSeleccionadas.clear();
+        if (liqExistente != null && liqExistente.getOrdenesVinculadas() != null) {
+            ordenesSeleccionadas.addAll(liqExistente.getOrdenesVinculadas());
+        }
+        
+        // Recargar para tener lo último (disponibles + las que ya tiene este recibo si estamos editando)
+        remitoRepository.obtenerTodos().addOnSuccessListener(query -> {
+            listaRemitosParaActualizar.clear();
+            listaOrdenesDisponibles.clear();
+            for (var doc : query.getDocuments()) {
+                Remito r = doc.toObject(Remito.class);
+                if (r != null) {
+                    r.setId(doc.getId());
+                    listaRemitosParaActualizar.add(r);
+                    if (r.getOrdenes() != null) {
+                        for (OrdenRemito o : r.getOrdenes()) {
+                            o.setParentRemitoId(r.getId());
+                            // Incluimos si está libre O si ya pertenece a este recibo que estamos editando
+                            if (!o.isAsociadaAPago() || (liqExistente != null && ordenesSeleccionadas.contains(o))) {
+                                listaOrdenesDisponibles.add(o);
+                            }
+                        }
+                    }
+                }
+            }
+            abrirDialogo(liqExistente);
+        });
+    }
+
+    private void abrirDialogo(LiquidacionColegio liqExistente) {
         View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_liquidacion, null);
         TextInputEditText etFecha = dialogView.findViewById(R.id.et_fecha_liq);
         TextInputEditText etImporte = dialogView.findViewById(R.id.et_importe_liq);
@@ -199,6 +248,13 @@ public class PagosColegioFragment extends Fragment {
         
         final Calendar cal = Calendar.getInstance();
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        
+        if (liqExistente != null) {
+            cal.setTime(liqExistente.getFechaLiquidacion().toDate());
+            etImporte.setText(String.valueOf(liqExistente.getImporte()));
+            tvOrdenesSeleccionadas.setText(ordenesSeleccionadas.size() + " orden(es) seleccionada(s)");
+        }
+        
         etFecha.setText(sdf.format(cal.getTime()));
 
         etFecha.setOnClickListener(v -> {
@@ -209,22 +265,20 @@ public class PagosColegioFragment extends Fragment {
         });
 
         btnSeleccionarOrdenes.setOnClickListener(v -> {
-            if (listaTodasLasOrdenes.isEmpty()) {
-                Toast.makeText(getContext(), "No hay órdenes cargadas", Toast.LENGTH_SHORT).show();
+            if (listaOrdenesDisponibles.isEmpty()) {
+                Toast.makeText(getContext(), "No hay órdenes disponibles", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            String[] items = new String[listaTodasLasOrdenes.size()];
-            boolean[] checkedItems = new boolean[listaTodasLasOrdenes.size()];
+            String[] items = new String[listaOrdenesDisponibles.size()];
+            boolean[] checkedItems = new boolean[listaOrdenesDisponibles.size()];
             
-            for (int i = 0; i < listaTodasLasOrdenes.size(); i++) {
-                OrdenRemito o = listaTodasLasOrdenes.get(i);
-                items[i] = String.format("%s\nFecha: %s | OS: %s\nAfiliado: %s | Código: %s",
+            for (int i = 0; i < listaOrdenesDisponibles.size(); i++) {
+                OrdenRemito o = listaOrdenesDisponibles.get(i);
+                items[i] = String.format("%s\nFecha: %s | OS: %s",
                         o.getPacienteNombreCompleto(),
                         o.getFecha(),
-                        o.getObraSocialNombre(),
-                        o.getNumeroAfiliado() != null ? o.getNumeroAfiliado() : "S/N",
-                        o.getCodigoPractica() != null ? o.getCodigoPractica() : "S/C");
+                        o.getObraSocialNombre());
                 
                 checkedItems[i] = ordenesSeleccionadas.contains(o);
             }
@@ -232,7 +286,7 @@ public class PagosColegioFragment extends Fragment {
             new AlertDialog.Builder(getContext())
                     .setTitle("Vincular Órdenes")
                     .setMultiChoiceItems(items, checkedItems, (dialog, which, isChecked) -> {
-                        OrdenRemito o = listaTodasLasOrdenes.get(which);
+                        OrdenRemito o = listaOrdenesDisponibles.get(which);
                         if (isChecked) {
                             if (!ordenesSeleccionadas.contains(o)) ordenesSeleccionadas.add(o);
                         } else {
@@ -250,19 +304,27 @@ public class PagosColegioFragment extends Fragment {
         });
 
         new AlertDialog.Builder(getContext())
-                .setTitle("Nueva Liquidación Pendiente")
+                .setTitle(liqExistente == null ? "Nueva Liquidación Pendiente" : "Editar Liquidación")
                 .setView(dialogView)
-                .setPositiveButton("Agregar", (d, w) -> {
+                .setPositiveButton(liqExistente == null ? "Agregar" : "Guardar", (d, w) -> {
                     String impStr = etImporte.getText().toString().trim();
                     if (!impStr.isEmpty()) {
                         try {
                             double importe = Double.parseDouble(impStr);
-                            LiquidacionColegio liq = new LiquidacionColegio(new Timestamp(cal.getTime()), importe, com.google.firebase.auth.FirebaseAuth.getInstance().getUid());
-                            if (!ordenesSeleccionadas.isEmpty()) {
-                                liq.setOrdenesVinculadas(new ArrayList<>(ordenesSeleccionadas));
+                            LiquidacionColegio liq = liqExistente != null ? liqExistente : new LiquidacionColegio(new Timestamp(cal.getTime()), importe, com.google.firebase.auth.FirebaseAuth.getInstance().getUid());
+                            
+                            // Si editamos, primero liberamos las órdenes viejas que ya no estén
+                            if (liqExistente != null) {
+                                liberarOrdenesNoSeleccionadas(liqExistente, ordenesSeleccionadas);
+                                liq.setFechaLiquidacion(new Timestamp(cal.getTime()));
+                                liq.setImporte(importe);
                             }
+
+                            liq.setOrdenesVinculadas(new ArrayList<>(ordenesSeleccionadas));
+                            
                             repository.guardar(liq)
                                     .addOnSuccessListener(a -> {
+                                        asociarOrdenesConfirmadas();
                                         if (isAdded()) {
                                             cargarLiquidaciones();
                                         }
@@ -279,5 +341,65 @@ public class PagosColegioFragment extends Fragment {
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
+    }
+
+    private void asociarOrdenesConfirmadas() {
+        for (OrdenRemito o : ordenesSeleccionadas) {
+            for (Remito r : listaRemitosParaActualizar) {
+                if (r.getId().equals(o.getParentRemitoId())) {
+                    for (OrdenRemito or : r.getOrdenes()) {
+                        if (or.getId().equals(o.getId())) {
+                            or.setAsociadaAPago(true);
+                            remitoRepository.guardar(r);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void liberarOrdenesNoSeleccionadas(LiquidacionColegio liqOriginal, List<OrdenRemito> nuevasSeleccionadas) {
+        if (liqOriginal.getOrdenesVinculadas() == null) return;
+        
+        for (OrdenRemito antigua : liqOriginal.getOrdenesVinculadas()) {
+            if (!nuevasSeleccionadas.contains(antigua)) {
+                // Esta orden fue desmarcada, hay que liberarla
+                for (Remito r : listaRemitosParaActualizar) {
+                    if (r.getId().equals(antigua.getParentRemitoId())) {
+                        for (OrdenRemito or : r.getOrdenes()) {
+                            if (or.getId().equals(antigua.getId())) {
+                                or.setAsociadaAPago(false);
+                                remitoRepository.guardar(r);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void liberarOrdenes(LiquidacionColegio liq) {
+        if (liq.getOrdenesVinculadas() == null) return;
+        
+        remitoRepository.obtenerTodos().addOnSuccessListener(query -> {
+            for (var doc : query.getDocuments()) {
+                Remito r = doc.toObject(Remito.class);
+                if (r != null) {
+                    r.setId(doc.getId());
+                    boolean modificado = false;
+                    for (OrdenRemito ov : liq.getOrdenesVinculadas()) {
+                        for (OrdenRemito or : r.getOrdenes()) {
+                            if (or.getId().equals(ov.getId())) {
+                                or.setAsociadaAPago(false);
+                                modificado = true;
+                            }
+                        }
+                    }
+                    if (modificado) remitoRepository.guardar(r);
+                }
+            }
+        });
     }
 }

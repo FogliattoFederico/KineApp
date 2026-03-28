@@ -60,7 +60,6 @@ public class FormularioRemitoActivity extends AppCompatActivity {
             toolbar.setTitle("Editar Remito");
             cargarRemito();
         } else {
-            // Agregar una orden vacía por defecto solo si es nuevo
             agregarNuevaOrden(null);
         }
     }
@@ -109,6 +108,9 @@ public class FormularioRemitoActivity extends AppCompatActivity {
     private void agregarNuevaOrden(OrdenRemito datosExistentes) {
         View view = getLayoutInflater().inflate(R.layout.item_orden_remito_formulario, containerOrdenes, false);
         
+        // Almacenamos el objeto original para no perder el ID ni el estado de asociacion
+        view.setTag(datosExistentes);
+
         int numeroOrden = containerOrdenes.getChildCount() + 1;
         TextView tvNumero = view.findViewById(R.id.tv_orden_numero);
         tvNumero.setText(String.valueOf(numeroOrden));
@@ -133,6 +135,10 @@ public class FormularioRemitoActivity extends AppCompatActivity {
             etFecha.setText(datosExistentes.getFecha());
             etPaciente.setText(datosExistentes.getPacienteNombreCompleto(), false);
             etAfiliado.setText(datosExistentes.getNumeroAfiliado());
+            
+            if (datosExistentes.isAsociadaAPago()) {
+                view.setBackgroundColor(getResources().getColor(R.color.background_selected, getTheme()));
+            }
         } else {
             etFecha.setText(sdf.format(Calendar.getInstance().getTime()));
         }
@@ -149,6 +155,10 @@ public class FormularioRemitoActivity extends AppCompatActivity {
         configurarAutocompletePaciente(view);
 
         view.findViewById(R.id.btn_eliminar_orden).setOnClickListener(v -> {
+            if (datosExistentes != null && datosExistentes.isAsociadaAPago()) {
+                Toast.makeText(this, "No se puede eliminar una orden asociada a un pago", Toast.LENGTH_SHORT).show();
+                return;
+            }
             containerOrdenes.removeView(view);
             renumerarOrdenes();
         });
@@ -199,6 +209,7 @@ public class FormularioRemitoActivity extends AppCompatActivity {
         
         for (int i = 0; i < containerOrdenes.getChildCount(); i++) {
             View v = containerOrdenes.getChildAt(i);
+            OrdenRemito or = (OrdenRemito) v.getTag();
             
             AutoCompleteTextView etPacienteInput = v.findViewById(R.id.et_paciente_nombre);
             TextInputEditText etAfiliadoInput = v.findViewById(R.id.et_nro_afiliado);
@@ -222,7 +233,18 @@ public class FormularioRemitoActivity extends AppCompatActivity {
             if (fecha.isEmpty()) { etFechaInput.setError("Requerido"); etFechaInput.requestFocus(); return; }
 
             int cant = Integer.parseInt(cantStr);
-            ordenes.add(new OrdenRemito(osNombre, cant, codigo, fecha, paciente, nroAfiliado));
+            
+            if (or == null) {
+                or = new OrdenRemito(osNombre, cant, codigo, fecha, paciente, nroAfiliado);
+            } else {
+                or.setObraSocialNombre(osNombre);
+                or.setCantidadSesiones(cant);
+                or.setCodigoPractica(codigo);
+                or.setFecha(fecha);
+                or.setPacienteNombreCompleto(paciente);
+                or.setNumeroAfiliado(nroAfiliado);
+            }
+            ordenes.add(or);
         }
 
         if (ordenes.isEmpty()) {
@@ -240,9 +262,7 @@ public class FormularioRemitoActivity extends AppCompatActivity {
             remito.setNumeroRemito(numRemito);
         }
 
-        // Deshabilitamos el botón para evitar múltiples guardados
         btnGuardarRemito.setEnabled(false);
-
         repository.guardar(remito).addOnSuccessListener(unused -> {
             Toast.makeText(this, "Remito guardado correctamente", Toast.LENGTH_SHORT).show();
             finish();

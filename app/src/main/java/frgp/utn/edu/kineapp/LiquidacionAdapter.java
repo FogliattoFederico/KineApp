@@ -19,6 +19,7 @@ public class LiquidacionAdapter extends RecyclerView.Adapter<LiquidacionAdapter.
     public interface OnLiquidacionClickListener {
         void onDelete(LiquidacionColegio liq);
         void onMarkAsFacturada(LiquidacionColegio liq);
+        void onEdit(LiquidacionColegio liq);
     }
 
     public LiquidacionAdapter(List<LiquidacionColegio> liquidaciones, OnLiquidacionClickListener listener) {
@@ -64,7 +65,15 @@ public class LiquidacionAdapter extends RecyclerView.Adapter<LiquidacionAdapter.
             return true;
         });
 
-        holder.itemView.setOnClickListener(v -> listener.onMarkAsFacturada(liq));
+        holder.itemView.setOnClickListener(v -> {
+            if (!liq.isFacturada()) {
+                listener.onEdit(liq);
+            } else {
+                listener.onMarkAsFacturada(liq);
+            }
+        });
+
+        holder.btnFacturar.setOnClickListener(v -> listener.onMarkAsFacturada(liq));
     }
 
     @Override
@@ -79,12 +88,15 @@ public class LiquidacionAdapter extends RecyclerView.Adapter<LiquidacionAdapter.
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvFecha, tvImporte, tvDias;
+        View btnFacturar;
 
         ViewHolder(View v) {
             super(v);
             tvFecha = v.findViewById(R.id.tv_fecha_liquidacion);
             tvImporte = v.findViewById(R.id.tv_importe_liquidacion);
             tvDias = v.findViewById(R.id.tv_dias_pendiente);
+            btnFacturar = v.findViewById(R.id.btn_facturar_liq);
+            if (btnFacturar == null) btnFacturar = v; // Fallback si no existe el id especifico
         }
     }
 }
