@@ -38,7 +38,11 @@ public class OrdenVinculacionAdapter extends RecyclerView.Adapter<OrdenVinculaci
         OrdenRemito o = lista.get(position);
         holder.tvPaciente.setText(o.getPacienteNombreCompleto());
         
-        String remitoTexto = o.getNombreRemito() != null ? "[Remito: " + o.getNombreRemito() + "] " : "";
+        // Solo mostrar información de remito si NO es una orden directa
+        String remitoTexto = "";
+        if (!o.isEsDeRemitoDirecto() && o.getNombreRemito() != null) {
+            remitoTexto = "[Remito: " + o.getNombreRemito() + "] ";
+        }
         
         String detalle = String.format("%sOS: %s | Sesiones: %d | Fecha: %s\nAfiliado: %s | Código: %s", 
                 remitoTexto,
