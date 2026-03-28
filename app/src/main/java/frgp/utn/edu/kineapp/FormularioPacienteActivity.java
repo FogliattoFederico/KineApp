@@ -142,7 +142,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         if (uid == null) return;
         FirebaseFirestore.getInstance().collection("usuarios").document(uid).get()
                 .addOnSuccessListener(doc -> {
-                    professionalNombre = doc.getString("nombre") + " " + doc.getString("apellido");
+                    professionalNombre = (doc.getString("nombre") != null ? doc.getString("nombre") : "") + " " + (doc.getString("apellido") != null ? doc.getString("apellido") : "");
                     professionalDireccionConsultorio = doc.getString("direccionConsultorio");
                     Long boxes = doc.getLong("cantidadBoxes");
                     if (boxes != null) cantidadBoxes = boxes.intValue();
@@ -273,7 +273,6 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         etDireccion.setText(pacienteExistente.getDireccion());
         if (pacienteExistente.getEmail() != null) etEmailPaciente.setText(pacienteExistente.getEmail());
         
-        // Se carga la info clínica cargada en el alta
         etDiagnostico.setText(pacienteExistente.getDiagnostico() != null ? pacienteExistente.getDiagnostico() : "");
         etObservaciones.setText(pacienteExistente.getObservaciones() != null ? pacienteExistente.getObservaciones() : "");
 
@@ -419,17 +418,37 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         new TimePickerDialog(this, (view, hourOfDay, minute) -> campo.setText(String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute)), cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), true).show();
     }
 
-    private boolean esHoraValida(String inicio, String fin) {
-        if (inicio == null || fin == null || inicio.isEmpty() || fin.isEmpty()) return false;
+    private int aMinutos(String hora) {
         try {
-            String[] partsInicio = inicio.split(":");
-            String[] partsFin = fin.split(":");
-            int minInicio = Integer.parseInt(partsInicio[0]) * 60 + Integer.parseInt(partsInicio[1]);
-            int minFin = Integer.parseInt(partsFin[0]) * 60 + Integer.parseInt(partsFin[1]);
-            return minFin > minInicio;
+            if (hora == null || !hora.contains(":")) return -1;
+            String[] partes = hora.split(":");
+            return Integer.parseInt(partes[0].trim()) * 60 + Integer.parseInt(partes[1].trim());
         } catch (Exception e) {
-            return false;
+            return -1;
         }
+    }
+
+    private boolean hayCruce(HorarioAtencion h1, HorarioAtencion h2) {
+        boolean mismaBaseTemporal = false;
+        // Si ambos tienen fecha, comparamos fechas
+        if (h1.getFecha() != null && !h1.getFecha().isEmpty() && h2.getFecha() != null && !h2.getFecha().isEmpty()) {
+            mismaBaseTemporal = h1.getFecha().equals(h2.getFecha());
+        } else {
+            // Si al menos uno es recurrente (sin fecha), comparamos por nombre de día
+            mismaBaseTemporal = h1.getDia().equalsIgnoreCase(h2.getDia());
+        }
+        
+        if (!mismaBaseTemporal) return false;
+
+        int inicio1 = aMinutos(h1.getHoraInicio());
+        int fin1 = aMinutos(h1.getHoraFin());
+        int inicio2 = aMinutos(h2.getHoraInicio());
+        int fin2 = aMinutos(h2.getHoraFin());
+
+        if (inicio1 == -1 || fin1 == -1 || inicio2 == -1 || fin2 == -1) return false;
+
+        // Lógica de cruce de intervalos: (InicioA < FinB) Y (InicioB < FinA)
+        return inicio1 < fin2 && inicio2 < fin1;
     }
 
     private void guardarPaciente() {
@@ -438,7 +457,6 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             return;
         }
 
-        String diagnostico = etDiagnostico.getText().toString().trim();
         String modalidad = getModalidadSeleccionada();
         if (modalidad.isEmpty()) {
             Toast.makeText(this, "Seleccioná la modalidad", Toast.LENGTH_SHORT).show();
@@ -457,9 +475,19 @@ public class FormularioPacienteActivity extends AppCompatActivity {
                 Toast.makeText(this, "Completá fecha, hora de inicio y fin para todos los horarios", Toast.LENGTH_SHORT).show();
                 return;
             }
-            if (!esHoraValida(h.getHoraInicio(), h.getHoraFin())) {
+            if (aMinutos(h.getHoraFin()) <= aMinutos(h.getHoraInicio())) {
                 Toast.makeText(this, "La hora de finalización debe ser posterior a la de inicio", Toast.LENGTH_SHORT).show();
                 return;
+            }
+        }
+
+        // Validar cruce entre los turnos que se están cargando ahora para este mismo paciente
+        for (int i = 0; i < horariosNuevos.size(); i++) {
+            for (int j = i + 1; j < horariosNuevos.size(); j++) {
+                if (hayCruce(horariosNuevos.get(i), horariosNuevos.get(j))) {
+                    Toast.makeText(this, "Error: Estás intentando asignar dos turnos que se superponen entre sí para este paciente.", Toast.LENGTH_LONG).show();
+                    return;
+                }
             }
         }
 
@@ -483,8 +511,6 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             horariosFinales.addAll(horariosNuevos);
         }
 
-        pacienteExistente.setDiagnostico(diagnostico);
-        pacienteExistente.setObservaciones(etObservaciones.getText().toString());
         pacienteExistente.setModalidad(modalidad);
         pacienteExistente.setHorarios(horariosFinales);
         pacienteExistente.setUltimaActualizacion(com.google.firebase.Timestamp.now());
@@ -585,17 +611,17 @@ public class FormularioPacienteActivity extends AppCompatActivity {
     private void verificarSuperposicionYGuardar(Paciente paciente, List<HorarioAtencion> horariosNuevos) {
         repository.obtenerTodos().addOnSuccessListener(query -> {
             for (var doc : query.getDocuments()) {
+                // No comparar contra el mismo paciente que estamos editando
                 if (paciente.getId() != null && doc.getId().equals(paciente.getId())) continue;
+                
                 Paciente existente = doc.toObject(Paciente.class);
                 if (existente == null || existente.getHorarios() == null) continue;
                 if (!"domicilio".equals(existente.getModalidad())) continue;
 
-                for (HorarioAtencion hNuevo : paciente.getHorarios()) {
-                    if (hNuevo.getFecha() == null || hNuevo.getHoraInicio() == null) continue;
+                for (HorarioAtencion hNuevo : horariosNuevos) {
                     for (HorarioAtencion hExistente : existente.getHorarios()) {
-                        if (hNuevo.getFecha().equals(hExistente.getFecha()) && 
-                            hNuevo.getHoraInicio().trim().equals(hExistente.getHoraInicio().trim())) {
-                            Toast.makeText(this, "Horario ocupado en domicilio: " + hNuevo.getFecha() + " " + hNuevo.getHoraInicio() + " por " + existente.getNombreCompleto(), Toast.LENGTH_LONG).show();
+                        if (hayCruce(hNuevo, hExistente)) {
+                            Toast.makeText(this, "Error: El horario del " + hNuevo.getFecha() + " a las " + hNuevo.getHoraInicio() + " ya está ocupado por " + existente.getNombreCompleto() + " (Domicilio)", Toast.LENGTH_LONG).show();
                             return;
                         }
                     }
@@ -607,8 +633,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
 
     private void verificarBoxesYGuardar(Paciente paciente, List<HorarioAtencion> horariosNuevos) {
         repository.obtenerTodos().addOnSuccessListener(query -> {
-            for (HorarioAtencion hNuevo : paciente.getHorarios()) {
-                if (hNuevo.getFecha() == null || hNuevo.getHoraInicio() == null) continue;
+            for (HorarioAtencion hNuevo : horariosNuevos) {
                 int ocupados = 0;
                 for (var doc : query.getDocuments()) {
                     if (paciente.getId() != null && doc.getId().equals(paciente.getId())) continue;
@@ -617,14 +642,13 @@ public class FormularioPacienteActivity extends AppCompatActivity {
                     if (!"consultorio".equals(existente.getModalidad())) continue;
 
                     for (HorarioAtencion hExistente : existente.getHorarios()) {
-                        if (hNuevo.getFecha().equals(hExistente.getFecha()) && 
-                            hNuevo.getHoraInicio().trim().equals(hExistente.getHoraInicio().trim())) {
+                        if (hayCruce(hNuevo, hExistente)) {
                             ocupados++;
                         }
                     }
                 }
                 if (ocupados >= cantidadBoxes) {
-                    Toast.makeText(this, "Sin boxes disponibles el " + hNuevo.getFecha() + " a las " + hNuevo.getHoraInicio(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "Error: Sin boxes disponibles el " + hNuevo.getFecha() + " de " + hNuevo.getHoraInicio() + " a " + hNuevo.getHoraFin() + ". (Ocupados: " + ocupados + "/" + cantidadBoxes + ")", Toast.LENGTH_LONG).show();
                     return;
                 }
             }

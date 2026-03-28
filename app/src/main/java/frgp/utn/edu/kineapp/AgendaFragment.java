@@ -55,7 +55,6 @@ public class AgendaFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // PROTECCIÓN: Verificar si el spacer existe antes de manipularlo
         View spacer = view.findViewById(R.id.status_bar_spacer);
         if (spacer != null) {
             int resourceId = getResources().getIdentifier(
@@ -131,7 +130,6 @@ public class AgendaFragment extends Fragment {
                     Context context = getContext();
                     if (!isAdded() || context == null) return;
                     
-                    // Actualizar el plan del usuario en el adaptador para monetización
                     String plan = doc.getString("plan");
                     if (adapter != null) {
                         adapter.setUserPlan(plan);
@@ -295,6 +293,9 @@ public class AgendaFragment extends Fragment {
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         listaTurnos.clear();
 
+        SimpleDateFormat sdfFiltro = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        String fechaSeleccionada = sdfFiltro.format(fechaActual.getTime());
+
         FirebaseFirestore.getInstance()
                 .collection("pacientes")
                 .whereEqualTo("uidKinesiologo", uid)
@@ -310,8 +311,14 @@ public class AgendaFragment extends Fragment {
                         if (!modalidadActual.equals(p.getModalidad())) continue;
 
                         for (HorarioAtencion h : p.getHorarios()) {
-                            if (normalizarTexto(nombreDia).equalsIgnoreCase(
-                                    normalizarTexto(h.getDia()))) {
+                            boolean coincide;
+                            if (h.getFecha() != null && !h.getFecha().isEmpty()) {
+                                coincide = h.getFecha().equals(fechaSeleccionada);
+                            } else {
+                                coincide = normalizarTexto(nombreDia).equalsIgnoreCase(normalizarTexto(h.getDia()));
+                            }
+
+                            if (coincide) {
                                 String tipoCobertura;
                                 if (p.isParticular()) tipoCobertura = "Particular";
                                 else if (p.isCertificadoDiscapacidad()) tipoCobertura = "CUD";
@@ -337,7 +344,6 @@ public class AgendaFragment extends Fragment {
                             }
                         }
                     }
-                    // PROTECCIÓN: Ordenar manejando posibles nulos en la hora
                     listaTurnos.sort((a, b) -> {
                         if (a.hora == null) return 1;
                         if (b.hora == null) return -1;
