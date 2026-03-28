@@ -70,12 +70,12 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:layout_marginEnd="8dp"
-                        android:hint="DNI del paciente">
+                        android:hint="DNI, Nombre o Apellido">
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_buscar_dni"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="number"
+                            android:inputType="text"
                             android:imeOptions="actionSearch" />
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -140,6 +140,16 @@
                             android:textSize="13sp"
                             android:textColor="@color/text_secondary"
                             android:layout_marginTop="2dp"
+                            android:visibility="gone" />
+
+                        <TextView
+                            android:id="@+id/tv_sesiones_realizadas"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/primary"
+                            android:layout_marginTop="4dp"
                             android:visibility="gone" />
 
                         <TextView
@@ -383,7 +393,7 @@
                     android:id="@+id/tv_titulo_cobertura"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Cobertura médica"
+                    android:text="Cobertura médica (Solo lectura)"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:textColor="@color/primary"
@@ -432,7 +442,9 @@
                         <com.google.android.material.switchmaterial.SwitchMaterial
                             android:id="@+id/switch_particular"
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
+                            android:layout_height="wrap_content"
+                            android:clickable="false"
+                            android:focusable="false" />
 
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -468,7 +480,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="number"
-                        android:imeOptions="actionDone" />
+                        android:clickable="false"
+                        android:focusable="false" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- CUD -->
@@ -476,7 +489,7 @@
                     android:id="@+id/tv_titulo_cud"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Certificado de discapacidad"
+                    android:text="Certificado de discapacidad (Solo lectura)"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:textColor="@color/primary"
@@ -529,7 +542,9 @@
                             <com.google.android.material.switchmaterial.SwitchMaterial
                                 android:id="@+id/switch_discapacidad"
                                 android:layout_width="wrap_content"
-                                android:layout_height="wrap_content" />
+                                android:layout_height="wrap_content"
+                                android:clickable="false"
+                                android:focusable="false" />
 
                         </LinearLayout>
 
@@ -546,7 +561,8 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:inputType="number"
-                                android:imeOptions="actionDone" />
+                                android:clickable="false"
+                                android:focusable="false" />
                         </com.google.android.material.textfield.TextInputLayout>
 
                     </LinearLayout>

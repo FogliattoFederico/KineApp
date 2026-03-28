@@ -122,6 +122,23 @@
 
         </com.google.android.material.chip.ChipGroup>
 
+        <!-- Dirección del consultorio -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_direccion_consultorio"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:hint="Dirección del consultorio"
+            android:visibility="gone">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_direccion_consultorio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPostalAddress"
+                android:imeOptions="actionNext" />
+        </com.google.android.material.textfield.TextInputLayout>
+
         <!-- Boxes (solo consultorio) -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_boxes"

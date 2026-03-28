@@ -132,45 +132,70 @@ public class DetallePacienteActivity extends AppCompatActivity {
         TextView tvEdad = findViewById(R.id.tv_edad_detalle);
         if (tvEdad != null) tvEdad.setText(paciente.getEdad() > 0 ? paciente.getEdad() + " años" : "—");
 
+        // Sección Clínica (solo en modoTurno)
         if (modoTurno) {
             findViewById(R.id.label_clinica_seccion).setVisibility(View.VISIBLE);
             findViewById(R.id.card_clinica).setVisibility(View.VISIBLE);
             mostrarCampo(R.id.tv_diagnostico, paciente.getDiagnostico());
             mostrarCampo(R.id.tv_observaciones, paciente.getObservaciones());
+        } else {
+            findViewById(R.id.label_clinica_seccion).setVisibility(View.GONE);
+            findViewById(R.id.card_clinica).setVisibility(View.GONE);
+        }
 
-            findViewById(R.id.label_cobertura_seccion).setVisibility(View.VISIBLE);
-            findViewById(R.id.card_cobertura).setVisibility(View.VISIBLE);
-            
-            String tipoCobertura;
-            if (paciente.isParticular()) tipoCobertura = "Particular";
-            else if (paciente.isCertificadoDiscapacidad()) tipoCobertura = "CUD";
-            else tipoCobertura = "Orden";
-            
-            mostrarCampo(R.id.tv_tipo_cobertura, tipoCobertura);
+        // Sección Cobertura (Visible siempre)
+        findViewById(R.id.label_cobertura_seccion).setVisibility(View.VISIBLE);
+        findViewById(R.id.card_cobertura).setVisibility(View.VISIBLE);
+        
+        boolean tieneOS = paciente.getObraSocial() != null && !paciente.getObraSocial().isEmpty();
+        boolean tieneCUD = paciente.isCertificadoDiscapacidad();
+        
+        String tipoCobertura;
+        if (paciente.isParticular()) tipoCobertura = "Particular";
+        else if (tieneCUD) tipoCobertura = "Con Obra Social (Posee CUD)";
+        else tipoCobertura = "Con Obra Social";
+        
+        mostrarCampo(R.id.tv_tipo_cobertura, tipoCobertura);
 
-            if (!paciente.isParticular()) {
-                setVisible(R.id.divider_obra_social, R.id.label_obra_social, R.id.tv_obra_social);
-                mostrarCampo(R.id.tv_obra_social, paciente.getObraSocial());
+        // Limpiar visibilidades antes de mostrar
+        findViewById(R.id.divider_obra_social).setVisibility(View.GONE);
+        findViewById(R.id.label_obra_social).setVisibility(View.GONE);
+        findViewById(R.id.tv_obra_social).setVisibility(View.GONE);
+        findViewById(R.id.divider_afiliado).setVisibility(View.GONE);
+        findViewById(R.id.label_numero_afiliado).setVisibility(View.GONE);
+        findViewById(R.id.tv_numero_afiliado).setVisibility(View.GONE);
+        findViewById(R.id.divider_sesiones).setVisibility(View.GONE);
+        findViewById(R.id.label_sesiones).setVisibility(View.GONE);
+        findViewById(R.id.tv_sesiones).setVisibility(View.GONE);
 
+        if (tieneOS) {
+            setVisible(R.id.divider_obra_social, R.id.label_obra_social, R.id.tv_obra_social);
+            mostrarCampo(R.id.tv_obra_social, paciente.getObraSocial());
+
+            if (paciente.getNumeroAfiliado() != null && !paciente.getNumeroAfiliado().isEmpty()) {
                 setVisible(R.id.divider_afiliado, R.id.label_numero_afiliado, R.id.tv_numero_afiliado);
                 mostrarCampo(R.id.tv_numero_afiliado, paciente.getNumeroAfiliado());
-
-                setVisible(R.id.divider_sesiones, R.id.label_sesiones, R.id.tv_sesiones);
-
-                if (paciente.isCertificadoDiscapacidad()) {
-                    ((TextView) findViewById(R.id.label_sesiones)).setText("SESIONES SEMANALES");
-                    mostrarCampo(R.id.tv_sesiones, String.valueOf(paciente.getSesionesSemanales()));
-                } else {
-                    ((TextView) findViewById(R.id.label_sesiones)).setText("SESIONES DE LA ORDEN");
-                    int restantes = paciente.getSesionesOrden() - paciente.getSesionesAtendidas();
-                    mostrarCampo(R.id.tv_sesiones, restantes + " / " + paciente.getSesionesOrden());
-                }
-            } else if (paciente.getValorSesion() > 0) {
-                setVisible(R.id.divider_sesiones, R.id.label_sesiones, R.id.tv_sesiones);
-                ((TextView) findViewById(R.id.label_sesiones)).setText("VALOR SESIÓN");
-                mostrarCampo(R.id.tv_sesiones, String.format(new Locale("es", "AR"), "$ %,.0f", paciente.getValorSesion()));
             }
+        }
 
+        // Mostrar información de sesiones (Siempre visible si hay datos)
+        if (tieneCUD) {
+            setVisible(R.id.divider_sesiones, R.id.label_sesiones, R.id.tv_sesiones);
+            ((TextView) findViewById(R.id.label_sesiones)).setText("SESIONES SEMANALES");
+            mostrarCampo(R.id.tv_sesiones, String.valueOf(paciente.getSesionesSemanales()));
+        } else if (paciente.isParticular() && paciente.getValorSesion() > 0) {
+            setVisible(R.id.divider_sesiones, R.id.label_sesiones, R.id.tv_sesiones);
+            ((TextView) findViewById(R.id.label_sesiones)).setText("VALOR SESIÓN");
+            mostrarCampo(R.id.tv_sesiones, String.format(new Locale("es", "AR"), "$ %,.0f", paciente.getValorSesion()));
+        } else if (paciente.getSesionesOrden() > 0) {
+            setVisible(R.id.divider_sesiones, R.id.label_sesiones, R.id.tv_sesiones);
+            ((TextView) findViewById(R.id.label_sesiones)).setText("SESIONES RESTANTES");
+            int restantes = paciente.getSesionesOrden() - paciente.getSesionesAtendidas();
+            mostrarCampo(R.id.tv_sesiones, restantes + " / " + paciente.getSesionesOrden());
+        }
+
+        // Horarios (solo en modoTurno)
+        if (modoTurno) {
             containerHorarios.removeAllViews();
             if (paciente.getHorarios() != null) {
                 for (HorarioAtencion h : paciente.getHorarios()) {
@@ -185,29 +210,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
                     tvDia.setText(displayFecha);
                     tvHorario.setText(h.getHoraInicio() + " - " + h.getHoraFin());
                     containerHorarios.addView(fila);
-                }
-            }
-        } else {
-            findViewById(R.id.label_clinica_seccion).setVisibility(View.GONE);
-            findViewById(R.id.card_clinica).setVisibility(View.GONE);
-
-            boolean tieneOS = paciente.getObraSocial() != null && !paciente.getObraSocial().isEmpty();
-            boolean tieneCUD = paciente.isCertificadoDiscapacidad();
-
-            findViewById(R.id.label_cobertura_seccion).setVisibility(View.VISIBLE);
-            findViewById(R.id.card_cobertura).setVisibility(View.VISIBLE);
-            
-            String labelTipo = tieneOS ? "Con Obra Social" : "Particular";
-            if (tieneCUD) labelTipo += " (Posee CUD)";
-            mostrarCampo(R.id.tv_tipo_cobertura, labelTipo);
-
-            if (tieneOS) {
-                setVisible(R.id.divider_obra_social, R.id.label_obra_social, R.id.tv_obra_social);
-                mostrarCampo(R.id.tv_obra_social, paciente.getObraSocial());
-                
-                if (paciente.getNumeroAfiliado() != null && !paciente.getNumeroAfiliado().isEmpty()) {
-                    setVisible(R.id.divider_afiliado, R.id.label_numero_afiliado, R.id.tv_numero_afiliado);
-                    mostrarCampo(R.id.tv_numero_afiliado, paciente.getNumeroAfiliado());
                 }
             }
         }
@@ -250,7 +252,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
                         TextView tvInfo = fila.findViewById(R.id.tv_info_atencion);
                         TextView tvMonto = fila.findViewById(R.id.tv_monto_atencion);
                         
-                        // Nuevos campos expandibles
                         View layoutDetalle = fila.findViewById(R.id.layout_detalle_clinico);
                         TextView tvObjetivo = fila.findViewById(R.id.tv_objetivo_detalle);
                         TextView tvObs = fila.findViewById(R.id.tv_observaciones_detalle);
@@ -268,13 +269,11 @@ public class DetallePacienteActivity extends AppCompatActivity {
                             tvMonto.setVisibility(View.GONE);
                         }
 
-                        // Seteamos la información clínica
                         tvObjetivo.setText(a.getObjetivos() != null && !a.getObjetivos().isEmpty() 
                             ? a.getObjetivos() : "Sin objetivos registrados");
                         tvObs.setText(a.getObservaciones() != null && !a.getObservaciones().isEmpty() 
                             ? a.getObservaciones() : "Sin observaciones registradas");
 
-                        // Lógica de expansión
                         fila.setOnClickListener(v -> {
                             if (layoutDetalle.getVisibility() == View.GONE) {
                                 layoutDetalle.setVisibility(View.VISIBLE);

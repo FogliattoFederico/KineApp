@@ -19,8 +19,8 @@ import java.util.Map;
 public class RegisterActivity extends AppCompatActivity {
 
     private EditText etNombre, etApellido, etMatricula, etEmail, etPassword,
-            etConfirmPassword, etBoxes;
-    private TextInputLayout tilBoxes;
+            etConfirmPassword, etBoxes, etDireccionConsultorio;
+    private TextInputLayout tilBoxes, tilDireccionConsultorio;
     private ChipGroup chipGroupModalidad;
     private Button btnRegister;
     private TextView tvLogin;
@@ -43,6 +43,8 @@ public class RegisterActivity extends AppCompatActivity {
         etConfirmPassword = findViewById(R.id.et_confirm_password);
         etBoxes = findViewById(R.id.et_boxes);
         tilBoxes = findViewById(R.id.til_boxes);
+        etDireccionConsultorio = findViewById(R.id.et_direccion_consultorio);
+        tilDireccionConsultorio = findViewById(R.id.til_direccion_consultorio);
         chipGroupModalidad = findViewById(R.id.chip_group_modalidad);
         btnRegister = findViewById(R.id.btn_register);
         tvLogin = findViewById(R.id.tv_login);
@@ -57,6 +59,7 @@ public class RegisterActivity extends AppCompatActivity {
                 }
             }
             tilBoxes.setVisibility(tieneConsultorio ? View.VISIBLE : View.GONE);
+            tilDireccionConsultorio.setVisibility(tieneConsultorio ? View.VISIBLE : View.GONE);
         });
 
         btnRegister.setOnClickListener(v -> registerUser());
@@ -70,6 +73,7 @@ public class RegisterActivity extends AppCompatActivity {
         String email = etEmail.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
         String confirmPassword = etConfirmPassword.getText().toString().trim();
+        String direccionC = etDireccionConsultorio.getText().toString().trim();
 
         if (nombre.isEmpty() || apellido.isEmpty() || matricula.isEmpty() ||
                 email.isEmpty() || password.isEmpty()) {
@@ -122,19 +126,26 @@ public class RegisterActivity extends AppCompatActivity {
                 return;
             }
             boxes = Integer.parseInt(boxesStr);
+            
+            if (direccionC.isEmpty()) {
+                Toast.makeText(this, "Ingresá la dirección del consultorio",
+                        Toast.LENGTH_SHORT).show();
+                return;
+            }
         }
 
         btnRegister.setEnabled(false);
         final String modalidadFinal = modalidad;
         final int boxesFinal = boxes;
         final String matriculaFinal = matricula;
+        final String direccionFinal = direccionC;
 
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         String uid = mAuth.getCurrentUser().getUid();
                         guardarPerfil(uid, nombre, apellido, matriculaFinal, email,
-                                modalidadFinal, boxesFinal);
+                                modalidadFinal, boxesFinal, direccionFinal);
                     } else {
                         btnRegister.setEnabled(true);
                         Toast.makeText(this,
@@ -145,16 +156,17 @@ public class RegisterActivity extends AppCompatActivity {
     }
 
     private void guardarPerfil(String uid, String nombre, String apellido, String matricula,
-                               String email, String modalidad, int boxes) {
+                               String email, String modalidad, int boxes, String direccionConsultorio) {
         Map<String, Object> usuario = new HashMap<>();
         usuario.put("nombre", nombre);
         usuario.put("apellido", apellido);
         usuario.put("matricula", matricula);
         usuario.put("email", email);
         usuario.put("rol", "kinesiologo");
-        usuario.put("plan", "free"); // Agregamos el plan por defecto para monetización
+        usuario.put("plan", "free");
         usuario.put("modalidadTrabajo", modalidad);
         usuario.put("cantidadBoxes", boxes);
+        usuario.put("direccionConsultorio", direccionConsultorio);
         usuario.put("fechaRegistro", com.google.firebase.Timestamp.now());
 
         db.collection("usuarios").document(uid)

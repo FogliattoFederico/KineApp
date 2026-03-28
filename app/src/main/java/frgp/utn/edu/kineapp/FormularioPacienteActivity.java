@@ -19,8 +19,10 @@ import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.net.URLEncoder;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -28,24 +30,26 @@ import java.util.Locale;
 
 public class FormularioPacienteActivity extends AppCompatActivity {
 
-    private TextInputEditText etBuscarDni, etNombre, etApellido, etDni,
+    private TextInputEditText etBuscar, etNombre, etApellido, etDni,
             etTelefono, etDireccion, etDiagnostico, etObservaciones,
             etObraSocial, etNumeroAfiliado, etSesionesSemanales,
             etSesionesOrden, etValorSesion, etEmailPaciente;
     private TextInputLayout tilSesionesSemanales, tilSesionesOrden,
-            tilObraSocial, tilNumeroAfiliado, tilValorSesion, tilEmailPaciente;
+            tilObraSocial, tilNumeroAfiliado, tilValorSesion, tilEmailPaciente, tilBuscar;
     private SwitchMaterial switchDiscapacidad, switchParticular;
     private ChipGroup chipGroupModalidad;
     private LinearLayout containerHorarios, layoutFormulario;
     private MaterialButton btnAgregarHorario, btnBuscarPaciente, btnCrearNuevo;
     private MaterialCardView cardPacienteEncontrado;
-    private TextView tvPacienteEncontradoNombre, tvPacienteEncontradoDni, tvPacienteEncontradoEmail;
+    private TextView tvPacienteEncontradoNombre, tvPacienteEncontradoDni, tvPacienteEncontradoEmail, tvSesionesRealizadas;
     private PacienteRepository repository;
     private Paciente pacienteExistente = null;
     private View layoutCud;
     private TextView tvTituloCud;
     private int cantidadBoxes = 1;
     private boolean modoEdicion = false;
+    private String profesionalNombre = "";
+    private String profesionalDireccionConsultorio = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,23 +57,25 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         setContentView(R.layout.activity_formulario_paciente);
 
         repository = new PacienteRepository();
-        cargarBoxes();
+        cargarDatosProfesional();
 
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
 
-        // Búsqueda DNI
-        etBuscarDni = findViewById(R.id.et_buscar_dni);
+        etBuscar = findViewById(R.id.et_buscar_dni);
+        tilBuscar = findViewById(R.id.til_buscar_dni);
+        if (tilBuscar != null) tilBuscar.setHint("DNI, Nombre o Apellido");
+        
         btnBuscarPaciente = findViewById(R.id.btn_buscar_paciente);
         btnCrearNuevo = findViewById(R.id.btn_crear_nuevo_paciente);
         cardPacienteEncontrado = findViewById(R.id.card_paciente_encontrado);
         tvPacienteEncontradoDni = findViewById(R.id.tv_paciente_encontrado_dni);
         tvPacienteEncontradoNombre = findViewById(R.id.tv_paciente_encontrado_nombre);
         tvPacienteEncontradoEmail = findViewById(R.id.tv_paciente_email);
+        tvSesionesRealizadas = findViewById(R.id.tv_sesiones_realizadas);
         layoutFormulario = findViewById(R.id.layout_formulario_completo);
 
-        // Campos del formulario
         etNombre = findViewById(R.id.et_nombre);
         etApellido = findViewById(R.id.et_apellido);
         etDni = findViewById(R.id.et_dni);
@@ -99,37 +105,13 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         layoutCud = findViewById(R.id.card_cud);
         tvTituloCud = findViewById(R.id.tv_titulo_cud);
 
-        // Ocultar formulario hasta encontrar paciente
         layoutFormulario.setVisibility(View.GONE);
 
-        btnBuscarPaciente.setOnClickListener(v -> buscarPacientePorDni());
+        btnBuscarPaciente.setOnClickListener(v -> buscarPacientes());
         
         btnCrearNuevo.setOnClickListener(v -> {
             Intent intent = new Intent(this, FormularioPacienteSimpleActivity.class);
             startActivity(intent);
-        });
-
-        switchDiscapacidad.setOnCheckedChangeListener((btn, checked) -> {
-            tilSesionesSemanales.setVisibility(checked ? View.VISIBLE : View.GONE);
-            tilSesionesOrden.setVisibility(checked ? View.GONE : View.VISIBLE);
-            actualizarBotonHorario();
-        });
-
-        switchParticular.setOnCheckedChangeListener((btn, checked) -> {
-            tilValorSesion.setVisibility(checked ? View.VISIBLE : View.GONE);
-            actualizarBotonHorario();
-        });
-
-        etSesionesSemanales.addTextChangedListener(new android.text.TextWatcher() {
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            public void afterTextChanged(android.text.Editable s) { actualizarBotonHorario(); }
-        });
-
-        etSesionesOrden.addTextChangedListener(new android.text.TextWatcher() {
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-            public void afterTextChanged(android.text.Editable s) { actualizarBotonHorario(); }
         });
 
         btnAgregarHorario.setOnClickListener(v -> {
@@ -155,44 +137,94 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         }
     }
 
-    private void buscarPacientePorDni() {
-        String dniBusqueda = etBuscarDni.getText().toString().trim();
-        if (dniBusqueda.isEmpty()) {
-            etBuscarDni.setError("Ingresá el DNI");
+    private void cargarDatosProfesional() {
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid == null) return;
+        FirebaseFirestore.getInstance().collection("usuarios").document(uid).get()
+                .addOnSuccessListener(doc -> {
+                    professionalNombre = doc.getString("nombre") + " " + doc.getString("apellido");
+                    professionalDireccionConsultorio = doc.getString("direccionConsultorio");
+                    Long boxes = doc.getLong("cantidadBoxes");
+                    if (boxes != null) cantidadBoxes = boxes.intValue();
+                });
+    }
+    private String professionalNombre = "";
+    private String professionalDireccionConsultorio = "";
+
+    private void buscarPacientes() {
+        String query = etBuscar.getText().toString().trim().toLowerCase();
+        if (query.isEmpty()) {
+            etBuscar.setError("Ingresá un dato para buscar");
             return;
         }
 
         btnBuscarPaciente.setEnabled(false);
         btnBuscarPaciente.setText("Buscando...");
-        btnCrearNuevo.setVisibility(View.GONE);
 
-        repository.buscarPorDni(dniBusqueda)
-                .addOnSuccessListener(query -> {
-                    btnBuscarPaciente.setEnabled(true);
-                    btnBuscarPaciente.setText("Buscar");
+        repository.obtenerTodos().addOnSuccessListener(snapshot -> {
+            btnBuscarPaciente.setEnabled(true);
+            btnBuscarPaciente.setText("Buscar");
+            
+            List<Paciente> resultados = new ArrayList<>();
+            String queryNormalizada = normalizarTexto(query);
 
-                    if (query.isEmpty()) {
-                        cardPacienteEncontrado.setVisibility(View.GONE);
-                        layoutFormulario.setVisibility(View.GONE);
-                        btnCrearNuevo.setVisibility(View.VISIBLE);
-                        Toast.makeText(this, "No se encontró ningún paciente con DNI " + dniBusqueda, Toast.LENGTH_LONG).show();
-                        return;
+            for (var doc : snapshot.getDocuments()) {
+                Paciente p = doc.toObject(Paciente.class);
+                if (p != null) {
+                    p.setId(doc.getId());
+                    boolean coincideDni = p.getDni() != null && p.getDni().contains(query);
+                    boolean coincideNombre = p.getNombre() != null && normalizarTexto(p.getNombre()).contains(queryNormalizada);
+                    boolean coincideApellido = p.getApellido() != null && normalizarTexto(p.getApellido()).contains(queryNormalizada);
+
+                    if (coincideDni || coincideNombre || coincideApellido) {
+                        resultados.add(p);
                     }
+                }
+            }
 
-                    pacienteExistente = query.getDocuments().get(0).toObject(Paciente.class);
-                    pacienteExistente.setId(query.getDocuments().get(0).getId());
+            if (resultados.isEmpty()) {
+                cardPacienteEncontrado.setVisibility(View.GONE);
+                layoutFormulario.setVisibility(View.GONE);
+                btnCrearNuevo.setVisibility(View.VISIBLE);
+                Toast.makeText(this, "No se encontraron pacientes", Toast.LENGTH_SHORT).show();
+            } else if (resultados.size() == 1) {
+                seleccionarPaciente(resultados.get(0));
+            } else {
+                mostrarDialogoSeleccion(resultados);
+            }
+        }).addOnFailureListener(e -> {
+            btnBuscarPaciente.setEnabled(true);
+            btnBuscarPaciente.setText("Buscar");
+            Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        });
+    }
 
-                    actualizarUIHeaderCard();
+    private void mostrarDialogoSeleccion(List<Paciente> resultados) {
+        String[] nombres = new String[resultados.size()];
+        for (int i = 0; i < resultados.size(); i++) {
+            nombres[i] = resultados.get(i).getNombreCompleto() + " (DNI: " + resultados.get(i).getDni() + ")";
+        }
 
-                    cardPacienteEncontrado.setVisibility(View.VISIBLE);
-                    layoutFormulario.setVisibility(View.VISIBLE);
-                    precargarFormulario();
-                })
-                .addOnFailureListener(e -> {
-                    btnBuscarPaciente.setEnabled(true);
-                    btnBuscarPaciente.setText("Buscar");
-                    Toast.makeText(this, "Error al buscar: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+        new AlertDialog.Builder(this)
+                .setTitle("Seleccioná un paciente")
+                .setItems(nombres, (dialog, which) -> seleccionarPaciente(resultados.get(which)))
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    private void seleccionarPaciente(Paciente p) {
+        pacienteExistente = p;
+        btnCrearNuevo.setVisibility(View.GONE);
+        cardPacienteEncontrado.setVisibility(View.VISIBLE);
+        layoutFormulario.setVisibility(View.VISIBLE);
+        actualizarUIHeaderCard();
+        precargarFormulario();
+    }
+
+    private String normalizarTexto(String texto) {
+        if (texto == null) return "";
+        return Normalizer.normalize(texto.toLowerCase(), Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
     }
 
     private void actualizarUIHeaderCard() {
@@ -206,6 +238,14 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             tvPacienteEncontradoEmail.setVisibility(View.VISIBLE);
         } else {
             tvPacienteEncontradoEmail.setVisibility(View.GONE);
+        }
+
+        if (pacienteExistente.isCertificadoDiscapacidad()) {
+            tvSesionesRealizadas.setText("Sesiones semanales: " + pacienteExistente.getSesionesSemanales());
+            tvSesionesRealizadas.setVisibility(View.VISIBLE);
+        } else {
+            tvSesionesRealizadas.setText("Sesiones: " + pacienteExistente.getSesionesAtendidas() + "/" + pacienteExistente.getSesionesOrden());
+            tvSesionesRealizadas.setVisibility(View.VISIBLE);
         }
 
         TextView tvObraSocialCard = findViewById(R.id.tv_paciente_obra_social);
@@ -235,6 +275,16 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         etDireccion.setText(pacienteExistente.getDireccion());
         if (pacienteExistente.getEmail() != null) etEmailPaciente.setText(pacienteExistente.getEmail());
 
+        etNombre.setEnabled(false);
+        etApellido.setEnabled(false);
+        etDni.setEnabled(false);
+        etTelefono.setEnabled(false);
+        etEmailPaciente.setEnabled(false);
+        switchDiscapacidad.setEnabled(false);
+        switchParticular.setEnabled(false);
+        etSesionesSemanales.setEnabled(false);
+        etSesionesOrden.setEnabled(false);
+
         boolean tieneOS = pacienteExistente.getObraSocial() != null && !pacienteExistente.getObraSocial().isEmpty();
         boolean tieneCUD = pacienteExistente.isCertificadoDiscapacidad();
 
@@ -243,24 +293,28 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             switchParticular.setChecked(false);
         } else {
             findViewById(R.id.card_particular).setVisibility(View.VISIBLE);
-            if (!modoEdicion) switchParticular.setChecked(true);
+            switchParticular.setChecked(true);
         }
 
         if (tieneCUD) {
             findViewById(R.id.card_cud).setVisibility(View.VISIBLE);
             tvTituloCud.setVisibility(View.VISIBLE);
-            if (!modoEdicion) switchDiscapacidad.setChecked(true);
+            switchDiscapacidad.setChecked(true);
+            tilSesionesSemanales.setVisibility(View.VISIBLE);
+            tilSesionesOrden.setVisibility(View.GONE);
+            etSesionesSemanales.setText(String.valueOf(pacienteExistente.getSesionesSemanales()));
         } else {
             findViewById(R.id.card_cud).setVisibility(View.GONE);
             tvTituloCud.setVisibility(View.GONE);
             switchDiscapacidad.setChecked(false);
+            tilSesionesSemanales.setVisibility(View.GONE);
+            tilSesionesOrden.setVisibility(View.VISIBLE);
+            etSesionesOrden.setText(String.valueOf(pacienteExistente.getSesionesOrden()));
         }
 
         if (modoEdicion) {
             etDiagnostico.setText(pacienteExistente.getDiagnostico());
             etObservaciones.setText(pacienteExistente.getObservaciones());
-            etObraSocial.setText(pacienteExistente.getObraSocial());
-            etNumeroAfiliado.setText(pacienteExistente.getNumeroAfiliado());
             
             String modalidad = pacienteExistente.getModalidad();
             if ("domicilio".equals(modalidad)) {
@@ -271,22 +325,12 @@ public class FormularioPacienteActivity extends AppCompatActivity {
                 if (chip != null) chip.setChecked(true);
             }
 
-            switchParticular.setChecked(pacienteExistente.isParticular());
-            switchDiscapacidad.setChecked(pacienteExistente.isCertificadoDiscapacidad());
-
             if (pacienteExistente.isParticular()) {
                 etValorSesion.setText(String.valueOf(pacienteExistente.getValorSesion()));
-            } else if (pacienteExistente.isCertificadoDiscapacidad()) {
-                etSesionesSemanales.setText(String.valueOf(pacienteExistente.getSesionesSemanales()));
-            } else {
-                etSesionesOrden.setText(String.valueOf(pacienteExistente.getSesionesOrden()));
             }
         } else {
             etDiagnostico.setText("");
             etObservaciones.setText("");
-            etSesionesSemanales.setText("");
-            etSesionesOrden.setText("");
-            etValorSesion.setText("");
             if (chipGroupModalidad != null) chipGroupModalidad.clearCheck();
         }
 
@@ -302,37 +346,30 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         return "";
     }
 
-    private boolean sesionesIngresadas() {
-        if (switchParticular.isChecked()) return true;
-        if (switchDiscapacidad.isChecked())
-            return !etSesionesSemanales.getText().toString().trim().isEmpty();
-        return !etSesionesOrden.getText().toString().trim().isEmpty();
-    }
-
     private boolean puedeAgregarHorario() {
-        if (!sesionesIngresadas()) return false;
-        if (switchDiscapacidad.isChecked()) {
-            String txt = etSesionesSemanales.getText().toString().trim();
-            if (txt.isEmpty()) return false;
-            int req = Integer.parseInt(txt);
-            int totalTurnos = containerHorarios.getChildCount();
-            if (!modoEdicion && pacienteExistente != null && pacienteExistente.getHorarios() != null) {
-                totalTurnos += pacienteExistente.getHorarios().size();
-            }
-            return totalTurnos < req;
+        if (pacienteExistente == null) return false;
+        
+        int turnosActuales = containerHorarios.getChildCount();
+        
+        if (pacienteExistente.isCertificadoDiscapacidad()) {
+            int maxSemanales = pacienteExistente.getSesionesSemanales();
+            return turnosActuales < maxSemanales;
+        } else {
+            int restantes = pacienteExistente.getSesionesOrden() - pacienteExistente.getSesionesAtendidas();
+            return turnosActuales < restantes;
         }
-        return true;
     }
 
     private void actualizarBotonHorario() {
         boolean puede = puedeAgregarHorario();
         btnAgregarHorario.setEnabled(puede);
-        if (!sesionesIngresadas())
-            btnAgregarHorario.setText("Ingresá la cantidad de sesiones primero");
-        else if (!puede)
-            btnAgregarHorario.setText("Límite de horarios alcanzado");
-        else
+        if (pacienteExistente == null) {
+             btnAgregarHorario.setText("Buscá al paciente primero");
+        } else if (!puede) {
+            btnAgregarHorario.setText("Límite de sesiones alcanzado");
+        } else {
             btnAgregarHorario.setText("+ Agregar horario");
+        }
     }
 
     private void agregarFilaHorario(HorarioAtencion horario) {
@@ -411,7 +448,6 @@ public class FormularioPacienteActivity extends AppCompatActivity {
 
         List<HorarioAtencion> horariosNuevos = obtenerHorarios();
         
-        // --- VALIDACIÓN DE FECHA Y HORA (Fix BUG) ---
         if (horariosNuevos.size() < containerHorarios.getChildCount()) {
              Toast.makeText(this, "Completá fecha y horas para todos los turnos", Toast.LENGTH_SHORT).show();
              return;
@@ -448,48 +484,12 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             horariosFinales.addAll(horariosNuevos);
         }
 
-        if (switchDiscapacidad.isChecked()) {
-            String sessStr = etSesionesSemanales.getText().toString().trim();
-            if (sessStr.isEmpty()) {
-                Toast.makeText(this, "Ingresá sesiones semanales", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            int req = Integer.parseInt(sessStr);
-            if (horariosFinales.size() > req) {
-                Toast.makeText(this, "No se puede guardar: El paciente tiene " + horariosFinales.size() + 
-                        " turnos asignados, pero el límite semanal es de " + req, Toast.LENGTH_LONG).show();
-                return;
-            }
-            if (horariosFinales.size() < req) {
-                Toast.makeText(this, "Debés asignar las " + req + " sesiones semanales (actualmente tiene " + 
-                        horariosFinales.size() + ")", Toast.LENGTH_LONG).show();
-                return;
-            }
-        } else if (!switchParticular.isChecked()) {
-            String sessStr = etSesionesOrden.getText().toString().trim();
-            if (!sessStr.isEmpty()) {
-                int totalOrden = Integer.parseInt(sessStr);
-                if (horariosFinales.size() > totalOrden) {
-                    Toast.makeText(this, "Error: Los turnos asignados (" + horariosFinales.size() + 
-                            ") superan el total de la orden (" + totalOrden + ")", Toast.LENGTH_LONG).show();
-                    return;
-                }
-            }
-        }
-
         pacienteExistente.setDiagnostico(diagnostico);
         pacienteExistente.setObservaciones(etObservaciones.getText().toString());
-        pacienteExistente.setEmail(etEmailPaciente.getText().toString());
-        pacienteExistente.setCertificadoDiscapacidad(switchDiscapacidad.isChecked());
-        pacienteExistente.setParticular(switchParticular.isChecked());
         pacienteExistente.setModalidad(modalidad);
         pacienteExistente.setHorarios(horariosFinales);
         pacienteExistente.setUltimaActualizacion(com.google.firebase.Timestamp.now());
 
-        if (!etSesionesSemanales.getText().toString().isEmpty())
-            pacienteExistente.setSesionesSemanales(Integer.parseInt(etSesionesSemanales.getText().toString()));
-        if (!etSesionesOrden.getText().toString().isEmpty())
-            pacienteExistente.setSesionesOrden(Integer.parseInt(etSesionesOrden.getText().toString()));
         if (!etValorSesion.getText().toString().isEmpty())
             pacienteExistente.setValorSesion(Double.parseDouble(etValorSesion.getText().toString()));
 
@@ -539,15 +539,34 @@ public class FormularioPacienteActivity extends AppCompatActivity {
 
     private void enviarWhatsApp(Paciente paciente, List<HorarioAtencion> horarios) {
         try {
-            StringBuilder msj = new StringBuilder("Hola " + paciente.getNombre() + "! Te confirmo tu turno de Kinesiología:\n\n");
-            for (HorarioAtencion h : horarios) {
-                msj.append("📅 ").append(h.getFecha()).append(" (").append(h.getDia()).append(")\n");
-                msj.append("🕒 ").append(h.getHoraInicio()).append(" hs\n\n");
+            String modal = paciente.getModalidad();
+            StringBuilder msj = new StringBuilder();
+            
+            msj.append("Hola ").append(paciente.getNombre()).append("! ");
+            
+            if ("domicilio".equals(modal)) {
+                msj.append("Te confirmo que te visitaré para tu sesión de Kinesiología:\n\n");
+            } else {
+                msj.append("Te confirmo tu turno de Kinesiología en consultorio:\n\n");
             }
-            msj.append("Te esperamos!");
+
+            for (HorarioAtencion h : horarios) {
+                msj.append("📅 *").append(h.getFecha()).append("* (").append(h.getDia()).append(")\n");
+                msj.append("🕒 *").append(h.getHoraInicio()).append(" hs*\n\n");
+            }
+
+            if ("consultorio".equals(modal) && professionalDireccionConsultorio != null && !professionalDireccionConsultorio.isEmpty()) {
+                msj.append("📍 Dirección: ").append(professionalDireccionConsultorio).append("\n\n");
+            }
+
+            if (professionalNombre != null && !professionalNombre.isEmpty()) {
+                msj.append("Atiende: ").append(professionalNombre).append("\n");
+            }
+
+            msj.append("\n⚠️ *Por favor, avisame con anticipación si no podés asistir.*");
+            msj.append("\n\nTe esperamos!");
 
             String tel = paciente.getTelefono().replaceAll("[^0-9]", "");
-            // Si el teléfono no empieza con código de país, asumimos Argentina (+54 9)
             if (!tel.startsWith("54")) {
                 tel = "549" + tel;
             }
@@ -624,7 +643,6 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             Object tag = etFecha.getTag();
 
             if (tag == null || inicio.isEmpty() || fin.isEmpty()) {
-                // Si no hay tag (fecha) o faltan horas, no lo tomamos como válido
                 continue;
             }
 

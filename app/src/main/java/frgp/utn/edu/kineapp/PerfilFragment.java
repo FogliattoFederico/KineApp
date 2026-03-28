@@ -25,8 +25,8 @@ public class PerfilFragment extends Fragment {
 
     private TextView tvAvatar;
     private TextInputEditText etNombre, etApellido, etMatricula,
-            etEmail, etPassword, etConfirmPassword, etBoxes;
-    private TextInputLayout tilBoxes;
+            etEmail, etPassword, etConfirmPassword, etBoxes, etDireccionConsultorio;
+    private TextInputLayout tilBoxes, tilDireccionConsultorio;
     private ChipGroup chipGroupModalidad;
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
@@ -55,6 +55,8 @@ public class PerfilFragment extends Fragment {
         etConfirmPassword = view.findViewById(R.id.et_confirm_password);
         etBoxes = view.findViewById(R.id.et_boxes);
         tilBoxes = view.findViewById(R.id.til_boxes);
+        etDireccionConsultorio = view.findViewById(R.id.et_direccion_consultorio);
+        tilDireccionConsultorio = view.findViewById(R.id.til_direccion_consultorio);
         chipGroupModalidad = view.findViewById(R.id.chip_group_modalidad);
 
         chipGroupModalidad.setOnCheckedStateChangeListener((group, checkedIds) -> {
@@ -67,6 +69,7 @@ public class PerfilFragment extends Fragment {
                 }
             }
             tilBoxes.setVisibility(tieneConsultorio ? View.VISIBLE : View.GONE);
+            tilDireccionConsultorio.setVisibility(tieneConsultorio ? View.VISIBLE : View.GONE);
         });
 
         MaterialButton btnGuardar = view.findViewById(R.id.btn_guardar_perfil);
@@ -97,6 +100,7 @@ public class PerfilFragment extends Fragment {
                     String apellido = doc.getString("apellido");
                     String matricula = doc.getString("matricula");
                     String modalidad = doc.getString("modalidadTrabajo");
+                    String direccionC = doc.getString("direccionConsultorio");
                     Long boxes = doc.getLong("cantidadBoxes");
 
                     if (nombre != null) {
@@ -105,8 +109,8 @@ public class PerfilFragment extends Fragment {
                     }
                     if (apellido != null) etApellido.setText(apellido);
                     if (matricula != null) etMatricula.setText(matricula);
+                    if (direccionC != null) etDireccionConsultorio.setText(direccionC);
 
-                    // Cargar modalidad en chips
                     if (modalidad != null) {
                         if (modalidad.equals("domicilio") || modalidad.equals("ambos")) {
                             Chip chip = chipGroupModalidad.findViewById(R.id.chip_domicilio);
@@ -116,6 +120,7 @@ public class PerfilFragment extends Fragment {
                             Chip chip = chipGroupModalidad.findViewById(R.id.chip_consultorio);
                             if (chip != null) chip.setChecked(true);
                             tilBoxes.setVisibility(View.VISIBLE);
+                            tilDireccionConsultorio.setVisibility(View.VISIBLE);
                         }
                     }
 
@@ -149,6 +154,7 @@ public class PerfilFragment extends Fragment {
         String password = etPassword.getText().toString().trim();
         String confirmPassword = etConfirmPassword.getText().toString().trim();
         String modalidad = getModalidadSeleccionada();
+        String direccionC = etDireccionConsultorio.getText().toString().trim();
 
         if (nombre.isEmpty() || apellido.isEmpty()) {
             Toast.makeText(getContext(), "Nombre y apellido son obligatorios",
@@ -171,16 +177,8 @@ public class PerfilFragment extends Fragment {
                 return;
             }
             boxes = Integer.parseInt(boxesStr);
-        }
-
-        if (!password.isEmpty()) {
-            if (!password.equals(confirmPassword)) {
-                Toast.makeText(getContext(), "Las contraseñas no coinciden",
-                        Toast.LENGTH_SHORT).show();
-                return;
-            }
-            if (password.length() < 6) {
-                Toast.makeText(getContext(), "La contraseña debe tener al menos 6 caracteres",
+            if (direccionC.isEmpty()) {
+                Toast.makeText(getContext(), "Ingresá la dirección del consultorio",
                         Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -189,14 +187,13 @@ public class PerfilFragment extends Fragment {
         FirebaseUser user = mAuth.getCurrentUser();
         if (user == null) return;
 
-        final int boxesFinal = boxes;
-
         Map<String, Object> datos = new HashMap<>();
         datos.put("nombre", nombre);
         datos.put("apellido", apellido);
         datos.put("matricula", matricula);
         datos.put("modalidadTrabajo", modalidad);
-        datos.put("cantidadBoxes", boxesFinal);
+        datos.put("cantidadBoxes", boxes);
+        datos.put("direccionConsultorio", direccionC);
 
         db.collection("usuarios").document(user.getUid())
                 .update(datos)

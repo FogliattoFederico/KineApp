@@ -20,8 +20,8 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
 
     private TextInputEditText etNombre, etApellido, etDni, etTelefono,
             etDireccion, etFechaNacimiento, etEdad, etNumeroAfiliado,
-            etEmailPaciente;
-    private TextInputLayout tilObraSocial, tilNumeroAfiliado;
+            etEmailPaciente, etSesionesSemanales, etSesionesOrden;
+    private TextInputLayout tilObraSocial, tilNumeroAfiliado, tilSesionesSemanales, tilSesionesOrden;
     private AutoCompleteTextView etObraSocial;
     private SwitchMaterial switchObraSocial, switchCud;
     private PacienteRepository repository;
@@ -69,8 +69,14 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         etObraSocial = findViewById(R.id.et_obra_social);
         etNumeroAfiliado = findViewById(R.id.et_numero_afiliado);
         etEmailPaciente = findViewById(R.id.et_email_paciente);
+        etSesionesSemanales = findViewById(R.id.et_sesiones_semanales);
+        etSesionesOrden = findViewById(R.id.et_sesiones_orden);
+
         tilObraSocial = findViewById(R.id.til_obra_social);
         tilNumeroAfiliado = findViewById(R.id.til_numero_afiliado);
+        tilSesionesSemanales = findViewById(R.id.til_sesiones_semanales);
+        tilSesionesOrden = findViewById(R.id.til_sesiones_orden);
+
         switchObraSocial = findViewById(R.id.switch_obra_social);
         switchCud = findViewById(R.id.switch_cud);
 
@@ -80,6 +86,16 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
             if (!checked) {
                 etObraSocial.setText("");
                 etNumeroAfiliado.setText("");
+            }
+        });
+
+        switchCud.setOnCheckedChangeListener((btn, checked) -> {
+            tilSesionesSemanales.setVisibility(checked ? View.VISIBLE : View.GONE);
+            tilSesionesOrden.setVisibility(checked ? View.GONE : View.VISIBLE);
+            if (checked) {
+                etSesionesOrden.setText("");
+            } else {
+                etSesionesSemanales.setText("");
             }
         });
 
@@ -153,6 +169,15 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
                     }
 
                     switchCud.setChecked(pacienteExistente.isCertificadoDiscapacidad());
+                    if (pacienteExistente.isCertificadoDiscapacidad()) {
+                        tilSesionesSemanales.setVisibility(View.VISIBLE);
+                        tilSesionesOrden.setVisibility(View.GONE);
+                        etSesionesSemanales.setText(String.valueOf(pacienteExistente.getSesionesSemanales()));
+                    } else {
+                        tilSesionesSemanales.setVisibility(View.GONE);
+                        tilSesionesOrden.setVisibility(View.VISIBLE);
+                        etSesionesOrden.setText(String.valueOf(pacienteExistente.getSesionesOrden()));
+                    }
 
                     if (pacienteExistente.getFechaNacimiento() != null)
                         etFechaNacimiento.setText(pacienteExistente.getFechaNacimiento());
@@ -176,6 +201,9 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         String edadStr = etEdad.getText().toString().trim();
         int edad = edadStr.isEmpty() ? 0 : Integer.parseInt(edadStr);
 
+        String sesionesSemStr = etSesionesSemanales.getText().toString().trim();
+        String sesionesTotStr = etSesionesOrden.getText().toString().trim();
+
         if (nombre.isEmpty()) { etNombre.setError("Requerido"); etNombre.requestFocus(); return; }
         if (apellido.isEmpty()) { etApellido.setError("Requerido"); etApellido.requestFocus(); return; }
         if (dni.isEmpty()) { etDni.setError("Requerido"); etDni.requestFocus(); return; }
@@ -183,6 +211,18 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         if (direccion.isEmpty()) { etDireccion.setError("Requerido"); etDireccion.requestFocus(); return; }
         if (fechaNac.isEmpty()) { etFechaNacimiento.setError("Requerido"); etFechaNacimiento.requestFocus(); return; }
         if (emailPaciente.isEmpty()) { etEmailPaciente.setError("Requerido"); etEmailPaciente.requestFocus(); return; }
+        
+        if (tieneCud && sesionesSemStr.isEmpty()) {
+            etSesionesSemanales.setError("Requerido");
+            etSesionesSemanales.requestFocus();
+            return;
+        }
+        if (!tieneCud && sesionesTotStr.isEmpty()) {
+            etSesionesOrden.setError("Requerido");
+            etSesionesOrden.requestFocus();
+            return;
+        }
+
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(emailPaciente).matches()) {
             etEmailPaciente.setError("Email inválido");
             etEmailPaciente.requestFocus();
@@ -202,6 +242,8 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         final int edadFinal = edad;
         final String fechaNacFinal = fechaNac;
         final String emailFinal = emailPaciente;
+        final int sesSem = tieneCud ? Integer.parseInt(sesionesSemStr) : 0;
+        final int sesTot = !tieneCud ? Integer.parseInt(sesionesTotStr) : 0;
 
         if (pacienteExistente == null) {
             repository.buscarPorDni(dni)
@@ -217,7 +259,9 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
                         nuevo.setFechaNacimiento(fechaNacFinal);
                         nuevo.setEdad(edadFinal);
                         nuevo.setEmail(emailFinal);
-                        nuevo.setParticular(!tieneOS); // ACTUALIZACIÓN AUTOMÁTICA
+                        nuevo.setParticular(!tieneOS);
+                        nuevo.setSesionesSemanales(sesSem);
+                        nuevo.setSesionesOrden(sesTot);
                         repository.guardar(nuevo)
                                 .addOnSuccessListener(unused -> {
                                     Toast.makeText(this, "Paciente guardado",
@@ -240,7 +284,9 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
             pacienteExistente.setFechaNacimiento(fechaNacFinal);
             pacienteExistente.setEdad(edadFinal);
             pacienteExistente.setEmail(emailFinal);
-            pacienteExistente.setParticular(!tieneOS); // ACTUALIZACIÓN AUTOMÁTICA
+            pacienteExistente.setParticular(!tieneOS);
+            pacienteExistente.setSesionesSemanales(sesSem);
+            pacienteExistente.setSesionesOrden(sesTot);
             repository.guardar(pacienteExistente)
                     .addOnSuccessListener(unused -> {
                         Toast.makeText(this, "Paciente guardado",
