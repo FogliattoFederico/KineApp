@@ -1,5 +1,6 @@
 package frgp.utn.edu.kineapp;
 
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -36,12 +37,39 @@ public class OrdenVinculacionAdapter extends RecyclerView.Adapter<OrdenVinculaci
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         OrdenRemito o = lista.get(position);
         holder.tvPaciente.setText(o.getPacienteNombreCompleto());
-        holder.tvDetalle.setText(String.format("OS: %s | Sesiones: %d | Fecha: %s\nAfiliado: %s | Código: %s", 
+        
+        String detalle = String.format("OS: %s | Sesiones: %d | Fecha: %s\nAfiliado: %s | Código: %s", 
                 o.getObraSocialNombre(), o.getCantidadSesiones(), o.getFecha(),
                 o.getNumeroAfiliado() != null ? o.getNumeroAfiliado() : "-",
-                o.getCodigoPractica() != null ? o.getCodigoPractica() : "-"));
+                o.getCodigoPractica() != null ? o.getCodigoPractica() : "-");
         
-        holder.btnAccion.setText(o.isAsociadaAPago() ? "Marcar Pendiente" : "Marcar Asociada");
+        if (o.isAsociadaAPago()) {
+            String linkInfo = "";
+            if ("COLEGIO".equals(o.getTipoVinculo())) {
+                linkInfo = "\nESTADO: Presentada en Colegio";
+                holder.tvDetalle.setTextColor(Color.parseColor("#388E3C")); // Verde
+            } else if ("DIRECTO".equals(o.getTipoVinculo())) {
+                String factInfo = o.getDetalleVinculo() != null ? ": " + o.getDetalleVinculo() : "";
+                linkInfo = "\nESTADO: Vinculada a Factura" + factInfo;
+                holder.tvDetalle.setTextColor(Color.parseColor("#1976D2")); // Azul
+            }
+            holder.tvDetalle.setText(detalle + linkInfo);
+            holder.btnAccion.setText("Desvincular");
+        } else {
+            holder.tvDetalle.setText(detalle);
+            holder.tvDetalle.setTextColor(Color.parseColor("#757575")); // Gris normal
+            
+            // Solo habilitar el botón si es una orden directa (creada manualmente)
+            if (o.isEsDeRemitoDirecto()) {
+                holder.btnAccion.setText("Vincular");
+                holder.btnAccion.setEnabled(true);
+                holder.btnAccion.setAlpha(1.0f);
+            } else {
+                holder.btnAccion.setText("Vía Colegio");
+                holder.btnAccion.setEnabled(false);
+                holder.btnAccion.setAlpha(0.5f);
+            }
+        }
         
         holder.btnAccion.setOnClickListener(v -> listener.onToggleAsociada(o));
         

@@ -1,9 +1,12 @@
 package frgp.utn.edu.kineapp;
 
+import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.LinearLayout;
 import android.widget.NumberPicker;
 import android.widget.TextView;
@@ -15,10 +18,15 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.auth.FirebaseAuth;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class OrdenesVinculacionFragment extends Fragment {
 
@@ -27,8 +35,13 @@ public class OrdenesVinculacionFragment extends Fragment {
     private TextView tvEmpty;
     private ChipGroup chipGroupFiltro;
     private RemitoRepository remitoRepository;
+    private FacturaRepository facturaRepository;
+    private PacienteRepository pacienteRepository;
     private List<Remito> listaRemitos = new ArrayList<>();
     private List<OrdenRemito> listaMostrar = new ArrayList<>();
+    private List<Paciente> listaPacientes = new ArrayList<>();
+    private List<Factura> todasLasFacturas = new ArrayList<>();
+    private String[] nombresPacientes = {};
     private OrdenVinculacionAdapter adapter;
     private boolean filtrandoAsociadas = false;
     
@@ -48,12 +61,16 @@ public class OrdenesVinculacionFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         remitoRepository = new RemitoRepository();
+        facturaRepository = new FacturaRepository();
+        pacienteRepository = new PacienteRepository();
+        
         rvOrdenes = view.findViewById(R.id.rv_ordenes_vinculacion);
         layoutEmpty = view.findViewById(R.id.layout_empty_ordenes);
         tvEmpty = view.findViewById(R.id.tv_empty_ordenes);
         chipGroupFiltro = view.findViewById(R.id.chip_group_filtro_ordenes);
         tvPeriodo = view.findViewById(R.id.tv_periodo_ordenes);
         View layoutPeriodo = view.findViewById(R.id.layout_seleccionar_periodo_ordenes);
+        FloatingActionButton fabAdd = view.findViewById(R.id.fab_agregar_orden_directa);
 
         Calendar cal = Calendar.getInstance();
         mesSeleccionado = cal.get(Calendar.MONTH);
@@ -63,8 +80,15 @@ public class OrdenesVinculacionFragment extends Fragment {
         adapter = new OrdenVinculacionAdapter(listaMostrar, new OrdenVinculacionAdapter.OnOrdenClickListener() {
             @Override
             public void onToggleAsociada(OrdenRemito orden) {
-                orden.setAsociadaAPago(!orden.isAsociadaAPago());
-                actualizarOrdenEnRemito(orden);
+                if (!orden.isAsociadaAPago()) {
+                    if (orden.isEsDeRemitoDirecto()) {
+                        mostrarDialogoTipoAsociacion(orden);
+                    } else {
+                        Toast.makeText(getContext(), "Las órdenes de remitos oficiales se asocian desde la pestaña de Pagos", Toast.LENGTH_LONG).show();
+                    }
+                } else {
+                    desvincularOrden(orden);
+                }
             }
             @Override
             public void onEdit(OrdenRemito orden) { mostrarDialogoEditar(orden); }
@@ -82,7 +106,100 @@ public class OrdenesVinculacionFragment extends Fragment {
             filtrarLista();
         });
 
-        cargarDatos();
+        fabAdd.setOnClickListener(v -> mostrarDialogoNuevaOrdenDirecta());
+
+        cargarPacientes();
+        cargarFacturasParaDetalle();
+    }
+
+    private void cargarPacientes() {
+        pacienteRepository.obtenerTodos().addOnSuccessListener(query -> {
+            listaPacientes.clear();
+            List<String> nombres = new ArrayList<>();
+            for (var doc : query.getDocuments()) {
+                Paciente p = doc.toObject(Paciente.class);
+                if (p != null) {
+                    p.setId(doc.getId());
+                    listaPacientes.add(p);
+                    nombres.add(p.getNombreCompleto());
+                }
+            }
+            nombresPacientes = nombres.toArray(new String[0]);
+        });
+    }
+
+    private void cargarFacturasParaDetalle() {
+        facturaRepository.obtenerTodas().addOnSuccessListener(query -> {
+            todasLasFacturas.clear();
+            for (var doc : query.getDocuments()) {
+                Factura f = doc.toObject(Factura.class);
+                if (f != null) {
+                    f.setId(doc.getId());
+                    todasLasFacturas.add(f);
+                }
+            }
+            cargarDatos(); // Cargar datos después de tener las facturas
+        });
+    }
+
+    private void mostrarDialogoTipoAsociacion(OrdenRemito orden) {
+        String[] opciones = {"Presentada en Colegio (Pago Pendiente)", "Facturación Directa (Obra Social)"};
+        new AlertDialog.Builder(getContext())
+                .setTitle("Vincular Orden")
+                .setItems(opciones, (dialog, which) -> {
+                    if (which == 0) {
+                        new AlertDialog.Builder(getContext())
+                                .setTitle("Aviso")
+                                .setMessage("Esta orden se marcará como asociada. Recuerde que la liquidación contable debe generarse desde la pestaña de 'Pagos' seleccionando el remito correspondiente.")
+                                .setPositiveButton("Entendido", (d, w) -> {
+                                    orden.setAsociadaAPago(true);
+                                    orden.setTipoVinculo("COLEGIO");
+                                    actualizarOrdenEnRemito(orden);
+                                })
+                                .show();
+                    } else {
+                        seleccionarFacturaParaVinculo(orden);
+                    }
+                })
+                .show();
+    }
+
+    private void seleccionarFacturaParaVinculo(OrdenRemito orden) {
+        if (todasLasFacturas.isEmpty()) {
+            Toast.makeText(getContext(), "No hay facturas cargadas para vincular", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        List<String> items = new ArrayList<>();
+        for (Factura f : todasLasFacturas) {
+            items.add(f.getTipoComprobante() + " " + f.getNumero() + " (" + f.getObraSocial() + ")");
+        }
+
+        new AlertDialog.Builder(getContext())
+                .setTitle("Seleccionar Factura de Respaldo")
+                .setItems(items.toArray(new String[0]), (dialog, which) -> {
+                    Factura f = todasLasFacturas.get(which);
+                    orden.setAsociadaAPago(true);
+                    orden.setTipoVinculo("DIRECTO");
+                    orden.setIdVinculoAsociado(f.getId());
+                    actualizarOrdenEnRemito(orden);
+                    Toast.makeText(getContext(), "Orden vinculada a factura", Toast.LENGTH_SHORT).show();
+                })
+                .show();
+    }
+
+    private void desvincularOrden(OrdenRemito orden) {
+        new AlertDialog.Builder(getContext())
+                .setTitle("Desvincular Orden")
+                .setMessage("¿Deseas marcar esta orden como pendiente nuevamente?")
+                .setPositiveButton("Sí, desvincular", (d, w) -> {
+                    orden.setAsociadaAPago(false);
+                    orden.setTipoVinculo(null);
+                    orden.setIdVinculoAsociado(null);
+                    actualizarOrdenEnRemito(orden);
+                })
+                .setNegativeButton("No", null)
+                .show();
     }
 
     private void mostrarDialogoMesAnio() {
@@ -109,7 +226,7 @@ public class OrdenesVinculacionFragment extends Fragment {
                     mesSeleccionado = monthPicker.getValue();
                     anioSeleccionado = yearPicker.getValue();
                     actualizarTextoPeriodo();
-                    cargarDatos();
+                    cargarFacturasParaDetalle();
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
@@ -124,7 +241,8 @@ public class OrdenesVinculacionFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        cargarDatos();
+        cargarPacientes();
+        cargarFacturasParaDetalle();
     }
 
     private void cargarDatos() {
@@ -136,7 +254,6 @@ public class OrdenesVinculacionFragment extends Fragment {
                 Remito r = doc.toObject(Remito.class);
                 if (r != null) {
                     r.setId(doc.getId());
-                    // Filtrado manual por fecha de creación del remito
                     if (r.getFechaCreacion() != null) {
                         calRemito.setTime(r.getFechaCreacion().toDate());
                         if (calRemito.get(Calendar.MONTH) == mesSeleccionado && 
@@ -144,6 +261,17 @@ public class OrdenesVinculacionFragment extends Fragment {
                             if (r.getOrdenes() != null) {
                                 for (OrdenRemito o : r.getOrdenes()) {
                                     o.setParentRemitoId(r.getId());
+                                    o.setEsDeRemitoDirecto(r.isEsDirecto());
+                                    
+                                    // Buscar detalle de la factura si está vinculada directamente
+                                    if (o.isAsociadaAPago() && "DIRECTO".equals(o.getTipoVinculo())) {
+                                        for (Factura f : todasLasFacturas) {
+                                            if (f.getId().equals(o.getIdVinculoAsociado())) {
+                                                o.setDetalleVinculo(f.getTipoComprobante() + " " + f.getNumero());
+                                                break;
+                                            }
+                                        }
+                                    }
                                 }
                             }
                             listaRemitos.add(r);
@@ -187,30 +315,135 @@ public class OrdenesVinculacionFragment extends Fragment {
 
     private void mostrarDialogoEditar(OrdenRemito orden) {
         View v = LayoutInflater.from(getContext()).inflate(R.layout.dialog_editar_orden, null);
-        TextInputEditText etPaciente = v.findViewById(R.id.et_edit_paciente);
+        AutoCompleteTextView etPaciente = v.findViewById(R.id.et_edit_paciente);
         TextInputEditText etAfiliado = v.findViewById(R.id.et_edit_afiliado);
-        TextInputEditText etOS = v.findViewById(R.id.et_edit_os);
+        AutoCompleteTextView etOS = v.findViewById(R.id.et_edit_os);
         TextInputEditText etCodigo = v.findViewById(R.id.et_edit_codigo);
         TextInputEditText etCant = v.findViewById(R.id.et_edit_cant);
-        etPaciente.setText(orden.getPacienteNombreCompleto());
+        TextInputEditText etFecha = v.findViewById(R.id.et_edit_fecha);
+        
+        configurarAutocompleteEnDialogo(etPaciente, etAfiliado, etOS);
+
+        etPaciente.setText(orden.getPacienteNombreCompleto(), false);
         etAfiliado.setText(orden.getNumeroAfiliado());
-        etOS.setText(orden.getObraSocialNombre());
+        etOS.setText(orden.getObraSocialNombre(), false);
         etCodigo.setText(orden.getCodigoPractica());
         etCant.setText(String.valueOf(orden.getCantidadSesiones()));
+        etFecha.setText(orden.getFecha());
+
+        etFecha.setOnClickListener(view -> {
+            Calendar cal = Calendar.getInstance();
+            new DatePickerDialog(getContext(), (dp, y, m, d) -> {
+                String fechaStr = String.format(Locale.getDefault(), "%02d/%02d", d, m + 1);
+                etFecha.setText(fechaStr);
+            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
+        });
+
         new AlertDialog.Builder(getContext()).setTitle("Editar Orden").setView(v)
                 .setPositiveButton("Guardar", (d, w) -> {
                     orden.setPacienteNombreCompleto(etPaciente.getText().toString());
                     orden.setNumeroAfiliado(etAfiliado.getText().toString());
                     orden.setObraSocialNombre(etOS.getText().toString());
                     orden.setCodigoPractica(etCodigo.getText().toString());
+                    orden.setFecha(etFecha.getText().toString());
                     try { orden.setCantidadSesiones(Integer.parseInt(etCant.getText().toString())); } catch (Exception e) {}
                     actualizarOrdenEnRemito(orden);
                 }).setNegativeButton("Cancelar", null).show();
     }
 
+    private void mostrarDialogoNuevaOrdenDirecta() {
+        View v = LayoutInflater.from(getContext()).inflate(R.layout.dialog_editar_orden, null);
+        AutoCompleteTextView etPaciente = v.findViewById(R.id.et_edit_paciente);
+        TextInputEditText etAfiliado = v.findViewById(R.id.et_edit_afiliado);
+        AutoCompleteTextView etOS = v.findViewById(R.id.et_edit_os);
+        TextInputEditText etCodigo = v.findViewById(R.id.et_edit_codigo);
+        TextInputEditText etCant = v.findViewById(R.id.et_edit_cant);
+        TextInputEditText etFecha = v.findViewById(R.id.et_edit_fecha);
+
+        configurarAutocompleteEnDialogo(etPaciente, etAfiliado, etOS);
+
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM", Locale.getDefault());
+        etFecha.setText(sdf.format(new Date()));
+
+        etFecha.setOnClickListener(view -> {
+            Calendar cal = Calendar.getInstance();
+            new DatePickerDialog(getContext(), (dp, y, m, d) -> {
+                String fechaStr = String.format(Locale.getDefault(), "%02d/%02d", d, m + 1);
+                etFecha.setText(fechaStr);
+            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
+        });
+
+        new AlertDialog.Builder(getContext()).setTitle("Nueva Orden Directa").setView(v)
+                .setPositiveButton("Crear", (d, w) -> {
+                    String paciente = etPaciente.getText().toString().trim();
+                    String os = etOS.getText().toString().trim();
+                    String cantStr = etCant.getText().toString().trim();
+                    if (paciente.isEmpty() || os.isEmpty() || cantStr.isEmpty()) {
+                        Toast.makeText(getContext(), "Completá los campos obligatorios", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    OrdenRemito nueva = new OrdenRemito(os, Integer.parseInt(cantStr), 
+                            etCodigo.getText().toString(), etFecha.getText().toString(), 
+                            paciente, etAfiliado.getText().toString());
+                    
+                    guardarNuevaOrdenDirecta(nueva);
+                }).setNegativeButton("Cancelar", null).show();
+    }
+
+    private void configurarAutocompleteEnDialogo(AutoCompleteTextView etPaciente, TextInputEditText etAfiliado, AutoCompleteTextView etOS) {
+        ArrayAdapter<String> adapterPacientes = new ArrayAdapter<>(getContext(),
+                android.R.layout.simple_dropdown_item_1line, nombresPacientes);
+        etPaciente.setAdapter(adapterPacientes);
+        etPaciente.setOnClickListener(v -> etPaciente.showDropDown());
+
+        etPaciente.setOnItemClickListener((parent, view, position, id) -> {
+            String seleccionado = (String) parent.getItemAtPosition(position);
+            for (Paciente p : listaPacientes) {
+                if (p.getNombreCompleto().equals(seleccionado)) {
+                    etAfiliado.setText(p.getNumeroAfiliado() != null ? p.getNumeroAfiliado() : "");
+                    etOS.setText(p.getObraSocial() != null ? p.getObraSocial() : "", false);
+                    break;
+                }
+            }
+        });
+
+        ArrayAdapter<String> adapterOS = new ArrayAdapter<>(getContext(),
+                android.R.layout.simple_dropdown_item_1line, FormularioPacienteSimpleActivity.OBRAS_SOCIALES);
+        etOS.setAdapter(adapterOS);
+        etOS.setOnClickListener(v -> etOS.showDropDown());
+    }
+
+    private void guardarNuevaOrdenDirecta(OrdenRemito orden) {
+        Remito remitoDirecto = null;
+        for (Remito r : listaRemitos) {
+            if (r.isEsDirecto() && "Órdenes Directas".equals(r.getNumeroRemito())) {
+                remitoDirecto = r;
+                break;
+            }
+        }
+
+        if (remitoDirecto == null) {
+            remitoDirecto = new Remito(FirebaseAuth.getInstance().getUid(), new ArrayList<>());
+            remitoDirecto.setNumeroRemito("Órdenes Directas");
+            remitoDirecto.setEsDirecto(true);
+            Calendar cal = Calendar.getInstance();
+            cal.set(anioSeleccionado, mesSeleccionado, 1);
+            remitoDirecto.setFechaCreacion(new com.google.firebase.Timestamp(cal.getTime()));
+        }
+
+        orden.setParentRemitoId(remitoDirecto.getId());
+        remitoDirecto.getOrdenes().add(orden);
+
+        remitoRepository.guardar(remitoDirecto).addOnSuccessListener(a -> {
+            Toast.makeText(getContext(), "Orden guardada", Toast.LENGTH_SHORT).show();
+            cargarDatos();
+        });
+    }
+
     private void confirmarEliminacion(OrdenRemito orden) {
         if (orden.isAsociadaAPago()) { Toast.makeText(getContext(), "No se puede eliminar una orden asociada a un pago", Toast.LENGTH_SHORT).show(); return; }
-        new AlertDialog.Builder(getContext()).setTitle("Eliminar Orden").setMessage("¿Estás seguro que deseas eliminar esta orden del remito?")
+        new AlertDialog.Builder(getContext()).setTitle("Eliminar Orden").setMessage("¿Estás seguro que deseas eliminar esta orden?")
                 .setPositiveButton("Eliminar", (d, w) -> eliminarOrdenDeRemito(orden)).setNegativeButton("Cancelar", null).show();
     }
 
@@ -219,7 +452,10 @@ public class OrdenesVinculacionFragment extends Fragment {
             if (r.getId().equals(ordenAEliminar.getParentRemitoId())) {
                 List<OrdenRemito> ordenes = r.getOrdenes();
                 ordenes.remove(ordenAEliminar);
-                remitoRepository.guardar(r).addOnSuccessListener(a -> { Toast.makeText(getContext(), "Orden eliminada", Toast.LENGTH_SHORT).show(); cargarDatos(); });
+                remitoRepository.guardar(r).addOnSuccessListener(a -> {
+                    Toast.makeText(getContext(), "Orden eliminada", Toast.LENGTH_SHORT).show();
+                    cargarDatos();
+                });
                 return;
             }
         }

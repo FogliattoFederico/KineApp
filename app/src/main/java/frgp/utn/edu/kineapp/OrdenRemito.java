@@ -1,11 +1,14 @@
 package frgp.utn.edu.kineapp;
 
+import com.google.firebase.firestore.Exclude;
 import java.util.Objects;
 import java.util.UUID;
 
 public class OrdenRemito {
     private String id;
     private String parentRemitoId;
+    private String idVinculoAsociado; // ID de LiquidacionColegio o Factura
+    private String tipoVinculo;       // "COLEGIO" o "DIRECTO"
     private String obraSocialNombre;
     private int cantidadSesiones;
     private String codigoPractica;
@@ -13,6 +16,11 @@ public class OrdenRemito {
     private String pacienteNombreCompleto;
     private String numeroAfiliado;
     private boolean asociadaAPago;
+
+    // Campos auxiliares (no se guardan en Firestore directamente bajo el objeto, 
+    // se usan para la interfaz)
+    private boolean esDeRemitoDirecto;
+    private String detalleVinculo;
 
     public OrdenRemito() {
         this.id = UUID.randomUUID().toString();
@@ -38,6 +46,12 @@ public class OrdenRemito {
     public String getParentRemitoId() { return parentRemitoId; }
     public void setParentRemitoId(String parentRemitoId) { this.parentRemitoId = parentRemitoId; }
 
+    public String getIdVinculoAsociado() { return idVinculoAsociado; }
+    public void setIdVinculoAsociado(String idVinculoAsociado) { this.idVinculoAsociado = idVinculoAsociado; }
+
+    public String getTipoVinculo() { return tipoVinculo; }
+    public void setTipoVinculo(String tipoVinculo) { this.tipoVinculo = tipoVinculo; }
+
     public String getObraSocialNombre() { return obraSocialNombre; }
     public void setObraSocialNombre(String obraSocialNombre) { this.obraSocialNombre = obraSocialNombre; }
 
@@ -58,6 +72,14 @@ public class OrdenRemito {
 
     public boolean isAsociadaAPago() { return asociadaAPago; }
     public void setAsociadaAPago(boolean asociadaAPago) { this.asociadaAPago = asociadaAPago; }
+
+    @Exclude
+    public boolean isEsDeRemitoDirecto() { return esDeRemitoDirecto; }
+    public void setEsDeRemitoDirecto(boolean esDeRemitoDirecto) { this.esDeRemitoDirecto = esDeRemitoDirecto; }
+
+    @Exclude
+    public String getDetalleVinculo() { return detalleVinculo; }
+    public void setDetalleVinculo(String detalleVinculo) { this.detalleVinculo = detalleVinculo; }
 
     @Override
     public boolean equals(Object o) {

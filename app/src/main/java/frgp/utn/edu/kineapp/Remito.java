@@ -10,10 +10,12 @@ public class Remito {
     private List<OrdenRemito> ordenes;
     private String numeroRemito;
     private Timestamp fechaCreacion;
+    private boolean esDirecto; // Nuevo: Para diferenciar remitos de colegio vs facturación directa
 
     public Remito() {
         this.ordenes = new ArrayList<>();
         this.fechaCreacion = Timestamp.now();
+        this.esDirecto = false;
     }
 
     public Remito(String uidKinesiologo, List<OrdenRemito> ordenes) {
@@ -36,4 +38,7 @@ public class Remito {
 
     public Timestamp getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(Timestamp fechaCreacion) { this.fechaCreacion = fechaCreacion; }
+
+    public boolean isEsDirecto() { return esDirecto; }
+    public void setEsDirecto(boolean esDirecto) { this.esDirecto = esDirecto; }
 }

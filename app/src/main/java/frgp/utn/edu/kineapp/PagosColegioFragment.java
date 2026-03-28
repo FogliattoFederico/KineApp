@@ -171,7 +171,8 @@ public class PagosColegioFragment extends Fragment {
                 if (r != null) {
                     r.setId(doc.getId());
                     listaRemitosParaActualizar.add(r);
-                    if (r.getOrdenes() != null) {
+                    // SOLO permitir vincular órdenes de remitos oficiales (NO directos)
+                    if (!r.isEsDirecto() && r.getOrdenes() != null) {
                         for (OrdenRemito o : r.getOrdenes()) {
                             o.setParentRemitoId(r.getId());
                             if (!o.isAsociadaAPago()) listaOrdenesDisponibles.add(o);
@@ -229,7 +230,8 @@ public class PagosColegioFragment extends Fragment {
                 if (r != null) {
                     r.setId(doc.getId());
                     listaRemitosParaActualizar.add(r);
-                    if (r.getOrdenes() != null) {
+                    // SOLO permitir vincular órdenes de remitos oficiales (NO directos)
+                    if (!r.isEsDirecto() && r.getOrdenes() != null) {
                         for (OrdenRemito o : r.getOrdenes()) {
                             o.setParentRemitoId(r.getId());
                             if (!o.isAsociadaAPago() || (liqExistente != null && ordenesSeleccionadas.contains(o))) {
@@ -266,7 +268,7 @@ public class PagosColegioFragment extends Fragment {
             dpd.show();
         });
         btnSeleccionarOrdenes.setOnClickListener(v -> {
-            if (listaOrdenesDisponibles.isEmpty()) { Toast.makeText(getContext(), "No hay órdenes disponibles", Toast.LENGTH_SHORT).show(); return; }
+            if (listaOrdenesDisponibles.isEmpty()) { Toast.makeText(getContext(), "No hay órdenes disponibles de remitos oficiales", Toast.LENGTH_SHORT).show(); return; }
             String[] items = new String[listaOrdenesDisponibles.size()];
             boolean[] checkedItems = new boolean[listaOrdenesDisponibles.size()];
             for (int i = 0; i < listaOrdenesDisponibles.size(); i++) {
@@ -274,7 +276,7 @@ public class PagosColegioFragment extends Fragment {
                 items[i] = String.format("%s\nFecha: %s | OS: %s", o.getPacienteNombreCompleto(), o.getFecha(), o.getObraSocialNombre());
                 checkedItems[i] = ordenesSeleccionadas.contains(o);
             }
-            new AlertDialog.Builder(getContext()).setTitle("Vincular Órdenes")
+            new AlertDialog.Builder(getContext()).setTitle("Vincular Órdenes Oficiales")
                     .setMultiChoiceItems(items, checkedItems, (dialog, which, isChecked) -> {
                         OrdenRemito o = listaOrdenesDisponibles.get(which);
                         if (isChecked) { if (!ordenesSeleccionadas.contains(o)) ordenesSeleccionadas.add(o); }

@@ -146,7 +146,8 @@ public class RemitosFragment extends Fragment {
                 Remito r = doc.toObject(Remito.class);
                 if (r != null) {
                     r.setId(doc.getId());
-                    if (r.getFechaCreacion() != null) {
+                    // FILTRO: No mostrar remitos de tipo "Directo" en esta pestaña
+                    if (!r.isEsDirecto() && r.getFechaCreacion() != null) {
                         calRemito.setTime(r.getFechaCreacion().toDate());
                         if (calRemito.get(Calendar.MONTH) == mesSeleccionado && 
                             calRemito.get(Calendar.YEAR) == anioSeleccionado) {
