@@ -102,15 +102,15 @@ public class RemitosFragment extends Fragment {
                 }
             }
             
+            // Ordenamos por número de remito (Descendente) si es numérico, o alfabéticamente
             listaRemitos.sort((a, b) -> {
-                if (a.getFechaCreacion() == null) return 1;
-                if (b.getFechaCreacion() == null) return -1;
-                return b.getFechaCreacion().compareTo(a.getFechaCreacion());
+                String numA = a.getNumeroRemito() != null ? a.getNumeroRemito() : "";
+                String numB = b.getNumeroRemito() != null ? b.getNumeroRemito() : "";
+                return numB.compareTo(numA);
             });
 
             actualizarVista();
             
-            // Si había un filtro aplicado, lo volvemos a aplicar
             if (etBuscar.getText() != null && !etBuscar.getText().toString().isEmpty()) {
                 adapter.filtrar(etBuscar.getText().toString());
             }

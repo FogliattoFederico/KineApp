@@ -6,10 +6,8 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public class RemitoAdapter extends RecyclerView.Adapter<RemitoAdapter.ViewHolder> {
 
@@ -39,13 +37,8 @@ public class RemitoAdapter extends RecyclerView.Adapter<RemitoAdapter.ViewHolder
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Remito remito = listaRemitos.get(position);
 
-        holder.tvPeriodo.setText(remito.getNumeroRemito() != null ? remito.getNumeroRemito() : "Sin número");
+        holder.tvPeriodo.setText(remito.getNumeroRemito() != null ? "Remito N° " + remito.getNumeroRemito() : "Sin número");
         
-        if (remito.getFechaCreacion() != null) {
-            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
-            holder.tvFecha.setText(sdf.format(remito.getFechaCreacion().toDate()));
-        }
-
         int cantOrdenes = remito.getOrdenes() != null ? remito.getOrdenes().size() : 0;
         holder.tvCantidad.setText(cantOrdenes + (cantOrdenes == 1 ? " orden incluida" : " órdenes incluidas"));
 
@@ -97,12 +90,12 @@ public class RemitoAdapter extends RecyclerView.Adapter<RemitoAdapter.ViewHolder
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvPeriodo, tvFecha, tvCantidad;
+        TextView tvPeriodo, tvCantidad;
 
         ViewHolder(@NonNull View itemView) {
             super(itemView);
             tvPeriodo = itemView.findViewById(R.id.tv_periodo_remito);
-            tvFecha = itemView.findViewById(R.id.tv_fecha_creacion);
+            // Referencia antigua a tvFecha eliminada
             tvCantidad = itemView.findViewById(R.id.tv_cantidad_ordenes);
         }
     }

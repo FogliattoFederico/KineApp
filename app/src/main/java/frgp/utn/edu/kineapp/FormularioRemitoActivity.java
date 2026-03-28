@@ -12,7 +12,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.text.SimpleDateFormat;
@@ -237,7 +236,7 @@ public class FormularioRemitoActivity extends AppCompatActivity {
             remito.setOrdenes(ordenes);
             remito.setNumeroRemito(numRemito);
         } else {
-            remito = new Remito(Timestamp.now(), FirebaseAuth.getInstance().getUid(), ordenes);
+            remito = new Remito(FirebaseAuth.getInstance().getUid(), ordenes);
             remito.setNumeroRemito(numRemito);
         }
 

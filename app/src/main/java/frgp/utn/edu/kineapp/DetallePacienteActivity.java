@@ -44,9 +44,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
 
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        toolbar.setOverflowIcon(
-                androidx.core.content.ContextCompat.getDrawable(this,
-                        R.drawable.ic_more_vert_white));
         toolbar.setNavigationOnClickListener(v -> finish());
 
         tvAvatarGrande = findViewById(R.id.tv_avatar_grande);
@@ -70,24 +67,13 @@ public class DetallePacienteActivity extends AppCompatActivity {
                     if (paciente != null) {
                         paciente.setId(doc.getId());
                         mostrarDatos();
-                        if (modoTurno) {
-                            cargarHistorial();
-                        } else {
-                            ocultarSeccion(R.id.label_horarios_seccion, containerHorarios);
-                            ocultarSeccion(R.id.label_historial_seccion, containerHistorial);
-                        }
+                        cargarHistorial();
                     }
                 })
                 .addOnFailureListener(e ->
                         Toast.makeText(this, "Error al cargar paciente",
                                 Toast.LENGTH_SHORT).show()
                 );
-    }
-
-    private void ocultarSeccion(int labelId, View container) {
-        View label = findViewById(labelId);
-        if (label != null) label.setVisibility(View.GONE);
-        if (container != null) container.setVisibility(View.GONE);
     }
 
     private void mostrarDatos() {
@@ -107,7 +93,7 @@ public class DetallePacienteActivity extends AppCompatActivity {
             tvBadgeCud.setVisibility(View.GONE);
         }
 
-        if (modoTurno && paciente.getModalidad() != null) {
+        if (paciente.getModalidad() != null) {
             tvBadgeModalidad.setVisibility(View.VISIBLE);
             if ("domicilio".equals(paciente.getModalidad())) {
                 tvBadgeModalidad.setText("Domicilio");
@@ -132,13 +118,11 @@ public class DetallePacienteActivity extends AppCompatActivity {
         TextView tvEdad = findViewById(R.id.tv_edad_detalle);
         if (tvEdad != null) tvEdad.setText(paciente.getEdad() > 0 ? paciente.getEdad() + " años" : "—");
 
-        // Sección Clínica (Visible siempre)
         findViewById(R.id.label_clinica_seccion).setVisibility(View.VISIBLE);
         findViewById(R.id.card_clinica).setVisibility(View.VISIBLE);
         mostrarCampo(R.id.tv_diagnostico, paciente.getDiagnostico());
         mostrarCampo(R.id.tv_observaciones, paciente.getObservaciones());
 
-        // Sección Cobertura (Visible siempre)
         findViewById(R.id.label_cobertura_seccion).setVisibility(View.VISIBLE);
         findViewById(R.id.card_cobertura).setVisibility(View.VISIBLE);
         
@@ -152,7 +136,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
         
         mostrarCampo(R.id.tv_tipo_cobertura, tipoCobertura);
 
-        // Limpiar visibilidades antes de mostrar
         findViewById(R.id.divider_obra_social).setVisibility(View.GONE);
         findViewById(R.id.label_obra_social).setVisibility(View.GONE);
         findViewById(R.id.tv_obra_social).setVisibility(View.GONE);
@@ -173,7 +156,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
             }
         }
 
-        // Mostrar información de sesiones
         if (tieneCUD) {
             setVisible(R.id.divider_sesiones, R.id.label_sesiones, R.id.tv_sesiones);
             ((TextView) findViewById(R.id.label_sesiones)).setText("SESIONES SEMANALES");
@@ -189,30 +171,53 @@ public class DetallePacienteActivity extends AppCompatActivity {
             mostrarCampo(R.id.tv_sesiones, restantes + " / " + paciente.getSesionesOrden());
         }
 
-        // Horarios (solo en modoTurno)
-        if (modoTurno) {
-            containerHorarios.removeAllViews();
-            if (paciente.getHorarios() != null) {
-                for (HorarioAtencion h : paciente.getHorarios()) {
-                    View fila = getLayoutInflater().inflate(R.layout.item_horario_detalle, containerHorarios, false);
-                    TextView tvDia = fila.findViewById(R.id.tv_dia);
-                    TextView tvHorario = fila.findViewById(R.id.tv_horario);
+        findViewById(R.id.label_horarios_seccion).setVisibility(View.VISIBLE);
+        containerHorarios.setVisibility(View.VISIBLE);
+        containerHorarios.removeAllViews();
+        
+        if (paciente.getHorarios() != null && !paciente.getHorarios().isEmpty()) {
+            for (HorarioAtencion h : paciente.getHorarios()) {
+                View fila = getLayoutInflater().inflate(R.layout.item_horario_detalle, containerHorarios, false);
+                TextView tvDia = fila.findViewById(R.id.tv_dia);
+                TextView tvHorario = fila.findViewById(R.id.tv_horario);
+                
+                String displayFecha = (h.getFecha() != null && !h.getFecha().isEmpty()) 
+                    ? h.getFecha() + " (" + h.getDia() + ")" 
+                    : h.getDia();
                     
-                    String displayFecha = (h.getFecha() != null && !h.getFecha().isEmpty()) 
-                        ? h.getFecha() + " (" + h.getDia() + ")" 
-                        : h.getDia();
-                        
-                    tvDia.setText(displayFecha);
-                    tvHorario.setText(h.getHoraInicio() + " - " + h.getHoraFin());
-                    containerHorarios.addView(fila);
+                tvDia.setText(displayFecha);
+                tvHorario.setText(h.getHoraInicio() + " - " + h.getHoraFin());
+                
+                LinearLayout layoutFila = fila.findViewById(R.id.layout_item_horario);
+                if (layoutFila != null) {
+                    ImageView ivEdit = new ImageView(this);
+                    ivEdit.setImageResource(R.drawable.ic_edit);
+                    ivEdit.setPadding(16, 8, 16, 8);
+                    layoutFila.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                    layoutFila.addView(ivEdit);
+                    
+                    ivEdit.setOnClickListener(v -> {
+                        Intent intent = new Intent(this, FormularioPacienteActivity.class);
+                        intent.putExtra("pacienteId", pacienteId);
+                        startActivity(intent);
+                    });
                 }
+                
+                containerHorarios.addView(fila);
             }
+        } else {
+            TextView tvVacio = new TextView(this);
+            tvVacio.setText("Sin turnos asignados");
+            tvVacio.setPadding(0, 8, 0, 8);
+            containerHorarios.addView(tvVacio);
         }
     }
 
     private void cargarHistorial() {
         new AtencionRepository().obtenerPorPaciente(pacienteId)
                 .addOnSuccessListener(query -> {
+                    containerHistorial.setVisibility(View.VISIBLE);
+                    findViewById(R.id.label_historial_seccion).setVisibility(View.VISIBLE);
                     containerHistorial.removeAllViews();
 
                     if (query.isEmpty()) {
@@ -307,17 +312,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_editar) {
-            Intent intent;
-            if (modoTurno) {
-                intent = new Intent(this, FormularioPacienteActivity.class);
-            } else {
-                intent = new Intent(this, FormularioPacienteSimpleActivity.class);
-            }
-            intent.putExtra("pacienteId", pacienteId);
-            startActivity(intent);
-            return true;
-        }
         if (id == R.id.action_eliminar) {
             new AlertDialog.Builder(this)
                     .setTitle("Eliminar paciente")

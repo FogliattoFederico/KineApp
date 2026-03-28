@@ -2,6 +2,7 @@ package frgp.utn.edu.kineapp;
 
 import com.google.firebase.Timestamp;
 import java.util.Date;
+import java.util.List;
 
 public class LiquidacionColegio {
     private String id;
@@ -9,6 +10,7 @@ public class LiquidacionColegio {
     private double importe;
     private boolean facturada;
     private String uidKinesiologo;
+    private List<OrdenRemito> ordenesVinculadas; // Lista de órdenes vinculadas a este pago
 
     public LiquidacionColegio() {}
 
@@ -29,6 +31,8 @@ public class LiquidacionColegio {
     public void setFacturada(boolean facturada) { this.facturada = facturada; }
     public String getUidKinesiologo() { return uidKinesiologo; }
     public void setUidKinesiologo(String uidKinesiologo) { this.uidKinesiologo = uidKinesiologo; }
+    public List<OrdenRemito> getOrdenesVinculadas() { return ordenesVinculadas; }
+    public void setOrdenesVinculadas(List<OrdenRemito> ordenesVinculadas) { this.ordenesVinculadas = ordenesVinculadas; }
 
     public long getDiasPendientes() {
         if (fechaLiquidacion == null) return 0;

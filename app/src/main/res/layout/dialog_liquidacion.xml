@@ -36,7 +36,7 @@
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="12dp"
         android:hint="Importe ($)">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -45,5 +45,31 @@
             android:layout_height="wrap_content"
             android:inputType="numberDecimal" />
     </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Vincular Órdenes (Opcional)"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="8dp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_seleccionar_remitos"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Seleccionar Órdenes"
+        app:icon="@drawable/ic_facturacion" />
+
+    <TextView
+        android:id="@+id/tv_remitos_seleccionados"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Ninguna orden seleccionada"
+        android:textSize="12sp"
+        android:layout_marginTop="4dp"
+        android:textColor="@color/primary" />
 
 </LinearLayout>
