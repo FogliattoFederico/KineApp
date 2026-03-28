@@ -11,6 +11,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -107,6 +108,7 @@ public class FormularioRemitoActivity extends AppCompatActivity {
 
     private void agregarNuevaOrden(OrdenRemito datosExistentes) {
         View view = getLayoutInflater().inflate(R.layout.item_orden_remito_formulario, containerOrdenes, false);
+        MaterialCardView cardView = (MaterialCardView) view;
         
         // Almacenamos el objeto original para no perder el ID ni el estado de asociacion
         view.setTag(datosExistentes);
@@ -137,10 +139,13 @@ public class FormularioRemitoActivity extends AppCompatActivity {
             etAfiliado.setText(datosExistentes.getNumeroAfiliado());
             
             if (datosExistentes.isAsociadaAPago()) {
-                view.setBackgroundColor(getResources().getColor(R.color.background_selected, getTheme()));
+                cardView.setCardBackgroundColor(getResources().getColor(R.color.background_selected, getTheme()));
+            } else {
+                cardView.setCardBackgroundColor(getResources().getColor(R.color.surface, getTheme()));
             }
         } else {
             etFecha.setText(sdf.format(Calendar.getInstance().getTime()));
+            cardView.setCardBackgroundColor(getResources().getColor(R.color.surface, getTheme()));
         }
         
         etFecha.setOnClickListener(v -> {

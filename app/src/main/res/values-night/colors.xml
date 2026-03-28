@@ -7,4 +7,5 @@
     <color name="divider">#3C3C4E</color>
     <color name="primary">#1565C0</color>
     <color name="color_atendido">#1B3320</color>
+    <color name="background_selected">#123E3B</color>
 </resources>

@@ -9,5 +9,5 @@
     <color name="text_secondary">#6B7280</color>
     <color name="divider">#E5E7EB</color>
     <color name="color_atendido">#F1F8E9</color>
-    <color name="background_selected">#E0F2F1</color>
+    <color name="background_selected">#F1F5F9</color>
 </resources>
