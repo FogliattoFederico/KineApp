@@ -12,6 +12,7 @@ public class Factura {
     private boolean cobrada;
     private String obraSocial;
     private String uidKinesiologo;
+    private String descripcion;
 
     public Factura() {}
 
@@ -49,4 +50,7 @@ public class Factura {
 
     public String getUidKinesiologo() { return uidKinesiologo; }
     public void setUidKinesiologo(String uidKinesiologo) { this.uidKinesiologo = uidKinesiologo; }
+
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
 }

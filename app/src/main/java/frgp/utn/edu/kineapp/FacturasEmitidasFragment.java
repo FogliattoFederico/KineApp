@@ -233,6 +233,7 @@ public class FacturasEmitidasFragment extends Fragment {
         TextInputEditText etNumeroParte2 = dialogView.findViewById(R.id.et_numero_parte2);
         TextInputEditText etFecha = dialogView.findViewById(R.id.et_fecha);
         AutoCompleteTextView etObraSocial = dialogView.findViewById(R.id.et_obra_social);
+        TextInputEditText etDescripcion = dialogView.findViewById(R.id.et_descripcion);
         TextInputEditText etImporte = dialogView.findViewById(R.id.et_importe);
         com.google.android.material.button.MaterialButton btnGuardar = dialogView.findViewById(R.id.btn_guardar);
         com.google.android.material.button.MaterialButton btnCancelar = dialogView.findViewById(R.id.btn_cancelar);
@@ -264,6 +265,7 @@ public class FacturasEmitidasFragment extends Fragment {
             etTipo.setText(facturaExistente.getTipoComprobante(), false);
             etImporte.setText(String.valueOf(facturaExistente.getImporte()));
             etObraSocial.setText(facturaExistente.getObraSocial(), false);
+            etDescripcion.setText(facturaExistente.getDescripcion());
             if (facturaExistente.getFecha() != null) {
                 fechaSeleccionada[0].setTime(facturaExistente.getFecha().toDate());
                 etFecha.setText(sdf.format(fechaSeleccionada[0].getTime()));
@@ -284,16 +286,29 @@ public class FacturasEmitidasFragment extends Fragment {
             String parte1 = etNumeroParte1.getText().toString().trim();
             String parte2 = etNumeroParte2.getText().toString().trim();
             String obraSocial = etObraSocial.getText().toString().trim();
+            String descripcion = etDescripcion.getText().toString().trim();
             String importeStr = etImporte.getText().toString().trim();
             if (tipo.isEmpty() || parte1.length() != 5 || parte2.length() != 8 || obraSocial.isEmpty() || importeStr.isEmpty()) {
                 Toast.makeText(getContext(), "Completá todos los campos correctamente", Toast.LENGTH_SHORT).show();
                 return;
             }
             String numero = parte1 + "-" + parte2;
+            
+            // Validación de número y tipo duplicado
+            for (Factura f : listaFacturas) {
+                if (f.getNumero().equals(numero) && f.getTipoComprobante().equals(tipo)) {
+                    if (facturaExistente == null || !f.getId().equals(facturaExistente.getId())) {
+                        Toast.makeText(getContext(), "Ya existe un(a) " + tipo + " con este número", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                }
+            }
+
             double importe = Double.parseDouble(importeStr);
             Timestamp fecha = new Timestamp(new Date(fechaSeleccionada[0].getTimeInMillis()));
             if (facturaExistente == null) {
                 Factura nueva = new Factura(tipo, numero, fecha, importe, obraSocial, FirebaseAuth.getInstance().getCurrentUser().getUid());
+                nueva.setDescripcion(descripcion);
                 repository.guardar(nueva).addOnSuccessListener(a -> { cargarFacturas(); dialog.dismiss(); });
             } else {
                 facturaExistente.setTipoComprobante(tipo);
@@ -301,6 +316,7 @@ public class FacturasEmitidasFragment extends Fragment {
                 facturaExistente.setFecha(fecha);
                 facturaExistente.setImporte(importe);
                 facturaExistente.setObraSocial(obraSocial);
+                facturaExistente.setDescripcion(descripcion);
                 repository.guardar(facturaExistente).addOnSuccessListener(a -> { cargarFacturas(); dialog.dismiss(); });
             }
         });
