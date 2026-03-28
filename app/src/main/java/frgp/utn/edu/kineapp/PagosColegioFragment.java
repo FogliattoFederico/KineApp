@@ -241,7 +241,7 @@ public class PagosColegioFragment extends Fragment {
                     if (!r.isEsDirecto() && r.getOrdenes() != null) {
                         for (OrdenRemito o : r.getOrdenes()) {
                             o.setParentRemitoId(r.getId());
-                            if (!o.isAsociadaAPago() || (liqExistente != null && ordenesSeleccionadas.contains(o))) {
+                            if (!o.isAsociadaAPago() || (liqExistente != null && ordenesSeleccionadas.stream().anyMatch(os -> os.getId().equals(o.getId())))) {
                                 listaOrdenesDisponibles.add(o);
                             }
                         }
@@ -285,31 +285,68 @@ public class PagosColegioFragment extends Fragment {
                         o.getNumeroAfiliado() != null ? o.getNumeroAfiliado() : "-",
                         o.getFecha(), o.getObraSocialNombre(),
                         o.getCodigoPractica() != null ? o.getCodigoPractica() : "-");
-                checkedItems[i] = ordenesSeleccionadas.contains(o);
+                checkedItems[i] = ordenesSeleccionadas.stream().anyMatch(os -> os.getId().equals(o.getId()));
             }
             new AlertDialog.Builder(getContext()).setTitle("Vincular Órdenes Oficiales")
                     .setMultiChoiceItems(items, checkedItems, (dialog, which, isChecked) -> {
                         OrdenRemito o = listaOrdenesDisponibles.get(which);
-                        if (isChecked) { if (!ordenesSeleccionadas.contains(o)) ordenesSeleccionadas.add(o); }
-                        else ordenesSeleccionadas.remove(o);
+                        if (isChecked) { 
+                            if (ordenesSeleccionadas.stream().noneMatch(os -> os.getId().equals(o.getId()))) ordenesSeleccionadas.add(o); 
+                        } else {
+                            ordenesSeleccionadas.removeIf(os -> os.getId().equals(o.getId()));
+                        }
                     }).setPositiveButton("Aceptar", (dialog, which) -> {
                         tvOrdenesSeleccionadas.setText(ordenesSeleccionadas.isEmpty() ? "Ninguna orden seleccionada" : ordenesSeleccionadas.size() + " orden(es) seleccionada(s)");
                     }).show();
         });
-        new AlertDialog.Builder(getContext()).setTitle(liqExistente == null ? "Nueva Liquidación Pendiente" : "Editar Liquidación").setView(dialogView)
-                .setPositiveButton(liqExistente == null ? "Agregar" : "Guardar", (d, w) -> {
-                    String impStr = etImporte.getText().toString().trim();
-                    if (!impStr.isEmpty()) {
-                        try {
-                            double importe = Double.parseDouble(impStr);
-                            if (cal.getTime().after(new Date())) { Toast.makeText(getContext(), "La fecha no puede ser futura", Toast.LENGTH_SHORT).show(); return; }
-                            LiquidacionColegio liq = liqExistente != null ? liqExistente : new LiquidacionColegio(new Timestamp(cal.getTime()), importe, com.google.firebase.auth.FirebaseAuth.getInstance().getUid());
-                            if (liqExistente != null) { liberarOrdenesNoSeleccionadas(liqExistente, ordenesSeleccionadas); liq.setFechaLiquidacion(new Timestamp(cal.getTime())); liq.setImporte(importe); }
-                            liq.setOrdenesVinculadas(new ArrayList<>(ordenesSeleccionadas));
-                            repository.guardar(liq).addOnSuccessListener(a -> { asociarOrdenesConfirmadas(liq.getId()); if (isAdded()) cargarLiquidaciones(); });
-                        } catch (Exception e) { Toast.makeText(getContext(), "Importe inválido", Toast.LENGTH_SHORT).show(); }
+
+        AlertDialog dialog = new AlertDialog.Builder(getContext())
+                .setTitle(liqExistente == null ? "Nueva Liquidación Pendiente" : "Editar Liquidación")
+                .setView(dialogView)
+                .setPositiveButton(liqExistente == null ? "Agregar" : "Guardar", null)
+                .setNegativeButton("Cancelar", null)
+                .create();
+
+        dialog.setOnShowListener(dialogInterface -> {
+            View button = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            button.setOnClickListener(v -> {
+                String impStr = etImporte.getText().toString().trim();
+                if (impStr.isEmpty()) {
+                    Toast.makeText(getContext(), "Ingresá un importe", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (ordenesSeleccionadas.isEmpty()) {
+                    Toast.makeText(getContext(), "Debes seleccionar al menos una orden", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                try {
+                    double importe = Double.parseDouble(impStr);
+                    if (cal.getTime().after(new Date())) {
+                        Toast.makeText(getContext(), "La fecha no puede ser futura", Toast.LENGTH_SHORT).show();
+                        return;
                     }
-                }).setNegativeButton("Cancelar", null).show();
+                    
+                    LiquidacionColegio liq = liqExistente != null ? liqExistente : new LiquidacionColegio(new Timestamp(cal.getTime()), importe, com.google.firebase.auth.FirebaseAuth.getInstance().getUid());
+                    if (liqExistente != null) {
+                        liberarOrdenesNoSeleccionadas(liqExistente, ordenesSeleccionadas);
+                        liq.setFechaLiquidacion(new Timestamp(cal.getTime()));
+                        liq.setImporte(importe);
+                    }
+                    liq.setOrdenesVinculadas(new ArrayList<>(ordenesSeleccionadas));
+                    repository.guardar(liq).addOnSuccessListener(a -> {
+                        asociarOrdenesConfirmadas(liq.getId());
+                        if (isAdded()) cargarLiquidaciones();
+                        dialog.dismiss();
+                    });
+                } catch (Exception e) {
+                    Toast.makeText(getContext(), "Importe inválido", Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
+
+        dialog.show();
     }
 
     private void asociarOrdenesConfirmadas(String pagoId) {
@@ -333,8 +370,7 @@ public class PagosColegioFragment extends Fragment {
     private void liberarOrdenesNoSeleccionadas(LiquidacionColegio liqOriginal, List<OrdenRemito> nuevasSeleccionadas) {
         if (liqOriginal.getOrdenesVinculadas() == null) return;
         for (OrdenRemito antigua : liqOriginal.getOrdenesVinculadas()) {
-            boolean sigueSeleccionada = false;
-            for(OrdenRemito n : nuevasSeleccionadas) if(n.getId().equals(antigua.getId())) { sigueSeleccionada = true; break; }
+            boolean sigueSeleccionada = nuevasSeleccionadas.stream().anyMatch(n -> n.getId().equals(antigua.getId()));
             
             if (!sigueSeleccionada) {
                 for (Remito r : listaRemitosParaActualizar) {
