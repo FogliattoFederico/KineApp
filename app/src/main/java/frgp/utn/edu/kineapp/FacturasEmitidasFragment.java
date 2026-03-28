@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.LinearLayout;
+import android.widget.NumberPicker;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -22,7 +23,6 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.FirebaseFirestore;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,6 +42,9 @@ public class FacturasEmitidasFragment extends Fragment {
     private FacturaAdapter adapter;
     private ChipGroup chipGroupEstado, chipGroupObrasSociales;
     private String obraSocialSeleccionada = null;
+    
+    private TextView tvPeriodo;
+    private int mesSeleccionado, anioSeleccionado;
 
     private final String[] TIPOS = {
             "Factura A", "Factura B", "Factura C",
@@ -65,13 +68,19 @@ public class FacturasEmitidasFragment extends Fragment {
         layoutEmpty = view.findViewById(R.id.layout_empty);
         chipGroupEstado = view.findViewById(R.id.chip_group_estado);
         chipGroupObrasSociales = view.findViewById(R.id.chip_group_obras_sociales);
+        tvPeriodo = view.findViewById(R.id.tv_periodo_facturas);
+        View layoutPeriodo = view.findViewById(R.id.layout_seleccionar_periodo_facturas);
+
+        Calendar cal = Calendar.getInstance();
+        mesSeleccionado = cal.get(Calendar.MONTH);
+        anioSeleccionado = cal.get(Calendar.YEAR);
+        actualizarTextoPeriodo();
 
         adapter = new FacturaAdapter(listaFiltrada, new FacturaAdapter.OnFacturaClickListener() {
             @Override
             public void onClick(Factura factura) {
                 mostrarDialogoFactura(factura);
             }
-
             @Override
             public void onLongClick(Factura factura) {
                 confirmarEliminacion(factura);
@@ -84,6 +93,8 @@ public class FacturasEmitidasFragment extends Fragment {
         rvFacturas.setLayoutManager(new LinearLayoutManager(getContext()));
         rvFacturas.setAdapter(adapter);
 
+        layoutPeriodo.setOnClickListener(v -> mostrarDialogoMesAnio());
+
         FloatingActionButton fab = view.findViewById(R.id.fab_agregar_factura);
         fab.setOnClickListener(v -> mostrarDialogoFactura(null));
 
@@ -91,6 +102,42 @@ public class FacturasEmitidasFragment extends Fragment {
 
         cargarFacturas();
         cargarObrasSocialesChips();
+    }
+
+    private void mostrarDialogoMesAnio() {
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_month_year_picker, null);
+        NumberPicker monthPicker = dialogView.findViewById(R.id.picker_month);
+        NumberPicker yearPicker = dialogView.findViewById(R.id.picker_year);
+
+        String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
+                          "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
+        monthPicker.setMinValue(0);
+        monthPicker.setMaxValue(11);
+        monthPicker.setDisplayedValues(meses);
+        monthPicker.setValue(mesSeleccionado);
+
+        int currentYear = Calendar.getInstance().get(Calendar.YEAR);
+        yearPicker.setMinValue(currentYear - 5);
+        yearPicker.setMaxValue(currentYear + 1);
+        yearPicker.setValue(anioSeleccionado);
+
+        new AlertDialog.Builder(getContext())
+                .setTitle("Seleccionar Período")
+                .setView(dialogView)
+                .setPositiveButton("Aceptar", (dialog, which) -> {
+                    mesSeleccionado = monthPicker.getValue();
+                    anioSeleccionado = yearPicker.getValue();
+                    actualizarTextoPeriodo();
+                    cargarFacturas();
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    private void actualizarTextoPeriodo() {
+        String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
+                          "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
+        tvPeriodo.setText(meses[mesSeleccionado] + " " + anioSeleccionado);
     }
 
     private void confirmarEliminacion(Factura factura) {
@@ -119,11 +166,18 @@ public class FacturasEmitidasFragment extends Fragment {
                 .addOnSuccessListener(query -> {
                     if (!isAdded()) return;
                     listaFacturas.clear();
+                    Calendar calFactura = Calendar.getInstance();
                     for (var doc : query.getDocuments()) {
                         Factura f = doc.toObject(Factura.class);
                         if (f != null) {
                             f.setId(doc.getId());
-                            listaFacturas.add(f);
+                            if (f.getFecha() != null) {
+                                calFactura.setTime(f.getFecha().toDate());
+                                if (calFactura.get(Calendar.MONTH) == mesSeleccionado && 
+                                    calFactura.get(Calendar.YEAR) == anioSeleccionado) {
+                                    listaFacturas.add(f);
+                                }
+                            }
                         }
                     }
                     listaFacturas.sort((a, b) -> {
@@ -131,13 +185,7 @@ public class FacturasEmitidasFragment extends Fragment {
                         if (b.getFecha() == null) return -1;
                         return b.getFecha().compareTo(a.getFecha());
                     });
-                    
                     aplicarFiltros();
-                })
-                .addOnFailureListener(e -> {
-                    if (isAdded()) {
-                        Toast.makeText(getContext(), "Error de permisos al cargar facturas", Toast.LENGTH_SHORT).show();
-                    }
                 });
     }
 
@@ -150,15 +198,10 @@ public class FacturasEmitidasFragment extends Fragment {
         for (String os : obrasSociales) {
             Chip chip = (Chip) getLayoutInflater().inflate(R.layout.layout_chip_filter, chipGroupObrasSociales, false);
             chip.setText(os);
-            
             if (os.equals(obraSocialSeleccionada)) chip.setChecked(true);
-            
             chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                if (isChecked) {
-                    obraSocialSeleccionada = os;
-                } else if (obraSocialSeleccionada != null && obraSocialSeleccionada.equals(os)) {
-                    obraSocialSeleccionada = null;
-                }
+                if (isChecked) obraSocialSeleccionada = os;
+                else if (obraSocialSeleccionada != null && obraSocialSeleccionada.equals(os)) obraSocialSeleccionada = null;
                 aplicarFiltros();
             });
             chipGroupObrasSociales.addView(chip);
@@ -168,30 +211,23 @@ public class FacturasEmitidasFragment extends Fragment {
     private void aplicarFiltros() {
         int checkedEstadoId = chipGroupEstado.getCheckedChipId();
         listaFiltrada.clear();
-
         for (Factura f : listaFacturas) {
             boolean pasaEstado = true;
             if (checkedEstadoId == R.id.chip_cobradas) pasaEstado = f.isCobrada();
             else if (checkedEstadoId == R.id.chip_no_cobradas) pasaEstado = !f.isCobrada();
-
             boolean pasaOS = true;
-            if (obraSocialSeleccionada != null) {
-                pasaOS = obraSocialSeleccionada.equals(f.getObraSocial());
-            }
-
-            if (pasaEstado && pasaOS) {
-                listaFiltrada.add(f);
-            }
+            if (obraSocialSeleccionada != null) pasaOS = obraSocialSeleccionada.equals(f.getObraSocial());
+            if (pasaEstado && pasaOS) listaFiltrada.add(f);
         }
-
         adapter.actualizar(listaFiltrada);
         layoutEmpty.setVisibility(listaFiltrada.isEmpty() ? View.VISIBLE : View.GONE);
         rvFacturas.setVisibility(listaFiltrada.isEmpty() ? View.GONE : View.VISIBLE);
+        TextView tvEmpty = layoutEmpty.findViewById(R.id.tv_empty_text);
+        if (tvEmpty != null) tvEmpty.setText("No hay facturas en este período");
     }
 
     private void mostrarDialogoFactura(Factura facturaExistente) {
         View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_factura, null);
-
         AutoCompleteTextView etTipo = dialogView.findViewById(R.id.et_tipo);
         TextInputEditText etNumeroParte1 = dialogView.findViewById(R.id.et_numero_parte1);
         TextInputEditText etNumeroParte2 = dialogView.findViewById(R.id.et_numero_parte2);
@@ -214,15 +250,12 @@ public class FacturasEmitidasFragment extends Fragment {
                 cal.set(y, m, d);
                 etFecha.setText(sdf.format(cal.getTime()));
             }, cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH));
-            
-            // Establecer fecha máxima como la actual
             datePickerDialog.getDatePicker().setMaxDate(System.currentTimeMillis());
             datePickerDialog.show();
         });
 
         List<String> todasObrasSociales = new ArrayList<>(Arrays.asList(FormularioPacienteSimpleActivity.OBRAS_SOCIALES));
         Collections.sort(todasObrasSociales);
-        
         ArrayAdapter<String> osAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, todasObrasSociales);
         etObraSocial.setAdapter(osAdapter);
 
@@ -246,26 +279,21 @@ public class FacturasEmitidasFragment extends Fragment {
 
         AlertDialog dialog = new AlertDialog.Builder(getContext()).setView(dialogView).setCancelable(true).create();
         btnCancelar.setOnClickListener(v -> dialog.dismiss());
-
         btnGuardar.setOnClickListener(v -> {
             String tipo = etTipo.getText().toString().trim();
             String parte1 = etNumeroParte1.getText().toString().trim();
             String parte2 = etNumeroParte2.getText().toString().trim();
             String obraSocial = etObraSocial.getText().toString().trim();
             String importeStr = etImporte.getText().toString().trim();
-
             if (tipo.isEmpty() || parte1.length() != 5 || parte2.length() != 8 || obraSocial.isEmpty() || importeStr.isEmpty()) {
                 Toast.makeText(getContext(), "Completá todos los campos correctamente", Toast.LENGTH_SHORT).show();
                 return;
             }
-
             String numero = parte1 + "-" + parte2;
             double importe = Double.parseDouble(importeStr);
             Timestamp fecha = new Timestamp(new Date(fechaSeleccionada[0].getTimeInMillis()));
-            String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-
             if (facturaExistente == null) {
-                Factura nueva = new Factura(tipo, numero, fecha, importe, obraSocial, uid);
+                Factura nueva = new Factura(tipo, numero, fecha, importe, obraSocial, FirebaseAuth.getInstance().getCurrentUser().getUid());
                 repository.guardar(nueva).addOnSuccessListener(a -> { cargarFacturas(); dialog.dismiss(); });
             } else {
                 facturaExistente.setTipoComprobante(tipo);
@@ -273,11 +301,9 @@ public class FacturasEmitidasFragment extends Fragment {
                 facturaExistente.setFecha(fecha);
                 facturaExistente.setImporte(importe);
                 facturaExistente.setObraSocial(obraSocial);
-                facturaExistente.setUidKinesiologo(uid);
                 repository.guardar(facturaExistente).addOnSuccessListener(a -> { cargarFacturas(); dialog.dismiss(); });
             }
         });
-
         dialog.show();
     }
 }

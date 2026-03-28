@@ -8,6 +8,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
+import android.widget.NumberPicker;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -18,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public class RemitosFragment extends Fragment {
@@ -28,6 +31,8 @@ public class RemitosFragment extends Fragment {
     private RemitoRepository repository;
     private RemitoAdapter adapter;
     private TextInputEditText etBuscar;
+    private TextView tvPeriodo;
+    private int mesSeleccionado, anioSeleccionado;
 
     @Nullable
     @Override
@@ -45,10 +50,16 @@ public class RemitosFragment extends Fragment {
         rvRemitos = view.findViewById(R.id.rv_remitos);
         layoutEmpty = view.findViewById(R.id.layout_empty);
         etBuscar = view.findViewById(R.id.et_buscar_remito);
+        tvPeriodo = view.findViewById(R.id.tv_periodo_remitos);
+        View layoutPeriodo = view.findViewById(R.id.layout_seleccionar_periodo);
         FloatingActionButton fab = view.findViewById(R.id.fab_agregar_remito);
 
+        Calendar cal = Calendar.getInstance();
+        mesSeleccionado = cal.get(Calendar.MONTH);
+        anioSeleccionado = cal.get(Calendar.YEAR);
+        actualizarTextoPeriodo();
+
         rvRemitos.setLayoutManager(new LinearLayoutManager(getContext()));
-        
         adapter = new RemitoAdapter(listaRemitos, new RemitoAdapter.OnRemitoClickListener() {
             @Override
             public void onClick(Remito remito) {
@@ -56,7 +67,6 @@ public class RemitosFragment extends Fragment {
                 intent.putExtra("remitoId", remito.getId());
                 startActivity(intent);
             }
-
             @Override
             public void onLongClick(Remito remito) {
                 confirmarEliminacion(remito);
@@ -64,15 +74,15 @@ public class RemitosFragment extends Fragment {
         });
         rvRemitos.setAdapter(adapter);
 
+        layoutPeriodo.setOnClickListener(v -> mostrarDialogoMesAnio());
+
         etBuscar.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 adapter.filtrar(s.toString());
             }
-
             @Override
             public void afterTextChanged(Editable s) {}
         });
@@ -85,6 +95,42 @@ public class RemitosFragment extends Fragment {
         cargarRemitos();
     }
 
+    private void mostrarDialogoMesAnio() {
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_month_year_picker, null);
+        NumberPicker monthPicker = dialogView.findViewById(R.id.picker_month);
+        NumberPicker yearPicker = dialogView.findViewById(R.id.picker_year);
+
+        String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
+                          "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
+        monthPicker.setMinValue(0);
+        monthPicker.setMaxValue(11);
+        monthPicker.setDisplayedValues(meses);
+        monthPicker.setValue(mesSeleccionado);
+
+        int currentYear = Calendar.getInstance().get(Calendar.YEAR);
+        yearPicker.setMinValue(currentYear - 5);
+        yearPicker.setMaxValue(currentYear + 1);
+        yearPicker.setValue(anioSeleccionado);
+
+        new AlertDialog.Builder(getContext())
+                .setTitle("Seleccionar Período")
+                .setView(dialogView)
+                .setPositiveButton("Aceptar", (dialog, which) -> {
+                    mesSeleccionado = monthPicker.getValue();
+                    anioSeleccionado = yearPicker.getValue();
+                    actualizarTextoPeriodo();
+                    cargarRemitos();
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    private void actualizarTextoPeriodo() {
+        String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
+                          "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
+        tvPeriodo.setText(meses[mesSeleccionado] + " " + anioSeleccionado);
+    }
+
     @Override
     public void onResume() {
         super.onResume();
@@ -92,32 +138,31 @@ public class RemitosFragment extends Fragment {
     }
 
     private void cargarRemitos() {
-        repository.obtenerTodos().addOnSuccessListener(query -> {
+        repository.obtenerPorMes(mesSeleccionado, anioSeleccionado).addOnSuccessListener(query -> {
+            if (!isAdded()) return;
             listaRemitos.clear();
+            Calendar calRemito = Calendar.getInstance();
             for (var doc : query.getDocuments()) {
                 Remito r = doc.toObject(Remito.class);
                 if (r != null) {
                     r.setId(doc.getId());
-                    listaRemitos.add(r);
+                    if (r.getFechaCreacion() != null) {
+                        calRemito.setTime(r.getFechaCreacion().toDate());
+                        if (calRemito.get(Calendar.MONTH) == mesSeleccionado && 
+                            calRemito.get(Calendar.YEAR) == anioSeleccionado) {
+                            listaRemitos.add(r);
+                        }
+                    }
                 }
             }
-            
-            // Ordenamos por número de remito (Descendente) si es numérico, o alfabéticamente
             listaRemitos.sort((a, b) -> {
                 String numA = a.getNumeroRemito() != null ? a.getNumeroRemito() : "";
                 String numB = b.getNumeroRemito() != null ? b.getNumeroRemito() : "";
                 return numB.compareTo(numA);
             });
-
             actualizarVista();
-            
             if (etBuscar.getText() != null && !etBuscar.getText().toString().isEmpty()) {
                 adapter.filtrar(etBuscar.getText().toString());
-            }
-            
-        }).addOnFailureListener(e -> {
-            if (isAdded()) {
-                Toast.makeText(getContext(), "Error al cargar remitos: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }

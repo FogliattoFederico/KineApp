@@ -1,11 +1,12 @@
 package frgp.utn.edu.kineapp;
 
-import android.app.DatePickerDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
+import android.widget.NumberPicker;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -40,8 +41,9 @@ public class PagosColegioFragment extends Fragment {
     
     private CardView cardTotalAdeudado;
     private TextView tvTotalAdeudado;
+    private TextView tvPeriodo;
+    private int mesSeleccionado, anioSeleccionado;
 
-    // Para la selección de órdenes
     private List<Remito> listaRemitosParaActualizar = new ArrayList<>();
     private List<OrdenRemito> listaOrdenesDisponibles = new ArrayList<>();
     private List<OrdenRemito> ordenesSeleccionadas = new ArrayList<>();
@@ -63,9 +65,15 @@ public class PagosColegioFragment extends Fragment {
         rvLiquidaciones = view.findViewById(R.id.rv_liquidaciones);
         layoutEmpty = view.findViewById(R.id.layout_empty);
         chipGroupFiltro = view.findViewById(R.id.chip_group_filtro_liq);
-        
+        tvPeriodo = view.findViewById(R.id.tv_periodo_pago);
+        View layoutPeriodo = view.findViewById(R.id.layout_seleccionar_periodo_pago);
         cardTotalAdeudado = view.findViewById(R.id.card_total_adeudado);
         tvTotalAdeudado = view.findViewById(R.id.tv_total_adeudado);
+
+        Calendar cal = Calendar.getInstance();
+        mesSeleccionado = cal.get(Calendar.MONTH);
+        anioSeleccionado = cal.get(Calendar.YEAR);
+        actualizarTextoPeriodo();
 
         adapter = new LiquidacionAdapter(listaLiquidaciones, new LiquidacionAdapter.OnLiquidacionClickListener() {
             @Override
@@ -82,27 +90,19 @@ public class PagosColegioFragment extends Fragment {
                         .setNegativeButton("Cancelar", null)
                         .show();
             }
-
             @Override
             public void onMarkAsFacturada(LiquidacionColegio liq) {
                 String titulo = liq.isFacturada() ? "Mover a pendientes" : "Liquidación facturada";
                 String mensaje = liq.isFacturada() ? "¿Deseás marcar esta liquidación como pendiente nuevamente?" : "¿Ya emitiste el recibo para este pago?";
                 String botonPositivo = liq.isFacturada() ? "Mover" : "Sí, ya facturé";
-
                 new AlertDialog.Builder(getContext())
-                        .setTitle(titulo)
-                        .setMessage(mensaje)
+                        .setTitle(titulo).setMessage(mensaje)
                         .setPositiveButton(botonPositivo, (d, w) -> {
                             repository.marcarComoFacturada(liq.getId(), !liq.isFacturada()).addOnSuccessListener(a -> {
-                                if (isAdded()) {
-                                    cargarLiquidaciones();
-                                }
+                                if (isAdded()) cargarLiquidaciones();
                             });
-                        })
-                        .setNegativeButton("Cancelar", null)
-                        .show();
+                        }).setNegativeButton("Cancelar", null).show();
             }
-
             @Override
             public void onEdit(LiquidacionColegio liq) {
                 mostrarDialogoAgregar(liq);
@@ -111,6 +111,8 @@ public class PagosColegioFragment extends Fragment {
 
         rvLiquidaciones.setLayoutManager(new LinearLayoutManager(getContext()));
         rvLiquidaciones.setAdapter(adapter);
+
+        layoutPeriodo.setOnClickListener(v -> mostrarDialogoMesAnio());
 
         chipGroupFiltro.setOnCheckedStateChangeListener((group, checkedIds) -> {
             filtrandoFacturadas = checkedIds.contains(R.id.chip_liq_facturadas);
@@ -122,6 +124,42 @@ public class PagosColegioFragment extends Fragment {
 
         cargarLiquidaciones();
         cargarOrdenesDisponibles();
+    }
+
+    private void mostrarDialogoMesAnio() {
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_month_year_picker, null);
+        NumberPicker monthPicker = dialogView.findViewById(R.id.picker_month);
+        NumberPicker yearPicker = dialogView.findViewById(R.id.picker_year);
+
+        String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
+                          "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
+        monthPicker.setMinValue(0);
+        monthPicker.setMaxValue(11);
+        monthPicker.setDisplayedValues(meses);
+        monthPicker.setValue(mesSeleccionado);
+
+        int currentYear = Calendar.getInstance().get(Calendar.YEAR);
+        yearPicker.setMinValue(currentYear - 5);
+        yearPicker.setMaxValue(currentYear + 1);
+        yearPicker.setValue(anioSeleccionado);
+
+        new AlertDialog.Builder(getContext())
+                .setTitle("Seleccionar Período")
+                .setView(dialogView)
+                .setPositiveButton("Aceptar", (dialog, which) -> {
+                    mesSeleccionado = monthPicker.getValue();
+                    anioSeleccionado = yearPicker.getValue();
+                    actualizarTextoPeriodo();
+                    cargarLiquidaciones();
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
+    }
+
+    private void actualizarTextoPeriodo() {
+        String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
+                          "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
+        tvPeriodo.setText(meses[mesSeleccionado] + " " + anioSeleccionado);
     }
 
     private void cargarOrdenesDisponibles() {
@@ -136,10 +174,7 @@ public class PagosColegioFragment extends Fragment {
                     if (r.getOrdenes() != null) {
                         for (OrdenRemito o : r.getOrdenes()) {
                             o.setParentRemitoId(r.getId());
-                            // Agregamos las que NO están asociadas a un pago
-                            if (!o.isAsociadaAPago()) {
-                                listaOrdenesDisponibles.add(o);
-                            }
+                            if (!o.isAsociadaAPago()) listaOrdenesDisponibles.add(o);
                         }
                     }
                 }
@@ -148,27 +183,7 @@ public class PagosColegioFragment extends Fragment {
     }
 
     private void cargarLiquidaciones() {
-        repository.obtenerTodas()
-                .addOnSuccessListener(query -> {
-                    if (!isAdded()) return;
-                    actualizarListaUI(query);
-                })
-                .addOnFailureListener(e -> {
-                    if (isAdded()) {
-                        if (e.getMessage() != null && e.getMessage().contains("FAILED_PRECONDITION")) {
-                            cargarLiquidacionesSinOrden();
-                        } else {
-                            Toast.makeText(getContext(), "Error al cargar: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                        }
-                    }
-                });
-    }
-
-    private void cargarLiquidacionesSinOrden() {
-        com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                .collection("liquidaciones_colegio")
-                .whereEqualTo("uidKinesiologo", com.google.firebase.auth.FirebaseAuth.getInstance().getUid())
-                .get()
+        repository.obtenerPorMes(mesSeleccionado, anioSeleccionado)
                 .addOnSuccessListener(query -> {
                     if (!isAdded()) return;
                     actualizarListaUI(query);
@@ -178,35 +193,27 @@ public class PagosColegioFragment extends Fragment {
     private void actualizarListaUI(com.google.firebase.firestore.QuerySnapshot query) {
         listaLiquidaciones.clear();
         double totalPendiente = 0;
-        
+        Calendar calLiq = Calendar.getInstance();
         for (var doc : query.getDocuments()) {
             LiquidacionColegio liq = doc.toObject(LiquidacionColegio.class);
             if (liq != null) {
                 liq.setId(doc.getId());
-                if (!liq.isFacturada()) {
-                    totalPendiente += liq.getImporte();
-                }
-                if (liq.isFacturada() == filtrandoFacturadas) {
-                    listaLiquidaciones.add(liq);
+                if (liq.getFechaLiquidacion() != null) {
+                    calLiq.setTime(liq.getFechaLiquidacion().toDate());
+                    if (calLiq.get(Calendar.MONTH) == mesSeleccionado && calLiq.get(Calendar.YEAR) == anioSeleccionado) {
+                        if (!liq.isFacturada()) totalPendiente += liq.getImporte();
+                        if (liq.isFacturada() == filtrandoFacturadas) listaLiquidaciones.add(liq);
+                    }
                 }
             }
         }
-        
         adapter.actualizar(listaLiquidaciones);
         layoutEmpty.setVisibility(listaLiquidaciones.isEmpty() ? View.VISIBLE : View.GONE);
         rvLiquidaciones.setVisibility(listaLiquidaciones.isEmpty() ? View.GONE : View.VISIBLE);
-        
         if (!filtrandoFacturadas && totalPendiente > 0) {
             cardTotalAdeudado.setVisibility(View.VISIBLE);
             tvTotalAdeudado.setText(String.format(new Locale("es", "AR"), "$ %,.2f", totalPendiente));
-        } else {
-            cardTotalAdeudado.setVisibility(View.GONE);
-        }
-
-        TextView tvEmpty = layoutEmpty.findViewById(R.id.tv_empty_liq);
-        if (tvEmpty != null) {
-            tvEmpty.setText(filtrandoFacturadas ? "No hay liquidaciones facturadas" : "No hay liquidaciones pendientes");
-        }
+        } else cardTotalAdeudado.setVisibility(View.GONE);
     }
 
     private void mostrarDialogoAgregar(LiquidacionColegio liqExistente) {
@@ -214,8 +221,6 @@ public class PagosColegioFragment extends Fragment {
         if (liqExistente != null && liqExistente.getOrdenesVinculadas() != null) {
             ordenesSeleccionadas.addAll(liqExistente.getOrdenesVinculadas());
         }
-        
-        // Recargar para tener lo último (disponibles + las que ya tiene este recibo si estamos editando)
         remitoRepository.obtenerTodos().addOnSuccessListener(query -> {
             listaRemitosParaActualizar.clear();
             listaOrdenesDisponibles.clear();
@@ -227,7 +232,6 @@ public class PagosColegioFragment extends Fragment {
                     if (r.getOrdenes() != null) {
                         for (OrdenRemito o : r.getOrdenes()) {
                             o.setParentRemitoId(r.getId());
-                            // Incluimos si está libre O si ya pertenece a este recibo que estamos editando
                             if (!o.isAsociadaAPago() || (liqExistente != null && ordenesSeleccionadas.contains(o))) {
                                 listaOrdenesDisponibles.add(o);
                             }
@@ -245,102 +249,54 @@ public class PagosColegioFragment extends Fragment {
         TextInputEditText etImporte = dialogView.findViewById(R.id.et_importe_liq);
         MaterialButton btnSeleccionarOrdenes = dialogView.findViewById(R.id.btn_seleccionar_remitos);
         TextView tvOrdenesSeleccionadas = dialogView.findViewById(R.id.tv_remitos_seleccionados);
-        
         final Calendar cal = Calendar.getInstance();
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-        
         if (liqExistente != null) {
             cal.setTime(liqExistente.getFechaLiquidacion().toDate());
             etImporte.setText(String.valueOf(liqExistente.getImporte()));
             tvOrdenesSeleccionadas.setText(ordenesSeleccionadas.size() + " orden(es) seleccionada(s)");
         }
-        
         etFecha.setText(sdf.format(cal.getTime()));
-
         etFecha.setOnClickListener(v -> {
-            new DatePickerDialog(getContext(), (dp, y, m, d) -> {
+            android.app.DatePickerDialog dpd = new android.app.DatePickerDialog(getContext(), (dp, y, m, d) -> {
                 cal.set(y, m, d);
                 etFecha.setText(sdf.format(cal.getTime()));
-            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
+            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH));
+            dpd.getDatePicker().setMaxDate(System.currentTimeMillis());
+            dpd.show();
         });
-
         btnSeleccionarOrdenes.setOnClickListener(v -> {
-            if (listaOrdenesDisponibles.isEmpty()) {
-                Toast.makeText(getContext(), "No hay órdenes disponibles", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
+            if (listaOrdenesDisponibles.isEmpty()) { Toast.makeText(getContext(), "No hay órdenes disponibles", Toast.LENGTH_SHORT).show(); return; }
             String[] items = new String[listaOrdenesDisponibles.size()];
             boolean[] checkedItems = new boolean[listaOrdenesDisponibles.size()];
-            
             for (int i = 0; i < listaOrdenesDisponibles.size(); i++) {
                 OrdenRemito o = listaOrdenesDisponibles.get(i);
-                items[i] = String.format("%s\nFecha: %s | OS: %s",
-                        o.getPacienteNombreCompleto(),
-                        o.getFecha(),
-                        o.getObraSocialNombre());
-                
+                items[i] = String.format("%s\nFecha: %s | OS: %s", o.getPacienteNombreCompleto(), o.getFecha(), o.getObraSocialNombre());
                 checkedItems[i] = ordenesSeleccionadas.contains(o);
             }
-
-            new AlertDialog.Builder(getContext())
-                    .setTitle("Vincular Órdenes")
+            new AlertDialog.Builder(getContext()).setTitle("Vincular Órdenes")
                     .setMultiChoiceItems(items, checkedItems, (dialog, which, isChecked) -> {
                         OrdenRemito o = listaOrdenesDisponibles.get(which);
-                        if (isChecked) {
-                            if (!ordenesSeleccionadas.contains(o)) ordenesSeleccionadas.add(o);
-                        } else {
-                            ordenesSeleccionadas.remove(o);
-                        }
-                    })
-                    .setPositiveButton("Aceptar", (dialog, which) -> {
-                        if (ordenesSeleccionadas.isEmpty()) {
-                            tvOrdenesSeleccionadas.setText("Ninguna orden seleccionada");
-                        } else {
-                            tvOrdenesSeleccionadas.setText(ordenesSeleccionadas.size() + " orden(es) seleccionada(s)");
-                        }
-                    })
-                    .show();
+                        if (isChecked) { if (!ordenesSeleccionadas.contains(o)) ordenesSeleccionadas.add(o); }
+                        else ordenesSeleccionadas.remove(o);
+                    }).setPositiveButton("Aceptar", (dialog, which) -> {
+                        tvOrdenesSeleccionadas.setText(ordenesSeleccionadas.isEmpty() ? "Ninguna orden seleccionada" : ordenesSeleccionadas.size() + " orden(es) seleccionada(s)");
+                    }).show();
         });
-
-        new AlertDialog.Builder(getContext())
-                .setTitle(liqExistente == null ? "Nueva Liquidación Pendiente" : "Editar Liquidación")
-                .setView(dialogView)
+        new AlertDialog.Builder(getContext()).setTitle(liqExistente == null ? "Nueva Liquidación Pendiente" : "Editar Liquidación").setView(dialogView)
                 .setPositiveButton(liqExistente == null ? "Agregar" : "Guardar", (d, w) -> {
                     String impStr = etImporte.getText().toString().trim();
                     if (!impStr.isEmpty()) {
                         try {
                             double importe = Double.parseDouble(impStr);
+                            if (cal.getTime().after(new Date())) { Toast.makeText(getContext(), "La fecha no puede ser futura", Toast.LENGTH_SHORT).show(); return; }
                             LiquidacionColegio liq = liqExistente != null ? liqExistente : new LiquidacionColegio(new Timestamp(cal.getTime()), importe, com.google.firebase.auth.FirebaseAuth.getInstance().getUid());
-                            
-                            // Si editamos, primero liberamos las órdenes viejas que ya no estén
-                            if (liqExistente != null) {
-                                liberarOrdenesNoSeleccionadas(liqExistente, ordenesSeleccionadas);
-                                liq.setFechaLiquidacion(new Timestamp(cal.getTime()));
-                                liq.setImporte(importe);
-                            }
-
+                            if (liqExistente != null) { liberarOrdenesNoSeleccionadas(liqExistente, ordenesSeleccionadas); liq.setFechaLiquidacion(new Timestamp(cal.getTime())); liq.setImporte(importe); }
                             liq.setOrdenesVinculadas(new ArrayList<>(ordenesSeleccionadas));
-                            
-                            repository.guardar(liq)
-                                    .addOnSuccessListener(a -> {
-                                        asociarOrdenesConfirmadas();
-                                        if (isAdded()) {
-                                            cargarLiquidaciones();
-                                        }
-                                    })
-                                    .addOnFailureListener(e -> {
-                                        if (isAdded()) {
-                                            Toast.makeText(getContext(), "Error al guardar: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                                        }
-                                    });
-                        } catch (NumberFormatException e) {
-                            Toast.makeText(getContext(), "Importe inválido", Toast.LENGTH_SHORT).show();
-                        }
+                            repository.guardar(liq).addOnSuccessListener(a -> { asociarOrdenesConfirmadas(); if (isAdded()) cargarLiquidaciones(); });
+                        } catch (Exception e) { Toast.makeText(getContext(), "Importe inválido", Toast.LENGTH_SHORT).show(); }
                     }
-                })
-                .setNegativeButton("Cancelar", null)
-                .show();
+                }).setNegativeButton("Cancelar", null).show();
     }
 
     private void asociarOrdenesConfirmadas() {
@@ -348,11 +304,7 @@ public class PagosColegioFragment extends Fragment {
             for (Remito r : listaRemitosParaActualizar) {
                 if (r.getId().equals(o.getParentRemitoId())) {
                     for (OrdenRemito or : r.getOrdenes()) {
-                        if (or.getId().equals(o.getId())) {
-                            or.setAsociadaAPago(true);
-                            remitoRepository.guardar(r);
-                            break;
-                        }
+                        if (or.getId().equals(o.getId())) { or.setAsociadaAPago(true); remitoRepository.guardar(r); break; }
                     }
                 }
             }
@@ -361,18 +313,12 @@ public class PagosColegioFragment extends Fragment {
 
     private void liberarOrdenesNoSeleccionadas(LiquidacionColegio liqOriginal, List<OrdenRemito> nuevasSeleccionadas) {
         if (liqOriginal.getOrdenesVinculadas() == null) return;
-        
         for (OrdenRemito antigua : liqOriginal.getOrdenesVinculadas()) {
             if (!nuevasSeleccionadas.contains(antigua)) {
-                // Esta orden fue desmarcada, hay que liberarla
                 for (Remito r : listaRemitosParaActualizar) {
                     if (r.getId().equals(antigua.getParentRemitoId())) {
                         for (OrdenRemito or : r.getOrdenes()) {
-                            if (or.getId().equals(antigua.getId())) {
-                                or.setAsociadaAPago(false);
-                                remitoRepository.guardar(r);
-                                break;
-                            }
+                            if (or.getId().equals(antigua.getId())) { or.setAsociadaAPago(false); remitoRepository.guardar(r); break; }
                         }
                     }
                 }
@@ -382,7 +328,6 @@ public class PagosColegioFragment extends Fragment {
 
     private void liberarOrdenes(LiquidacionColegio liq) {
         if (liq.getOrdenesVinculadas() == null) return;
-        
         remitoRepository.obtenerTodos().addOnSuccessListener(query -> {
             for (var doc : query.getDocuments()) {
                 Remito r = doc.toObject(Remito.class);
@@ -391,10 +336,7 @@ public class PagosColegioFragment extends Fragment {
                     boolean modificado = false;
                     for (OrdenRemito ov : liq.getOrdenesVinculadas()) {
                         for (OrdenRemito or : r.getOrdenes()) {
-                            if (or.getId().equals(ov.getId())) {
-                                or.setAsociadaAPago(false);
-                                modificado = true;
-                            }
+                            if (or.getId().equals(ov.getId())) { or.setAsociadaAPago(false); modificado = true; }
                         }
                     }
                     if (modificado) remitoRepository.guardar(r);

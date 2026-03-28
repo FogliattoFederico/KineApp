@@ -1,11 +1,9 @@
 package frgp.utn.edu.kineapp;
 
 import com.google.android.gms.tasks.Task;
-import com.google.android.gms.tasks.Tasks;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
 
 public class LiquidacionRepository {
@@ -28,9 +26,16 @@ public class LiquidacionRepository {
     }
 
     public Task<QuerySnapshot> obtenerTodas() {
+        // Quitamos el orderBy para evitar error de índice FAILED_PRECONDITION
         return coleccion
                 .whereEqualTo("uidKinesiologo", uidKinesiologo)
-                .orderBy("fechaLiquidacion", Query.Direction.DESCENDING)
+                .get();
+    }
+
+    public Task<QuerySnapshot> obtenerPorMes(int mes, int anio) {
+        // Quitamos el filtrado de fecha por el mismo motivo
+        return coleccion
+                .whereEqualTo("uidKinesiologo", uidKinesiologo)
                 .get();
     }
 

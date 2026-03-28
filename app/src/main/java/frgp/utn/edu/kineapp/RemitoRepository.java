@@ -31,7 +31,14 @@ public class RemitoRepository {
     }
 
     public Task<QuerySnapshot> obtenerTodos() {
-        // Quitamos el orderBy para evitar el error de índice
+        return coleccion
+                .whereEqualTo("uidKinesiologo", uid)
+                .get();
+    }
+
+    public Task<QuerySnapshot> obtenerPorMes(int mes, int anio) {
+        // Para evitar el error de índice (FAILED_PRECONDITION), realizamos la consulta base
+        // y el filtrado por fecha se hará en el cliente.
         return coleccion
                 .whereEqualTo("uidKinesiologo", uid)
                 .get();

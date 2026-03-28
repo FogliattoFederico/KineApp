@@ -1,5 +1,6 @@
 package frgp.utn.edu.kineapp;
 
+import com.google.firebase.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,12 +9,15 @@ public class Remito {
     private String uidKinesiologo;
     private List<OrdenRemito> ordenes;
     private String numeroRemito;
+    private Timestamp fechaCreacion;
 
     public Remito() {
         this.ordenes = new ArrayList<>();
+        this.fechaCreacion = Timestamp.now();
     }
 
     public Remito(String uidKinesiologo, List<OrdenRemito> ordenes) {
+        this();
         this.uidKinesiologo = uidKinesiologo;
         this.ordenes = ordenes;
     }
@@ -29,4 +33,7 @@ public class Remito {
 
     public String getNumeroRemito() { return numeroRemito; }
     public void setNumeroRemito(String numeroRemito) { this.numeroRemito = numeroRemito; }
+
+    public Timestamp getFechaCreacion() { return fechaCreacion; }
+    public void setFechaCreacion(Timestamp fechaCreacion) { this.fechaCreacion = fechaCreacion; }
 }

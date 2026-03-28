@@ -11,12 +11,58 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
+        <!-- Selector de Período -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="12dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:id="@+id/layout_seleccionar_periodo_pago"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="12dp"
+                android:gravity="center_vertical"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?attr/selectableItemBackground">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@android:drawable/ic_menu_today"
+                    app:tint="@color/primary" />
+
+                <TextView
+                    android:id="@+id/tv_periodo_pago"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:text="Cargando período..."
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary" />
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@android:drawable/arrow_down_float"
+                    app:tint="@color/text_secondary" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Banner de Advertencia -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_advertencia"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="12dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="12dp"
             app:cardCornerRadius="8dp"
             app:cardElevation="0dp"
             app:strokeColor="#FFCDD2"
@@ -124,11 +170,6 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Espacio para el FAB -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="80dp" />
-
         <LinearLayout
             android:id="@+id/layout_empty"
             android:layout_width="match_parent"
@@ -142,7 +183,7 @@
                 android:id="@+id/tv_empty_liq"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="No hay liquidaciones"
+                android:text="No hay liquidaciones en este período"
                 android:textSize="16sp"
                 android:textColor="@color/text_secondary" />
         </LinearLayout>
