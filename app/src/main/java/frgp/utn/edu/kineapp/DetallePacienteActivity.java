@@ -132,16 +132,11 @@ public class DetallePacienteActivity extends AppCompatActivity {
         TextView tvEdad = findViewById(R.id.tv_edad_detalle);
         if (tvEdad != null) tvEdad.setText(paciente.getEdad() > 0 ? paciente.getEdad() + " años" : "—");
 
-        // Sección Clínica (solo en modoTurno)
-        if (modoTurno) {
-            findViewById(R.id.label_clinica_seccion).setVisibility(View.VISIBLE);
-            findViewById(R.id.card_clinica).setVisibility(View.VISIBLE);
-            mostrarCampo(R.id.tv_diagnostico, paciente.getDiagnostico());
-            mostrarCampo(R.id.tv_observaciones, paciente.getObservaciones());
-        } else {
-            findViewById(R.id.label_clinica_seccion).setVisibility(View.GONE);
-            findViewById(R.id.card_clinica).setVisibility(View.GONE);
-        }
+        // Sección Clínica (Visible siempre)
+        findViewById(R.id.label_clinica_seccion).setVisibility(View.VISIBLE);
+        findViewById(R.id.card_clinica).setVisibility(View.VISIBLE);
+        mostrarCampo(R.id.tv_diagnostico, paciente.getDiagnostico());
+        mostrarCampo(R.id.tv_observaciones, paciente.getObservaciones());
 
         // Sección Cobertura (Visible siempre)
         findViewById(R.id.label_cobertura_seccion).setVisibility(View.VISIBLE);
@@ -178,7 +173,7 @@ public class DetallePacienteActivity extends AppCompatActivity {
             }
         }
 
-        // Mostrar información de sesiones (Siempre visible si hay datos)
+        // Mostrar información de sesiones
         if (tieneCUD) {
             setVisible(R.id.divider_sesiones, R.id.label_sesiones, R.id.tv_sesiones);
             ((TextView) findViewById(R.id.label_sesiones)).setText("SESIONES SEMANALES");

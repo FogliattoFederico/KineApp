@@ -48,8 +48,8 @@ public class FormularioPacienteActivity extends AppCompatActivity {
     private TextView tvTituloCud;
     private int cantidadBoxes = 1;
     private boolean modoEdicion = false;
-    private String profesionalNombre = "";
-    private String profesionalDireccionConsultorio = "";
+    private String professionalNombre = "";
+    private String professionalDireccionConsultorio = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -148,8 +148,6 @@ public class FormularioPacienteActivity extends AppCompatActivity {
                     if (boxes != null) cantidadBoxes = boxes.intValue();
                 });
     }
-    private String professionalNombre = "";
-    private String professionalDireccionConsultorio = "";
 
     private void buscarPacientes() {
         String query = etBuscar.getText().toString().trim().toLowerCase();
@@ -274,6 +272,10 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         etTelefono.setText(pacienteExistente.getTelefono());
         etDireccion.setText(pacienteExistente.getDireccion());
         if (pacienteExistente.getEmail() != null) etEmailPaciente.setText(pacienteExistente.getEmail());
+        
+        // Se carga la info clínica cargada en el alta
+        etDiagnostico.setText(pacienteExistente.getDiagnostico() != null ? pacienteExistente.getDiagnostico() : "");
+        etObservaciones.setText(pacienteExistente.getObservaciones() != null ? pacienteExistente.getObservaciones() : "");
 
         etNombre.setEnabled(false);
         etApellido.setEnabled(false);
@@ -284,6 +286,8 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         switchParticular.setEnabled(false);
         etSesionesSemanales.setEnabled(false);
         etSesionesOrden.setEnabled(false);
+        etDiagnostico.setEnabled(false);
+        etObservaciones.setEnabled(false);
 
         boolean tieneOS = pacienteExistente.getObraSocial() != null && !pacienteExistente.getObraSocial().isEmpty();
         boolean tieneCUD = pacienteExistente.isCertificadoDiscapacidad();
@@ -313,9 +317,6 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         }
 
         if (modoEdicion) {
-            etDiagnostico.setText(pacienteExistente.getDiagnostico());
-            etObservaciones.setText(pacienteExistente.getObservaciones());
-            
             String modalidad = pacienteExistente.getModalidad();
             if ("domicilio".equals(modalidad)) {
                 Chip chip = findViewById(R.id.chip_domicilio);
@@ -329,8 +330,6 @@ public class FormularioPacienteActivity extends AppCompatActivity {
                 etValorSesion.setText(String.valueOf(pacienteExistente.getValorSesion()));
             }
         } else {
-            etDiagnostico.setText("");
-            etObservaciones.setText("");
             if (chipGroupModalidad != null) chipGroupModalidad.clearCheck();
         }
 
@@ -510,11 +509,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         repository.guardar(paciente)
                 .addOnSuccessListener(unused -> {
                     Toast.makeText(this, "Guardado correctamente", Toast.LENGTH_SHORT).show();
-                    if (!modoEdicion) {
-                        preguntarEnviarWhatsApp(paciente, horariosNuevos);
-                    } else {
-                        finish();
-                    }
+                    preguntarEnviarWhatsApp(paciente, horariosNuevos);
                 })
                 .addOnFailureListener(e -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
     }
@@ -525,9 +520,14 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             return;
         }
 
+        String titulo = modoEdicion ? "Turno modificado" : "Turno registrado";
+        String mensajePregunta = modoEdicion 
+                ? "¿Deseás enviar la reprogramación por WhatsApp al paciente?" 
+                : "¿Deseás enviar una notificación por WhatsApp al paciente?";
+
         new AlertDialog.Builder(this)
-                .setTitle("Turno registrado")
-                .setMessage("¿Deseás enviar una notificación por WhatsApp al paciente?")
+                .setTitle(titulo)
+                .setMessage(mensajePregunta)
                 .setPositiveButton("Enviar", (dialog, which) -> {
                     enviarWhatsApp(paciente, horarios);
                     finish();
@@ -544,7 +544,9 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             
             msj.append("Hola ").append(paciente.getNombre()).append("! ");
             
-            if ("domicilio".equals(modal)) {
+            if (modoEdicion) {
+                msj.append("Te informo que tu sesión de Kinesiología ha sido reprogramada:\n\n");
+            } else if ("domicilio".equals(modal)) {
                 msj.append("Te confirmo que te visitaré para tu sesión de Kinesiología:\n\n");
             } else {
                 msj.append("Te confirmo tu turno de Kinesiología en consultorio:\n\n");

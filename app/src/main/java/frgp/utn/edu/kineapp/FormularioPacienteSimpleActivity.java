@@ -20,7 +20,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
 
     private TextInputEditText etNombre, etApellido, etDni, etTelefono,
             etDireccion, etFechaNacimiento, etEdad, etNumeroAfiliado,
-            etEmailPaciente, etSesionesSemanales, etSesionesOrden;
+            etEmailPaciente, etSesionesSemanales, etSesionesOrden, etDiagnostico, etObservaciones;
     private TextInputLayout tilObraSocial, tilNumeroAfiliado, tilSesionesSemanales, tilSesionesOrden;
     private AutoCompleteTextView etObraSocial;
     private SwitchMaterial switchObraSocial, switchCud;
@@ -71,6 +71,8 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         etEmailPaciente = findViewById(R.id.et_email_paciente);
         etSesionesSemanales = findViewById(R.id.et_sesiones_semanales);
         etSesionesOrden = findViewById(R.id.et_sesiones_orden);
+        etDiagnostico = findViewById(R.id.et_diagnostico);
+        etObservaciones = findViewById(R.id.et_observaciones);
 
         tilObraSocial = findViewById(R.id.til_obra_social);
         tilNumeroAfiliado = findViewById(R.id.til_numero_afiliado);
@@ -153,6 +155,8 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
                     etDni.setText(pacienteExistente.getDni());
                     etTelefono.setText(pacienteExistente.getTelefono());
                     etDireccion.setText(pacienteExistente.getDireccion());
+                    etDiagnostico.setText(pacienteExistente.getDiagnostico());
+                    etObservaciones.setText(pacienteExistente.getObservaciones());
 
                     if (pacienteExistente.getEmail() != null)
                         etEmailPaciente.setText(pacienteExistente.getEmail());
@@ -194,6 +198,8 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         String direccion = etDireccion.getText().toString().trim();
         String fechaNac = etFechaNacimiento.getText().toString().trim();
         String emailPaciente = etEmailPaciente.getText().toString().trim();
+        String diagnostico = etDiagnostico.getText().toString().trim();
+        String observaciones = etObservaciones.getText().toString().trim();
         boolean tieneOS = switchObraSocial.isChecked();
         boolean tieneCud = switchCud.isChecked();
         String obraSocial = tieneOS ? etObraSocial.getText().toString().trim() : "";
@@ -254,7 +260,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
                             return;
                         }
                         Paciente nuevo = new Paciente(nombre, apellido, dni,
-                                telefono, direccion, "", obraSocial,
+                                telefono, direccion, diagnostico, obraSocial,
                                 numeroAfiliado, tieneCud, null);
                         nuevo.setFechaNacimiento(fechaNacFinal);
                         nuevo.setEdad(edadFinal);
@@ -262,6 +268,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
                         nuevo.setParticular(!tieneOS);
                         nuevo.setSesionesSemanales(sesSem);
                         nuevo.setSesionesOrden(sesTot);
+                        nuevo.setObservaciones(observaciones);
                         repository.guardar(nuevo)
                                 .addOnSuccessListener(unused -> {
                                     Toast.makeText(this, "Paciente guardado",
@@ -287,6 +294,8 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
             pacienteExistente.setParticular(!tieneOS);
             pacienteExistente.setSesionesSemanales(sesSem);
             pacienteExistente.setSesionesOrden(sesTot);
+            pacienteExistente.setDiagnostico(diagnostico);
+            pacienteExistente.setObservaciones(observaciones);
             repository.guardar(pacienteExistente)
                     .addOnSuccessListener(unused -> {
                         Toast.makeText(this, "Paciente guardado",

@@ -38,7 +38,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:padding="16dp"
+            android:paddingBottom="120dp">
 
             <!-- Header -->
             <com.google.android.material.card.MaterialCardView
@@ -490,7 +491,7 @@
             <!-- Espacio extra al final para asegurar el scroll -->
             <View
                 android:layout_width="match_parent"
-                android:layout_height="50dp" />
+                android:layout_height="150dp" />
 
         </LinearLayout>
     </ScrollView>
