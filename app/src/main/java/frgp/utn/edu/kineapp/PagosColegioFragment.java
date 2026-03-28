@@ -270,7 +270,7 @@ public class PagosColegioFragment extends Fragment {
             android.app.DatePickerDialog dpd = new android.app.DatePickerDialog(getContext(), (dp, y, m, d) -> {
                 cal.set(y, m, d);
                 etFecha.setText(sdf.format(cal.getTime()));
-            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH));
+            }, cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH));
             dpd.getDatePicker().setMaxDate(System.currentTimeMillis());
             dpd.show();
         });
@@ -306,18 +306,24 @@ public class PagosColegioFragment extends Fragment {
                             LiquidacionColegio liq = liqExistente != null ? liqExistente : new LiquidacionColegio(new Timestamp(cal.getTime()), importe, com.google.firebase.auth.FirebaseAuth.getInstance().getUid());
                             if (liqExistente != null) { liberarOrdenesNoSeleccionadas(liqExistente, ordenesSeleccionadas); liq.setFechaLiquidacion(new Timestamp(cal.getTime())); liq.setImporte(importe); }
                             liq.setOrdenesVinculadas(new ArrayList<>(ordenesSeleccionadas));
-                            repository.guardar(liq).addOnSuccessListener(a -> { asociarOrdenesConfirmadas(); if (isAdded()) cargarLiquidaciones(); });
+                            repository.guardar(liq).addOnSuccessListener(a -> { asociarOrdenesConfirmadas(liq.getId()); if (isAdded()) cargarLiquidaciones(); });
                         } catch (Exception e) { Toast.makeText(getContext(), "Importe inválido", Toast.LENGTH_SHORT).show(); }
                     }
                 }).setNegativeButton("Cancelar", null).show();
     }
 
-    private void asociarOrdenesConfirmadas() {
+    private void asociarOrdenesConfirmadas(String pagoId) {
         for (OrdenRemito o : ordenesSeleccionadas) {
             for (Remito r : listaRemitosParaActualizar) {
                 if (r.getId().equals(o.getParentRemitoId())) {
                     for (OrdenRemito or : r.getOrdenes()) {
-                        if (or.getId().equals(o.getId())) { or.setAsociadaAPago(true); or.setTipoVinculo("COLEGIO"); remitoRepository.guardar(r); break; }
+                        if (or.getId().equals(o.getId())) { 
+                            or.setAsociadaAPago(true); 
+                            or.setTipoVinculo("COLEGIO"); 
+                            or.setIdVinculoAsociado(pagoId);
+                            remitoRepository.guardar(r); 
+                            break; 
+                        }
                     }
                 }
             }
@@ -337,6 +343,7 @@ public class PagosColegioFragment extends Fragment {
                             if (or.getId().equals(antigua.getId())) { 
                                 or.setAsociadaAPago(false); 
                                 or.setTipoVinculo(null);
+                                or.setIdVinculoAsociado(null);
                                 remitoRepository.guardar(r); 
                                 break; 
                             }
@@ -360,6 +367,7 @@ public class PagosColegioFragment extends Fragment {
                             if (or.getId().equals(ov.getId())) { 
                                 or.setAsociadaAPago(false); 
                                 or.setTipoVinculo(null);
+                                or.setIdVinculoAsociado(null);
                                 modificado = true; 
                             }
                         }

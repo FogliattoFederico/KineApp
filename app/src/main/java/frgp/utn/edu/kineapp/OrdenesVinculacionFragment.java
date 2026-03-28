@@ -42,6 +42,7 @@ public class OrdenesVinculacionFragment extends Fragment {
     private List<OrdenRemito> listaMostrar = new ArrayList<>();
     private List<Paciente> listaPacientes = new ArrayList<>();
     private List<Factura> todasLasFacturas = new ArrayList<>();
+    private List<LiquidacionColegio> todasLasLiquidaciones = new ArrayList<>();
     private String[] nombresPacientes = {};
     private OrdenVinculacionAdapter adapter;
     private boolean filtrandoAsociadas = false;
@@ -111,7 +112,7 @@ public class OrdenesVinculacionFragment extends Fragment {
         fabAdd.setOnClickListener(v -> mostrarDialogoNuevaOrdenDirecta());
 
         cargarPacientes();
-        cargarFacturasParaDetalle();
+        cargarDatosDeVinculos();
     }
 
     private void cargarPacientes() {
@@ -130,7 +131,7 @@ public class OrdenesVinculacionFragment extends Fragment {
         });
     }
 
-    private void cargarFacturasParaDetalle() {
+    private void cargarDatosDeVinculos() {
         facturaRepository.obtenerTodas().addOnSuccessListener(query -> {
             todasLasFacturas.clear();
             for (var doc : query.getDocuments()) {
@@ -140,7 +141,17 @@ public class OrdenesVinculacionFragment extends Fragment {
                     todasLasFacturas.add(f);
                 }
             }
-            cargarDatos(); // Cargar datos después de tener las facturas
+            liquidacionRepository.obtenerTodas().addOnSuccessListener(queryLiq -> {
+                todasLasLiquidaciones.clear();
+                for (var doc : queryLiq.getDocuments()) {
+                    LiquidacionColegio l = doc.toObject(LiquidacionColegio.class);
+                    if (l != null) {
+                        l.setId(doc.getId());
+                        todasLasLiquidaciones.add(l);
+                    }
+                }
+                cargarDatos();
+            });
         });
     }
 
@@ -250,7 +261,7 @@ public class OrdenesVinculacionFragment extends Fragment {
                     mesSeleccionado = monthPicker.getValue();
                     anioSeleccionado = yearPicker.getValue();
                     actualizarTextoPeriodo();
-                    cargarFacturasParaDetalle();
+                    cargarDatosDeVinculos();
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
@@ -266,7 +277,7 @@ public class OrdenesVinculacionFragment extends Fragment {
     public void onResume() {
         super.onResume();
         cargarPacientes();
-        cargarFacturasParaDetalle();
+        cargarDatosDeVinculos();
     }
 
     private void cargarDatos() {
@@ -274,6 +285,7 @@ public class OrdenesVinculacionFragment extends Fragment {
             if (!isAdded()) return;
             listaRemitos.clear();
             Calendar calRemito = Calendar.getInstance();
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
             for (var doc : query.getDocuments()) {
                 Remito r = doc.toObject(Remito.class);
                 if (r != null) {
@@ -286,13 +298,55 @@ public class OrdenesVinculacionFragment extends Fragment {
                                 for (OrdenRemito o : r.getOrdenes()) {
                                     o.setParentRemitoId(r.getId());
                                     o.setEsDeRemitoDirecto(r.isEsDirecto());
+                                    o.setNombreRemito(r.getNumeroRemito());
                                     
-                                    // Buscar detalle de la factura si está vinculada directamente
-                                    if (o.isAsociadaAPago() && "DIRECTO".equals(o.getTipoVinculo())) {
-                                        for (Factura f : todasLasFacturas) {
-                                            if (f.getId().equals(o.getIdVinculoAsociado())) {
-                                                o.setDetalleVinculo(f.getTipoComprobante() + " " + f.getNumero());
-                                                break;
+                                    // Buscar detalle y fecha del vínculo
+                                    if (o.isAsociadaAPago()) {
+                                        if ("DIRECTO".equals(o.getTipoVinculo())) {
+                                            for (Factura f : todasLasFacturas) {
+                                                if (f.getId().equals(o.getIdVinculoAsociado())) {
+                                                    o.setDetalleVinculo(f.getTipoComprobante() + " " + f.getNumero());
+                                                    if (f.getFecha() != null) {
+                                                        o.setFechaVinculo(sdf.format(f.getFecha().toDate()));
+                                                    }
+                                                    break;
+                                                }
+                                            }
+                                        } else if ("COLEGIO".equals(o.getTipoVinculo())) {
+                                            // Fallback: Si no tiene idVinculoAsociado, buscamos en las listas de liquidaciones
+                                            boolean fechaEncontrada = false;
+                                            
+                                            // Primero intentamos por ID directo si lo tiene
+                                            if (o.getIdVinculoAsociado() != null) {
+                                                for (LiquidacionColegio l : todasLasLiquidaciones) {
+                                                    if (l.getId().equals(o.getIdVinculoAsociado())) {
+                                                        if (l.getFechaLiquidacion() != null) {
+                                                            o.setFechaVinculo(sdf.format(l.getFechaLiquidacion().toDate()));
+                                                            fechaEncontrada = true;
+                                                        }
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            
+                                            // Si no lo encontramos por ID, buscamos en la lista ordenesVinculadas de cada pago
+                                            if (!fechaEncontrada) {
+                                                for (LiquidacionColegio l : todasLasLiquidaciones) {
+                                                    if (l.getOrdenesVinculadas() != null) {
+                                                        for (OrdenRemito ov : l.getOrdenesVinculadas()) {
+                                                            if (ov.getId().equals(o.getId())) {
+                                                                if (l.getFechaLiquidacion() != null) {
+                                                                    o.setFechaVinculo(sdf.format(l.getFechaLiquidacion().toDate()));
+                                                                    // Aprovechamos para reparar el ID de vínculo en la orden para futuras cargas
+                                                                    o.setIdVinculoAsociado(l.getId());
+                                                                    fechaEncontrada = true;
+                                                                }
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                    if (fechaEncontrada) break;
+                                                }
                                             }
                                         }
                                     }

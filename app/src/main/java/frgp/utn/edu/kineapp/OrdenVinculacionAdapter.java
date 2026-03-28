@@ -38,7 +38,10 @@ public class OrdenVinculacionAdapter extends RecyclerView.Adapter<OrdenVinculaci
         OrdenRemito o = lista.get(position);
         holder.tvPaciente.setText(o.getPacienteNombreCompleto());
         
-        String detalle = String.format("OS: %s | Sesiones: %d | Fecha: %s\nAfiliado: %s | Código: %s", 
+        String remitoTexto = o.getNombreRemito() != null ? "[Remito: " + o.getNombreRemito() + "] " : "";
+        
+        String detalle = String.format("%sOS: %s | Sesiones: %d | Fecha: %s\nAfiliado: %s | Código: %s", 
+                remitoTexto,
                 o.getObraSocialNombre(), o.getCantidadSesiones(), o.getFecha(),
                 o.getNumeroAfiliado() != null ? o.getNumeroAfiliado() : "-",
                 o.getCodigoPractica() != null ? o.getCodigoPractica() : "-");
@@ -49,13 +52,15 @@ public class OrdenVinculacionAdapter extends RecyclerView.Adapter<OrdenVinculaci
 
         if (o.isAsociadaAPago()) {
             String linkInfo = "";
+            String fechaInfo = o.getFechaVinculo() != null ? "\nFecha de pago : " + o.getFechaVinculo() : "";
+            
             if ("COLEGIO".equals(o.getTipoVinculo())) {
-                linkInfo = "\nESTADO: Presentada en Colegio";
+                linkInfo = "\nESTADO: Presentada en Colegio" + fechaInfo;
                 holder.tvDetalle.setTextColor(Color.parseColor("#388E3C")); // Verde
             } else if ("DIRECTO".equals(o.getTipoVinculo())) {
                 String factInfo = o.getDetalleVinculo() != null ? ": " + o.getDetalleVinculo() : "";
                 String mesInfo = o.getMesVinculo() != null ? " (" + o.getMesVinculo() + ")" : "";
-                linkInfo = "\nESTADO: Vinculada a Factura" + factInfo + mesInfo;
+                linkInfo = "\nESTADO: Vinculada a Factura" + factInfo + mesInfo; // No mostramos fecha de pago aquí
                 holder.tvDetalle.setTextColor(Color.parseColor("#1976D2")); // Azul
             }
             holder.tvDetalle.setText(detalle + linkInfo);

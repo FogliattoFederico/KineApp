@@ -22,6 +22,8 @@ public class OrdenRemito {
     // se usan para la interfaz)
     private boolean esDeRemitoDirecto;
     private String detalleVinculo;
+    private String nombreRemito;
+    private String fechaVinculo;
 
     public OrdenRemito() {
         this.id = UUID.randomUUID().toString();
@@ -84,6 +86,14 @@ public class OrdenRemito {
     @Exclude
     public String getDetalleVinculo() { return detalleVinculo; }
     public void setDetalleVinculo(String detalleVinculo) { this.detalleVinculo = detalleVinculo; }
+
+    @Exclude
+    public String getNombreRemito() { return nombreRemito; }
+    public void setNombreRemito(String nombreRemito) { this.nombreRemito = nombreRemito; }
+
+    @Exclude
+    public String getFechaVinculo() { return fechaVinculo; }
+    public void setFechaVinculo(String fechaVinculo) { this.fechaVinculo = fechaVinculo; }
 
     @Override
     public boolean equals(Object o) {
