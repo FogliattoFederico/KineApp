@@ -43,6 +43,10 @@ public class OrdenVinculacionAdapter extends RecyclerView.Adapter<OrdenVinculaci
                 o.getNumeroAfiliado() != null ? o.getNumeroAfiliado() : "-",
                 o.getCodigoPractica() != null ? o.getCodigoPractica() : "-");
         
+        // Habilitar siempre por defecto antes de aplicar lógica
+        holder.btnAccion.setEnabled(true);
+        holder.btnAccion.setAlpha(1.0f);
+
         if (o.isAsociadaAPago()) {
             String linkInfo = "";
             if ("COLEGIO".equals(o.getTipoVinculo())) {
@@ -50,7 +54,8 @@ public class OrdenVinculacionAdapter extends RecyclerView.Adapter<OrdenVinculaci
                 holder.tvDetalle.setTextColor(Color.parseColor("#388E3C")); // Verde
             } else if ("DIRECTO".equals(o.getTipoVinculo())) {
                 String factInfo = o.getDetalleVinculo() != null ? ": " + o.getDetalleVinculo() : "";
-                linkInfo = "\nESTADO: Vinculada a Factura" + factInfo;
+                String mesInfo = o.getMesVinculo() != null ? " (" + o.getMesVinculo() + ")" : "";
+                linkInfo = "\nESTADO: Vinculada a Factura" + factInfo + mesInfo;
                 holder.tvDetalle.setTextColor(Color.parseColor("#1976D2")); // Azul
             }
             holder.tvDetalle.setText(detalle + linkInfo);
@@ -59,11 +64,8 @@ public class OrdenVinculacionAdapter extends RecyclerView.Adapter<OrdenVinculaci
             holder.tvDetalle.setText(detalle);
             holder.tvDetalle.setTextColor(Color.parseColor("#757575")); // Gris normal
             
-            // Solo habilitar el botón si es una orden directa (creada manualmente)
             if (o.isEsDeRemitoDirecto()) {
                 holder.btnAccion.setText("Vincular");
-                holder.btnAccion.setEnabled(true);
-                holder.btnAccion.setAlpha(1.0f);
             } else {
                 holder.btnAccion.setText("Vía Colegio");
                 holder.btnAccion.setEnabled(false);
@@ -72,9 +74,7 @@ public class OrdenVinculacionAdapter extends RecyclerView.Adapter<OrdenVinculaci
         }
         
         holder.btnAccion.setOnClickListener(v -> listener.onToggleAsociada(o));
-        
         holder.itemView.setOnClickListener(v -> listener.onEdit(o));
-        
         holder.itemView.setOnLongClickListener(v -> {
             listener.onDelete(o);
             return true;

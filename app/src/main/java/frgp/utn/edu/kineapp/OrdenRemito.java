@@ -16,6 +16,7 @@ public class OrdenRemito {
     private String pacienteNombreCompleto;
     private String numeroAfiliado;
     private boolean asociadaAPago;
+    private String mesVinculo; // Mes de emisión de la factura/liquidación vinculada
 
     // Campos auxiliares (no se guardan en Firestore directamente bajo el objeto, 
     // se usan para la interfaz)
@@ -72,6 +73,9 @@ public class OrdenRemito {
 
     public boolean isAsociadaAPago() { return asociadaAPago; }
     public void setAsociadaAPago(boolean asociadaAPago) { this.asociadaAPago = asociadaAPago; }
+
+    public String getMesVinculo() { return mesVinculo; }
+    public void setMesVinculo(String mesVinculo) { this.mesVinculo = mesVinculo; }
 
     @Exclude
     public boolean isEsDeRemitoDirecto() { return esDeRemitoDirecto; }

@@ -126,6 +126,13 @@ public class PagosColegioFragment extends Fragment {
         cargarOrdenesDisponibles();
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        cargarLiquidaciones();
+        cargarOrdenesDisponibles();
+    }
+
     private void mostrarDialogoMesAnio() {
         View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_month_year_picker, null);
         NumberPicker monthPicker = dialogView.findViewById(R.id.picker_month);
@@ -273,7 +280,11 @@ public class PagosColegioFragment extends Fragment {
             boolean[] checkedItems = new boolean[listaOrdenesDisponibles.size()];
             for (int i = 0; i < listaOrdenesDisponibles.size(); i++) {
                 OrdenRemito o = listaOrdenesDisponibles.get(i);
-                items[i] = String.format("%s\nFecha: %s | OS: %s", o.getPacienteNombreCompleto(), o.getFecha(), o.getObraSocialNombre());
+                items[i] = String.format("%s (Af: %s)\nFecha: %s | OS: %s | Cód: %s", 
+                        o.getPacienteNombreCompleto(), 
+                        o.getNumeroAfiliado() != null ? o.getNumeroAfiliado() : "-",
+                        o.getFecha(), o.getObraSocialNombre(),
+                        o.getCodigoPractica() != null ? o.getCodigoPractica() : "-");
                 checkedItems[i] = ordenesSeleccionadas.contains(o);
             }
             new AlertDialog.Builder(getContext()).setTitle("Vincular Órdenes Oficiales")
@@ -306,7 +317,7 @@ public class PagosColegioFragment extends Fragment {
             for (Remito r : listaRemitosParaActualizar) {
                 if (r.getId().equals(o.getParentRemitoId())) {
                     for (OrdenRemito or : r.getOrdenes()) {
-                        if (or.getId().equals(o.getId())) { or.setAsociadaAPago(true); remitoRepository.guardar(r); break; }
+                        if (or.getId().equals(o.getId())) { or.setAsociadaAPago(true); or.setTipoVinculo("COLEGIO"); remitoRepository.guardar(r); break; }
                     }
                 }
             }
@@ -316,11 +327,19 @@ public class PagosColegioFragment extends Fragment {
     private void liberarOrdenesNoSeleccionadas(LiquidacionColegio liqOriginal, List<OrdenRemito> nuevasSeleccionadas) {
         if (liqOriginal.getOrdenesVinculadas() == null) return;
         for (OrdenRemito antigua : liqOriginal.getOrdenesVinculadas()) {
-            if (!nuevasSeleccionadas.contains(antigua)) {
+            boolean sigueSeleccionada = false;
+            for(OrdenRemito n : nuevasSeleccionadas) if(n.getId().equals(antigua.getId())) { sigueSeleccionada = true; break; }
+            
+            if (!sigueSeleccionada) {
                 for (Remito r : listaRemitosParaActualizar) {
                     if (r.getId().equals(antigua.getParentRemitoId())) {
                         for (OrdenRemito or : r.getOrdenes()) {
-                            if (or.getId().equals(antigua.getId())) { or.setAsociadaAPago(false); remitoRepository.guardar(r); break; }
+                            if (or.getId().equals(antigua.getId())) { 
+                                or.setAsociadaAPago(false); 
+                                or.setTipoVinculo(null);
+                                remitoRepository.guardar(r); 
+                                break; 
+                            }
                         }
                     }
                 }
@@ -338,7 +357,11 @@ public class PagosColegioFragment extends Fragment {
                     boolean modificado = false;
                     for (OrdenRemito ov : liq.getOrdenesVinculadas()) {
                         for (OrdenRemito or : r.getOrdenes()) {
-                            if (or.getId().equals(ov.getId())) { or.setAsociadaAPago(false); modificado = true; }
+                            if (or.getId().equals(ov.getId())) { 
+                                or.setAsociadaAPago(false); 
+                                or.setTipoVinculo(null);
+                                modificado = true; 
+                            }
                         }
                     }
                     if (modificado) remitoRepository.guardar(r);

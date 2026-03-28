@@ -37,6 +37,7 @@ public class OrdenesVinculacionFragment extends Fragment {
     private RemitoRepository remitoRepository;
     private FacturaRepository facturaRepository;
     private PacienteRepository pacienteRepository;
+    private LiquidacionRepository liquidacionRepository;
     private List<Remito> listaRemitos = new ArrayList<>();
     private List<OrdenRemito> listaMostrar = new ArrayList<>();
     private List<Paciente> listaPacientes = new ArrayList<>();
@@ -63,6 +64,7 @@ public class OrdenesVinculacionFragment extends Fragment {
         remitoRepository = new RemitoRepository();
         facturaRepository = new FacturaRepository();
         pacienteRepository = new PacienteRepository();
+        liquidacionRepository = new LiquidacionRepository();
         
         rvOrdenes = view.findViewById(R.id.rv_ordenes_vinculacion);
         layoutEmpty = view.findViewById(R.id.layout_empty_ordenes);
@@ -82,7 +84,7 @@ public class OrdenesVinculacionFragment extends Fragment {
             public void onToggleAsociada(OrdenRemito orden) {
                 if (!orden.isAsociadaAPago()) {
                     if (orden.isEsDeRemitoDirecto()) {
-                        mostrarDialogoTipoAsociacion(orden);
+                        seleccionarFacturaParaVinculo(orden);
                     } else {
                         Toast.makeText(getContext(), "Las órdenes de remitos oficiales se asocian desde la pestaña de Pagos", Toast.LENGTH_LONG).show();
                     }
@@ -142,28 +144,6 @@ public class OrdenesVinculacionFragment extends Fragment {
         });
     }
 
-    private void mostrarDialogoTipoAsociacion(OrdenRemito orden) {
-        String[] opciones = {"Presentada en Colegio (Pago Pendiente)", "Facturación Directa (Obra Social)"};
-        new AlertDialog.Builder(getContext())
-                .setTitle("Vincular Orden")
-                .setItems(opciones, (dialog, which) -> {
-                    if (which == 0) {
-                        new AlertDialog.Builder(getContext())
-                                .setTitle("Aviso")
-                                .setMessage("Esta orden se marcará como asociada. Recuerde que la liquidación contable debe generarse desde la pestaña de 'Pagos' seleccionando el remito correspondiente.")
-                                .setPositiveButton("Entendido", (d, w) -> {
-                                    orden.setAsociadaAPago(true);
-                                    orden.setTipoVinculo("COLEGIO");
-                                    actualizarOrdenEnRemito(orden);
-                                })
-                                .show();
-                    } else {
-                        seleccionarFacturaParaVinculo(orden);
-                    }
-                })
-                .show();
-    }
-
     private void seleccionarFacturaParaVinculo(OrdenRemito orden) {
         if (todasLasFacturas.isEmpty()) {
             Toast.makeText(getContext(), "No hay facturas cargadas para vincular", Toast.LENGTH_SHORT).show();
@@ -182,6 +162,15 @@ public class OrdenesVinculacionFragment extends Fragment {
                     orden.setAsociadaAPago(true);
                     orden.setTipoVinculo("DIRECTO");
                     orden.setIdVinculoAsociado(f.getId());
+                    
+                    if (f.getFecha() != null) {
+                        Calendar cal = Calendar.getInstance();
+                        cal.setTime(f.getFecha().toDate());
+                        String[] meses = {"Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
+                                          "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"};
+                        orden.setMesVinculo(meses[cal.get(Calendar.MONTH)] + " " + cal.get(Calendar.YEAR));
+                    }
+                    
                     actualizarOrdenEnRemito(orden);
                     Toast.makeText(getContext(), "Orden vinculada a factura", Toast.LENGTH_SHORT).show();
                 })
@@ -193,13 +182,48 @@ public class OrdenesVinculacionFragment extends Fragment {
                 .setTitle("Desvincular Orden")
                 .setMessage("¿Deseas marcar esta orden como pendiente nuevamente?")
                 .setPositiveButton("Sí, desvincular", (d, w) -> {
+                    String tipoAnterior = orden.getTipoVinculo();
+                    String idAnterior = orden.getId();
+                    
                     orden.setAsociadaAPago(false);
                     orden.setTipoVinculo(null);
                     orden.setIdVinculoAsociado(null);
+                    orden.setMesVinculo(null);
+                    
+                    if ("COLEGIO".equals(tipoAnterior)) {
+                        removerOrdenDeLiquidaciones(idAnterior);
+                    }
+                    
                     actualizarOrdenEnRemito(orden);
                 })
                 .setNegativeButton("No", null)
                 .show();
+    }
+
+    private void removerOrdenDeLiquidaciones(String ordenId) {
+        liquidacionRepository.obtenerTodas().addOnSuccessListener(query -> {
+            for (var doc : query.getDocuments()) {
+                LiquidacionColegio liq = doc.toObject(LiquidacionColegio.class);
+                if (liq != null) {
+                    liq.setId(doc.getId());
+                    if (liq.getOrdenesVinculadas() != null) {
+                        boolean encontrada = false;
+                        List<OrdenRemito> ordenesLiq = new ArrayList<>(liq.getOrdenesVinculadas());
+                        for (int i = 0; i < ordenesLiq.size(); i++) {
+                            if (ordenesLiq.get(i).getId().equals(ordenId)) {
+                                ordenesLiq.remove(i);
+                                encontrada = true;
+                                break;
+                            }
+                        }
+                        if (encontrada) {
+                            liq.setOrdenesVinculadas(ordenesLiq);
+                            liquidacionRepository.guardar(liq);
+                        }
+                    }
+                }
+            }
+        });
     }
 
     private void mostrarDialogoMesAnio() {
