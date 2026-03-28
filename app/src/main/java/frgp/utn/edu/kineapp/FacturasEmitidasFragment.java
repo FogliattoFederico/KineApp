@@ -37,6 +37,7 @@ public class FacturasEmitidasFragment extends Fragment {
     private RecyclerView rvFacturas;
     private LinearLayout layoutEmpty;
     private FacturaRepository repository;
+    private RemitoRepository remitoRepository;
     private List<Factura> listaFacturas = new ArrayList<>();
     private List<Factura> listaFiltrada = new ArrayList<>();
     private FacturaAdapter adapter;
@@ -64,6 +65,7 @@ public class FacturasEmitidasFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         repository = new FacturaRepository();
+        remitoRepository = new RemitoRepository();
         rvFacturas = view.findViewById(R.id.rv_facturas);
         layoutEmpty = view.findViewById(R.id.layout_empty);
         chipGroupEstado = view.findViewById(R.id.chip_group_estado);
@@ -143,16 +145,42 @@ public class FacturasEmitidasFragment extends Fragment {
     private void confirmarEliminacion(Factura factura) {
         new AlertDialog.Builder(getContext())
                 .setTitle("Eliminar factura")
-                .setMessage("¿Estás seguro que deseás eliminar esta factura definitivamente?")
+                .setMessage("¿Estás seguro que deseás eliminar esta factura definitivamente? Esto desvinculará cualquier orden asociada.")
                 .setPositiveButton("Eliminar", (dialog, which) -> {
-                    repository.eliminar(factura.getId())
+                    String facturaId = factura.getId();
+                    repository.eliminar(facturaId)
                             .addOnSuccessListener(a -> {
-                                Toast.makeText(getContext(), "Factura eliminada", Toast.LENGTH_SHORT).show();
+                                desvincularOrdenesDeFactura(facturaId);
+                                Toast.makeText(getContext(), "Factura eliminada y órdenes desvinculadas", Toast.LENGTH_SHORT).show();
                                 cargarFacturas();
                             });
                 })
                 .setNegativeButton("Cancelar", null)
                 .show();
+    }
+
+    private void desvincularOrdenesDeFactura(String facturaId) {
+        remitoRepository.obtenerTodos().addOnSuccessListener(query -> {
+            for (var doc : query.getDocuments()) {
+                Remito r = doc.toObject(Remito.class);
+                if (r != null && r.getOrdenes() != null) {
+                    boolean modificado = false;
+                    for (OrdenRemito o : r.getOrdenes()) {
+                        if (o.isAsociadaAPago() && "DIRECTO".equals(o.getTipoVinculo()) 
+                                && facturaId.equals(o.getIdVinculoAsociado())) {
+                            o.setAsociadaAPago(false);
+                            o.setTipoVinculo(null);
+                            o.setIdVinculoAsociado(null);
+                            o.setMesVinculo(null);
+                            modificado = true;
+                        }
+                    }
+                    if (modificado) {
+                        remitoRepository.guardar(r);
+                    }
+                }
+            }
+        });
     }
 
     @Override

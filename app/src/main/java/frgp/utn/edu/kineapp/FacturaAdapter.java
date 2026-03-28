@@ -59,6 +59,13 @@ public class FacturaAdapter extends RecyclerView.Adapter<FacturaAdapter.ViewHold
             holder.tvFecha.setText("Emisión: " + sdf.format(factura.getFecha().toDate()));
         }
 
+        if (factura.getDescripcion() != null && !factura.getDescripcion().isEmpty()) {
+            holder.tvDescripcion.setText(factura.getDescripcion());
+            holder.tvDescripcion.setVisibility(View.VISIBLE);
+        } else {
+            holder.tvDescripcion.setVisibility(View.GONE);
+        }
+
         actualizarEstado(holder, factura.isCobrada());
 
         holder.ivCobrada.setOnClickListener(v -> {
@@ -101,7 +108,7 @@ public class FacturaAdapter extends RecyclerView.Adapter<FacturaAdapter.ViewHold
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvTipoNumero, tvObraSocial, tvImporte, tvFecha;
+        TextView tvTipoNumero, tvObraSocial, tvImporte, tvFecha, tvDescripcion;
         ImageView ivCobrada;
         LinearLayout layoutFactura;
 
@@ -111,6 +118,7 @@ public class FacturaAdapter extends RecyclerView.Adapter<FacturaAdapter.ViewHold
             tvObraSocial = v.findViewById(R.id.tv_obra_social_factura);
             tvImporte = v.findViewById(R.id.tv_importe);
             tvFecha = v.findViewById(R.id.tv_fecha_factura);
+            tvDescripcion = v.findViewById(R.id.tv_descripcion_factura);
             ivCobrada = v.findViewById(R.id.iv_cobrada);
             layoutFactura = v.findViewById(R.id.layout_factura);
         }
