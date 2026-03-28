@@ -6,8 +6,11 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 
 public class RemitoAdapter extends RecyclerView.Adapter<RemitoAdapter.ViewHolder> {
 
@@ -37,7 +40,21 @@ public class RemitoAdapter extends RecyclerView.Adapter<RemitoAdapter.ViewHolder
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Remito remito = listaRemitos.get(position);
 
-        holder.tvPeriodo.setText(remito.getNumeroRemito() != null ? "Remito N° " + remito.getNumeroRemito() : "Sin número");
+        String periodo = remito.getNumeroRemito() != null ? remito.getNumeroRemito() : "S/N";
+        
+        if (remito.getFechaCreacion() != null) {
+            Calendar cal = Calendar.getInstance();
+            cal.setTime(remito.getFechaCreacion().toDate());
+            
+            String[] meses = {"Ene", "Feb", "Mar", "Abr", "May", "Jun", 
+                              "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"};
+            String mes = meses[cal.get(Calendar.MONTH)];
+            int anio = cal.get(Calendar.YEAR);
+            
+            holder.tvPeriodo.setText(String.format("%s (%s/%s)", periodo, mes, anio));
+        } else {
+            holder.tvPeriodo.setText(periodo);
+        }
         
         int cantOrdenes = remito.getOrdenes() != null ? remito.getOrdenes().size() : 0;
         holder.tvCantidad.setText(cantOrdenes + (cantOrdenes == 1 ? " orden incluida" : " órdenes incluidas"));
@@ -95,7 +112,6 @@ public class RemitoAdapter extends RecyclerView.Adapter<RemitoAdapter.ViewHolder
         ViewHolder(@NonNull View itemView) {
             super(itemView);
             tvPeriodo = itemView.findViewById(R.id.tv_periodo_remito);
-            // Referencia antigua a tvFecha eliminada
             tvCantidad = itemView.findViewById(R.id.tv_cantidad_ordenes);
         }
     }

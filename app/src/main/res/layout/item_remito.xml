@@ -20,7 +20,7 @@
             android:id="@+id/tv_periodo_remito"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Remito N°"
+            android:text="Quincena/Mes/Año"
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="@color/primary" />

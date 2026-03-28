@@ -61,12 +61,14 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="2.5"
                 android:hint="Paciente"
+                app:hintTextColor="@color/text_secondary"
                 android:layout_marginEnd="4dp">
                 <AutoCompleteTextView
                     android:id="@+id/et_paciente_nombre"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="none"
+                    android:textColor="@color/text_primary"
                     android:textSize="14sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -76,12 +78,14 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1.5"
                 android:hint="Nro Afiliado"
+                app:hintTextColor="@color/text_secondary"
                 android:layout_marginStart="4dp">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_nro_afiliado"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="text"
+                    android:textColor="@color/text_primary"
                     android:textSize="14sp" />
             </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
@@ -92,12 +96,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Obra Social"
+            app:hintTextColor="@color/text_secondary"
             android:layout_marginBottom="8dp">
             <AutoCompleteTextView
                 android:id="@+id/et_obra_social_nombre"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="none"
+                android:textColor="@color/text_primary"
                 android:textSize="14sp" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -114,12 +120,14 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:hint="Cant"
+                app:hintTextColor="@color/text_secondary"
                 android:layout_marginEnd="4dp">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_cant_sesiones"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="number"
+                    android:textColor="@color/text_primary"
                     android:textSize="14sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -129,6 +137,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1.5"
                 android:hint="Código"
+                app:hintTextColor="@color/text_secondary"
                 android:layout_marginStart="4dp"
                 android:layout_marginEnd="4dp">
                 <com.google.android.material.textfield.TextInputEditText
@@ -136,6 +145,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="text"
+                    android:textColor="@color/text_primary"
                     android:textSize="14sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -145,12 +155,14 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="2"
                 android:hint="Fecha"
+                app:hintTextColor="@color/text_secondary"
                 android:layout_marginStart="4dp">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_fecha_orden"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:focusable="false"
+                    android:textColor="@color/text_primary"
                     android:textSize="14sp" />
             </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
