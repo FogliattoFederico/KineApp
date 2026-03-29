@@ -23,10 +23,13 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.net.URLEncoder;
 import java.text.Normalizer;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class FormularioPacienteActivity extends AppCompatActivity {
 
@@ -356,8 +359,8 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         int turnosActuales = containerHorarios.getChildCount();
         
         if (pacienteExistente.isCertificadoDiscapacidad()) {
-            int maxSemanales = pacienteExistente.getSesionesSemanales();
-            return turnosActuales < maxSemanales;
+            // Permitir cargar turnos para varias semanas (ej: hasta 12 turnos en total si son 3 por semana)
+            return turnosActuales < (pacienteExistente.getSesionesSemanales() * 4);
         } else {
             int restantes = pacienteExistente.getSesionesOrden() - pacienteExistente.getSesionesAtendidas();
             return turnosActuales < restantes;
@@ -375,7 +378,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         if (pacienteExistente == null) {
              btnAgregarHorario.setText("Buscá al paciente primero");
         } else if (!puede) {
-            btnAgregarHorario.setText("Límite de sesiones alcanzado");
+            btnAgregarHorario.setText("Límite de turnos alcanzado");
         } else {
             btnAgregarHorario.setText("+ Agregar horario");
         }
@@ -533,6 +536,24 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             horariosFinales.addAll(horariosEnPantalla);
         }
 
+        // --- VALIDACIÓN SEMANAL PARA PACIENTES CON CUD ---
+        if (pacienteExistente.isCertificadoDiscapacidad()) {
+            Map<String, Integer> conteoSemanas = new HashMap<>();
+            int limite = pacienteExistente.getSesionesSemanales();
+            
+            for (HorarioAtencion h : horariosFinales) {
+                if (h.getFecha() != null && !h.getFecha().isEmpty()) {
+                    String semanaKey = getSemanaAnio(h.getFecha());
+                    int count = conteoSemanas.getOrDefault(semanaKey, 0) + 1;
+                    if (count > limite) {
+                        Toast.makeText(this, "Error: La semana del " + h.getFecha() + " ya tiene el máximo de " + limite + " sesiones asignadas.", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    conteoSemanas.put(semanaKey, count);
+                }
+            }
+        }
+
         pacienteExistente.setModalidad(modalidad);
         pacienteExistente.setHorarios(horariosFinales);
         pacienteExistente.setUltimaActualizacion(com.google.firebase.Timestamp.now());
@@ -541,6 +562,24 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             pacienteExistente.setValorSesion(Double.parseDouble(etValorSesion.getText().toString()));
 
         guardarEnFirestore(pacienteExistente, horariosEnPantalla);
+    }
+
+    private String getSemanaAnio(String fechaStr) {
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+            Calendar cal = Calendar.getInstance();
+            cal.setFirstDayOfWeek(Calendar.MONDAY);
+            cal.setMinimalDaysInFirstWeek(4);
+            cal.setTime(sdf.parse(fechaStr));
+            int week = cal.get(Calendar.WEEK_OF_YEAR);
+            int year = cal.get(Calendar.YEAR);
+            // Ajuste para semanas que caen en el año siguiente/anterior
+            if (week == 1 && cal.get(Calendar.MONTH) == Calendar.DECEMBER) year++;
+            if (week >= 52 && cal.get(Calendar.MONTH) == Calendar.JANUARY) year--;
+            return year + "-W" + week;
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private void guardarEnFirestore(Paciente paciente, List<HorarioAtencion> horariosNuevos) {
@@ -682,7 +721,12 @@ public class FormularioPacienteActivity extends AppCompatActivity {
                         if (paciente.getId() != null && doc.getId().equals(paciente.getId()) && k == indiceEdicionIndividual) continue;
                         
                         if (hayCruce(hNuevo, existente.getHorarios().get(k))) {
-                            ocupados++;
+                            if (hNuevo.getFecha() != null && hNuevo.getFecha().equals(existente.getHorarios().get(k).getFecha())) {
+                                ocupados++;
+                            } else if (hNuevo.getFecha() == null && hNuevo.getDia().equalsIgnoreCase(existente.getHorarios().get(k).getDia())) {
+                                // Fallback para recurrentes si fuera necesario, aunque la app usa fechas
+                                ocupados++;
+                            }
                         }
                     }
                 }
