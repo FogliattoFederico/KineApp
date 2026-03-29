@@ -166,9 +166,8 @@ public class DetallePacienteActivity extends AppCompatActivity {
             mostrarCampo(R.id.tv_sesiones, String.format(new Locale("es", "AR"), "$ %,.0f", paciente.getValorSesion()));
         } else if (paciente.getSesionesOrden() > 0) {
             setVisible(R.id.divider_sesiones, R.id.label_sesiones, R.id.tv_sesiones);
-            ((TextView) findViewById(R.id.label_sesiones)).setText("SESIONES RESTANTES");
-            int restantes = paciente.getSesionesOrden() - paciente.getSesionesAtendidas();
-            mostrarCampo(R.id.tv_sesiones, restantes + " / " + paciente.getSesionesOrden());
+            ((TextView) findViewById(R.id.label_sesiones)).setText("SESIONES");
+            mostrarCampo(R.id.tv_sesiones, paciente.getSesionesAtendidas() + " / " + paciente.getSesionesOrden());
         }
 
         findViewById(R.id.label_horarios_seccion).setVisibility(View.VISIBLE);

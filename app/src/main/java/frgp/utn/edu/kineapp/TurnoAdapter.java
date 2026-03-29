@@ -28,17 +28,17 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         public boolean atendido;
         public String pacienteId;
         public double valorSesion;
-        public int sesionesRestantes;
-        public int sesionesOrden;
+        public int sesionesAtendidas;
+        public int sesionesTotales;
         public String modalidad;
         public String atencionId;
-        public int horarioIndice; // Índice en la lista de horarios del paciente
+        public int horarioIndice;
 
         public Turno(String hora, String nombrePaciente, String diagnostico,
                      String obraSocial, String tipoCobertura,
                      boolean atendido, String pacienteId,
-                     double valorSesion, int sesionesRestantes,
-                     int sesionesOrden, String modalidad, int horarioIndice) {
+                     double valorSesion, int sesionesAtendidas,
+                     int sesionesTotales, String modalidad, int horarioIndice) {
             this.hora = hora;
             this.nombrePaciente = nombrePaciente;
             this.diagnostico = diagnostico;
@@ -47,8 +47,8 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
             this.atendido = atendido;
             this.pacienteId = pacienteId;
             this.valorSesion = valorSesion;
-            this.sesionesRestantes = sesionesRestantes;
-            this.sesionesOrden = sesionesOrden;
+            this.sesionesAtendidas = sesionesAtendidas;
+            this.sesionesTotales = sesionesTotales;
             this.modalidad = modalidad;
             this.horarioIndice = horarioIndice;
             this.atencionId = null;
@@ -139,15 +139,18 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         // 4. Diagnóstico
         holder.tvDiagnostico.setText(turno.diagnostico != null && !turno.diagnostico.isEmpty() ? turno.diagnostico : "Sin diagnóstico");
 
-        // Sesiones
-        if ("Orden".equals(turno.tipoCobertura) && turno.sesionesOrden > 0) {
+        // Sesiones: x/m
+        if ("Orden".equals(turno.tipoCobertura) && turno.sesionesTotales > 0) {
             holder.tvSesiones.setVisibility(View.VISIBLE);
-            holder.tvSesiones.setText(turno.sesionesRestantes + "/" + turno.sesionesOrden);
-            float porcentaje = (float) turno.sesionesRestantes / turno.sesionesOrden;
-            if (porcentaje <= 0) {
+            holder.tvSesiones.setText(turno.sesionesAtendidas + "/" + turno.sesionesTotales);
+            
+            int restantes = turno.sesionesTotales - turno.sesionesAtendidas;
+            float porcentajeRestante = (float) restantes / turno.sesionesTotales;
+            
+            if (restantes <= 0) {
                 holder.tvSesiones.setTextColor(Color.parseColor("#E53935"));
                 holder.tvSesiones.setBackgroundResource(R.drawable.bg_badge_rojo);
-            } else if (porcentaje <= 0.3f) {
+            } else if (porcentajeRestante <= 0.3f) {
                 holder.tvSesiones.setTextColor(Color.parseColor("#E65100"));
                 holder.tvSesiones.setBackgroundResource(R.drawable.bg_badge_naranja);
             } else {
@@ -165,10 +168,10 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
             if (turno.atendido) {
                 desmarcarAtencion(holder, turno);
             } else {
-                if ("Orden".equals(turno.tipoCobertura) && turno.sesionesRestantes <= 0) {
+                if ("Orden".equals(turno.tipoCobertura) && (turno.sesionesTotales - turno.sesionesAtendidas) <= 0) {
                     new AlertDialog.Builder(v.getContext())
                             .setTitle("Sesiones finalizadas")
-                            .setMessage(turno.nombrePaciente + " no tiene sesiones restantes.")
+                            .setMessage(turno.nombrePaciente + " ya completó sus sesiones autorizadas.")
                             .setPositiveButton("Registrar igual", (d, w) -> mostrarDialogoRegistroSesion(holder, turno))
                             .setNegativeButton("Cancelar", null).show();
                 } else {
@@ -214,21 +217,18 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
             if (p != null && p.getHorarios() != null) {
                 List<HorarioAtencion> nuevosHorarios = new ArrayList<>(p.getHorarios());
                 
-                // Usar el índice para una eliminación más precisa
                 if (turno.horarioIndice >= 0 && turno.horarioIndice < nuevosHorarios.size()) {
                     HorarioAtencion h = nuevosHorarios.get(turno.horarioIndice);
-                    // Doble verificación: que coincida la hora
                     if (h.getHoraInicio().equals(turno.hora)) {
                         nuevosHorarios.remove(turno.horarioIndice);
                     } else {
-                        // Fallback si la lista cambió: buscar por hora y fecha/día
                         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
                         String fechaEliminar = sdf.format(fechaAgenda.getTime());
                         for (int i = 0; i < nuevosHorarios.size(); i++) {
                             HorarioAtencion item = nuevosHorarios.get(i);
                             boolean mismoHorario = turno.hora.equals(item.getHoraInicio());
                             boolean mismaFecha = (item.getFecha() != null && item.getFecha().equals(fechaEliminar));
-                            boolean mismoDiaSemanala = (item.getFecha() == null || item.getFecha().isEmpty()); // Si es recurrente
+                            boolean mismoDiaSemanala = (item.getFecha() == null || item.getFecha().isEmpty());
 
                             if (mismoHorario && (mismaFecha || mismoDiaSemanala)) {
                                 nuevosHorarios.remove(i);
@@ -249,7 +249,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
     private void desmarcarAtencion(ViewHolder holder, Turno turno) {
         AtencionRepository repo = new AtencionRepository();
         turno.atendido = false;
-        if ("Orden".equals(turno.tipoCobertura)) turno.sesionesRestantes++;
+        if ("Orden".equals(turno.tipoCobertura)) turno.sesionesAtendidas--;
         if (turno.atencionId != null) {
             repo.eliminar(turno.atencionId);
             if ("Orden".equals(turno.tipoCobertura)) {
@@ -279,9 +279,9 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
 
             AtencionRepository repo = new AtencionRepository();
             turno.atendido = true;
-            if ("Orden".equals(turno.tipoCobertura)) turno.sesionesRestantes--;
+            if ("Orden".equals(turno.tipoCobertura)) turno.sesionesAtendidas++;
 
-            int sesionNum = turno.sesionesOrden > 0 ? turno.sesionesOrden - turno.sesionesRestantes : 0;
+            int sesionNum = turno.sesionesAtendidas;
             Calendar cal = (Calendar) fechaAgenda.clone();
             String[] partes = turno.hora.split(":");
             if (partes.length == 2) {
@@ -290,7 +290,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
             }
 
             Atencion atencion = new Atencion(turno.pacienteId, turno.nombrePaciente, turno.modalidad,
-                    turno.tipoCobertura, turno.valorSesion, sesionNum, turno.sesionesOrden, "",
+                    turno.tipoCobertura, turno.valorSesion, sesionNum, turno.sesionesTotales, "",
                     new com.google.firebase.Timestamp(cal.getTime()));
             atencion.setObjetivos(objetivos);
             atencion.setObservaciones(observaciones);

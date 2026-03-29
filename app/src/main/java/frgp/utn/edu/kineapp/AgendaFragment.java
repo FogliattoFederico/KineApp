@@ -36,6 +36,7 @@ public class AgendaFragment extends Fragment {
     private Calendar fechaActual;
     private String modalidadActual = "domicilio";
     private String modalidadTrabajoPerfil = "ambos";
+    private boolean modalidadInicializada = false;
 
     private final String[] DIAS_SEMANA = {"Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"};
     private final String[] DIAS_COMPLETOS = {"Domingo", "Lunes", "Martes",
@@ -77,7 +78,9 @@ public class AgendaFragment extends Fragment {
         rvPacientes = view.findViewById(R.id.rv_turnos);
         layoutEmpty = view.findViewById(R.id.layout_empty);
 
-        fechaActual = Calendar.getInstance();
+        if (fechaActual == null) {
+            fechaActual = Calendar.getInstance();
+        }
 
         adapter = new TurnoAdapter(listaTurnos, (turno, atendido) -> {
                 cargarRecaudacionMes();
@@ -156,6 +159,13 @@ public class AgendaFragment extends Fragment {
     private void determinarModalidadInicial() {
         if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
         
+        if (modalidadInicializada) {
+            actualizarToggle();
+            actualizarVista();
+            cargarRecaudacionMes();
+            return;
+        }
+
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         FirebaseFirestore.getInstance().collection("pacientes")
                 .whereEqualTo("uidKinesiologo", uid)
@@ -174,6 +184,7 @@ public class AgendaFragment extends Fragment {
                             }
                         }
                     }
+                    modalidadInicializada = true;
                     actualizarToggle();
                     actualizarVista();
                     cargarRecaudacionMes();
@@ -181,6 +192,7 @@ public class AgendaFragment extends Fragment {
                 .addOnFailureListener(e -> {
                     Context context = getContext();
                     if (!isAdded() || context == null) return;
+                    modalidadInicializada = true;
                     actualizarToggle();
                     actualizarVista();
                     cargarRecaudacionMes();
@@ -325,10 +337,6 @@ public class AgendaFragment extends Fragment {
                                 else if (p.isCertificadoDiscapacidad()) tipoCobertura = "CUD";
                                 else tipoCobertura = "Orden";
 
-                                int sesRestantes = p.getSesionesOrden() > 0
-                                        ? p.getSesionesOrden() - p.getSesionesAtendidas()
-                                        : -1;
-
                                 listaTurnos.add(new TurnoAdapter.Turno(
                                         h.getHoraInicio(),
                                         p.getNombreCompleto(),
@@ -338,7 +346,7 @@ public class AgendaFragment extends Fragment {
                                         false,
                                         p.getId(),
                                         p.getValorSesion(),
-                                        sesRestantes,
+                                        p.getSesionesAtendidas(), // Corregido: pasar atendidas, no restantes
                                         p.getSesionesOrden(),
                                         p.getModalidad(),
                                         i
@@ -392,7 +400,6 @@ public class AgendaFragment extends Fragment {
                         String horaAtencion = sdfHora.format(a.getFecha().toDate());
 
                         for (TurnoAdapter.Turno turno : listaTurnos) {
-                            // Coincidencia por paciente Y hora aproximada (o exacta si se guarda bien)
                             if (turno.pacienteId.equals(a.getPacienteId()) && turno.hora.equals(horaAtencion)) {
                                 turno.atendido = true;
                                 turno.atencionId = doc.getId();
