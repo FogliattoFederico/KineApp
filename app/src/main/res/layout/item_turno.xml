@@ -30,34 +30,35 @@
         android:layout_weight="1"
         android:orientation="vertical"
         android:layout_marginStart="4dp"
-        android:layout_marginEnd="4dp">
+        android:layout_marginEnd="4dp"
+        android:gravity="center_vertical">
 
         <TextView
             android:id="@+id/tv_nombre_paciente"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="14sp"
+            android:textSize="15sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary"
             android:maxLines="1"
             android:ellipsize="end" />
 
-        <!-- Fila de Badges: Ajustado espacio y desactivado recortes del contenedor -->
+        <!-- Fila de Badges: Letra más grande y padding corregido -->
         <com.google.android.material.chip.ChipGroup
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:paddingBottom="6dp"
+            android:layout_marginTop="2dp"
+            android:paddingBottom="2dp"
             android:clipChildren="false"
             android:clipToPadding="false"
-            app:chipSpacingVertical="8dp"
+            app:chipSpacingVertical="4dp"
             app:chipSpacingHorizontal="4dp">
 
             <TextView
                 android:id="@+id/tv_obra_social_turno"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="11sp"
+                android:textSize="12sp"
                 android:textColor="@color/text_secondary"
                 android:maxLines="1"
                 android:ellipsize="end" />
@@ -66,26 +67,26 @@
                 android:id="@+id/tv_tipo_cobertura"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="10sp"
-                android:paddingStart="7dp"
-                android:paddingEnd="7dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="4dp"
-                android:layout_marginBottom="2dp"
+                android:textSize="11sp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
                 android:gravity="center"
+                android:includeFontPadding="false"
                 android:background="@drawable/bg_badge_cud" />
 
             <TextView
                 android:id="@+id/tv_modalidad_turno"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="10sp"
-                android:paddingStart="7dp"
-                android:paddingEnd="7dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="4dp"
-                android:layout_marginBottom="2dp"
+                android:textSize="11sp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
                 android:gravity="center"
+                android:includeFontPadding="false"
                 android:background="@drawable/bg_badge_particular"
                 android:visibility="gone" />
 
@@ -93,13 +94,13 @@
                 android:id="@+id/tv_sesiones"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="10sp"
-                android:paddingStart="7dp"
-                android:paddingEnd="7dp"
-                android:paddingTop="2dp"
-                android:paddingBottom="4dp"
-                android:layout_marginBottom="2dp"
+                android:textSize="11sp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingTop="3dp"
+                android:paddingBottom="3dp"
                 android:gravity="center"
+                android:includeFontPadding="false"
                 android:background="@drawable/bg_badge_orden"
                 android:visibility="gone" />
 
@@ -107,7 +108,7 @@
                 android:id="@+id/tv_diagnostico_turno"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="11sp"
+                android:textSize="12sp"
                 android:textColor="@color/text_secondary"
                 android:maxLines="1"
                 android:ellipsize="end" />
