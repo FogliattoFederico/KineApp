@@ -39,7 +39,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
-                android:layout_marginBottom="8dp"
+                android:layout_marginBottom="16dp"
                 app:hintEnabled="false"
                 app:startIconDrawable="@drawable/ic_search"
                 app:startIconTint="@android:color/white"
@@ -58,67 +58,9 @@
                     android:background="@android:color/transparent" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Pestañas (Tabs) personalizadas -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:background="@color/primary"
-                android:paddingBottom="4dp">
-
-                <TextView
-                    android:id="@+id/tv_tab_todos"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="TODOS"
-                    android:textColor="@android:color/white"
-                    android:textStyle="bold"
-                    android:paddingTop="12dp"
-                    android:paddingBottom="12dp"
-                    android:alpha="1.0" />
-
-                <TextView
-                    android:id="@+id/tv_tab_con_turnos"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:text="CON TURNOS"
-                    android:textColor="@android:color/white"
-                    android:textStyle="bold"
-                    android:paddingTop="12dp"
-                    android:paddingBottom="12dp"
-                    android:alpha="0.6" />
-
-            </LinearLayout>
-
-            <!-- Indicador de tab activa -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="3dp"
-                android:orientation="horizontal"
-                android:weightSum="2">
-                <View
-                    android:id="@+id/indicador_todos"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@android:color/white"
-                    android:visibility="visible" />
-                <View
-                    android:id="@+id/indicador_con_turnos"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@android:color/white"
-                    android:visibility="invisible" />
-            </LinearLayout>
-
         </LinearLayout>
 
-        <!-- Filtros -->
+        <!-- Filtros unificados -->
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -136,7 +78,13 @@
                 app:singleSelection="false"
                 app:selectionRequired="false">
 
-                <!-- Filtros para TODOS -->
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_filtro_tiene_turnos"
+                    style="@style/Widget.MaterialComponents.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Con Turnos" />
+
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_filtro_tiene_os"
                     style="@style/Widget.MaterialComponents.Chip.Filter"
@@ -145,11 +93,11 @@
                     android:text="Obra Social" />
 
                 <com.google.android.material.chip.Chip
-                    android:id="@+id/chip_filtro_sin_cobertura"
+                    android:id="@+id/chip_filtro_particular"
                     style="@style/Widget.MaterialComponents.Chip.Filter"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Sin Cobertura" />
+                    android:text="Particular" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_filtro_tiene_cud"
@@ -158,46 +106,19 @@
                     android:layout_height="wrap_content"
                     android:text="CUD" />
 
-                <!-- Filtros para CON TURNOS -->
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/chip_filtro_particular"
-                    style="@style/Widget.MaterialComponents.Chip.Filter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Particular"
-                    android:visibility="gone" />
-
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/chip_filtro_orden"
-                    style="@style/Widget.MaterialComponents.Chip.Filter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Orden"
-                    android:visibility="gone" />
-
-                <com.google.android.material.chip.Chip
-                    android:id="@+id/chip_filtro_cud_turnos"
-                    style="@style/Widget.MaterialComponents.Chip.Filter"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="CUD"
-                    android:visibility="gone" />
-
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_filtro_domicilio"
                     style="@style/Widget.MaterialComponents.Chip.Filter"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Domicilio"
-                    android:visibility="gone" />
+                    android:text="Domicilio" />
 
                 <com.google.android.material.chip.Chip
                     android:id="@+id/chip_filtro_consultorio"
                     style="@style/Widget.MaterialComponents.Chip.Filter"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Consultorio"
-                    android:visibility="gone" />
+                    android:text="Consultorio" />
 
             </com.google.android.material.chip.ChipGroup>
 

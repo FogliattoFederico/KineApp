@@ -15,6 +15,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
@@ -33,11 +34,6 @@ public class PacientesFragment extends Fragment {
     private PacienteRepository repository;
     private List<Paciente> listaTodos = new ArrayList<>();
     private List<Paciente> listaFiltrada = new ArrayList<>();
-
-    // Tabs
-    private TextView tvTabTodos, tvTabConTurnos;
-    private View indicadorTodos, indicadorConTurnos;
-    private boolean verSoloConTurnos = false;
 
     @Nullable
     @Override
@@ -68,31 +64,20 @@ public class PacientesFragment extends Fragment {
         etBuscar = view.findViewById(R.id.et_buscar);
         fabAgregar = view.findViewById(R.id.fab_agregar);
 
-        // Inicializar Tabs
-        tvTabTodos = view.findViewById(R.id.tv_tab_todos);
-        tvTabConTurnos = view.findViewById(R.id.tv_tab_con_turnos);
-        indicadorTodos = view.findViewById(R.id.indicador_todos);
-        indicadorConTurnos = view.findViewById(R.id.indicador_con_turnos);
-
-        tvTabTodos.setOnClickListener(v -> seleccionarTab(false));
-        tvTabConTurnos.setOnClickListener(v -> seleccionarTab(true));
-
         adapter = new PacienteAdapter(listaFiltrada, paciente -> {
             Intent intent = new Intent(getContext(), DetallePacienteActivity.class);
             intent.putExtra("pacienteId", paciente.getId());
-            intent.putExtra("modoTurno", verSoloConTurnos);
             startActivity(intent);
         });
 
         rvPacientes.setLayoutManager(new LinearLayoutManager(getContext()));
         rvPacientes.setAdapter(adapter);
 
-        // Configuración inicial del FAB
-        actualizarFab();
-
-        chipGroupFiltros.setOnCheckedStateChangeListener((group, checkedIds) ->
-                aplicarFiltros()
+        fabAgregar.setOnClickListener(v -> 
+            startActivity(new Intent(getContext(), FormularioPacienteSimpleActivity.class))
         );
+
+        configurarFiltrosYExclusividad();
 
         etBuscar.addTextChangedListener(new TextWatcher() {
             @Override
@@ -108,60 +93,43 @@ public class PacientesFragment extends Fragment {
         cargarPacientes();
     }
 
-    private void seleccionarTab(boolean conTurnos) {
-        verSoloConTurnos = conTurnos;
-        
-        // Actualizar UI de Tabs
-        tvTabTodos.setAlpha(conTurnos ? 0.6f : 1.0f);
-        tvTabConTurnos.setAlpha(conTurnos ? 1.0f : 0.6f);
-        indicadorTodos.setVisibility(conTurnos ? View.INVISIBLE : View.VISIBLE);
-        indicadorConTurnos.setVisibility(conTurnos ? View.VISIBLE : View.INVISIBLE);
-        
-        // Avisar al adaptador el cambio de diseño
-        adapter.setModoTurno(conTurnos);
-        
-        // Actualizar acción del FAB
-        actualizarFab();
-        
-        actualizarVisibilidadChips();
-        aplicarFiltros();
-    }
+    private void configurarFiltrosYExclusividad() {
+        Chip chipTurnos = chipGroupFiltros.findViewById(R.id.chip_filtro_tiene_turnos);
+        Chip chipOS = chipGroupFiltros.findViewById(R.id.chip_filtro_tiene_os);
+        Chip chipPart = chipGroupFiltros.findViewById(R.id.chip_filtro_particular);
+        Chip chipCUD = chipGroupFiltros.findViewById(R.id.chip_filtro_tiene_cud);
+        Chip chipDom = chipGroupFiltros.findViewById(R.id.chip_filtro_domicilio);
+        Chip chipCons = chipGroupFiltros.findViewById(R.id.chip_filtro_consultorio);
 
-    private void actualizarFab() {
-        if (verSoloConTurnos) {
-            fabAgregar.setOnClickListener(v -> 
-                startActivity(new Intent(getContext(), FormularioPacienteActivity.class))
-            );
-        } else {
-            fabAgregar.setOnClickListener(v -> 
-                startActivity(new Intent(getContext(), FormularioPacienteSimpleActivity.class))
-            );
-        }
-    }
+        // Grupo Cobertura: Solo uno entre OS, Particular y CUD
+        View.OnClickListener listenerCobertura = v -> {
+            Chip clicked = (Chip) v;
+            if (clicked.isChecked()) {
+                if (clicked != chipOS) chipOS.setChecked(false);
+                if (clicked != chipPart) chipPart.setChecked(false);
+                if (clicked != chipCUD) chipCUD.setChecked(false);
+            }
+            aplicarFiltros();
+        };
 
-    private void actualizarVisibilidadChips() {
-        if (verSoloConTurnos) {
-            chipGroupFiltros.findViewById(R.id.chip_filtro_tiene_os).setVisibility(View.GONE);
-            chipGroupFiltros.findViewById(R.id.chip_filtro_sin_cobertura).setVisibility(View.GONE);
-            chipGroupFiltros.findViewById(R.id.chip_filtro_tiene_cud).setVisibility(View.GONE);
-            
-            chipGroupFiltros.findViewById(R.id.chip_filtro_particular).setVisibility(View.VISIBLE);
-            chipGroupFiltros.findViewById(R.id.chip_filtro_orden).setVisibility(View.VISIBLE);
-            chipGroupFiltros.findViewById(R.id.chip_filtro_cud_turnos).setVisibility(View.VISIBLE);
-            chipGroupFiltros.findViewById(R.id.chip_filtro_domicilio).setVisibility(View.VISIBLE);
-            chipGroupFiltros.findViewById(R.id.chip_filtro_consultorio).setVisibility(View.VISIBLE);
-        } else {
-            chipGroupFiltros.findViewById(R.id.chip_filtro_tiene_os).setVisibility(View.VISIBLE);
-            chipGroupFiltros.findViewById(R.id.chip_filtro_sin_cobertura).setVisibility(View.VISIBLE);
-            chipGroupFiltros.findViewById(R.id.chip_filtro_tiene_cud).setVisibility(View.VISIBLE);
-            
-            chipGroupFiltros.findViewById(R.id.chip_filtro_particular).setVisibility(View.GONE);
-            chipGroupFiltros.findViewById(R.id.chip_filtro_orden).setVisibility(View.GONE);
-            chipGroupFiltros.findViewById(R.id.chip_filtro_cud_turnos).setVisibility(View.GONE);
-            chipGroupFiltros.findViewById(R.id.chip_filtro_domicilio).setVisibility(View.GONE);
-            chipGroupFiltros.findViewById(R.id.chip_filtro_consultorio).setVisibility(View.GONE);
-        }
-        chipGroupFiltros.clearCheck();
+        // Grupo Modalidad: Solo uno entre Domicilio y Consultorio
+        View.OnClickListener listenerModalidad = v -> {
+            Chip clicked = (Chip) v;
+            if (clicked.isChecked()) {
+                if (clicked != chipDom) chipDom.setChecked(false);
+                if (clicked != chipCons) chipCons.setChecked(false);
+            }
+            aplicarFiltros();
+        };
+
+        chipOS.setOnClickListener(listenerCobertura);
+        chipPart.setOnClickListener(listenerCobertura);
+        chipCUD.setOnClickListener(listenerCobertura);
+
+        chipDom.setOnClickListener(listenerModalidad);
+        chipCons.setOnClickListener(listenerModalidad);
+
+        chipTurnos.setOnClickListener(v -> aplicarFiltros());
     }
 
     @Override
@@ -208,41 +176,24 @@ public class PacientesFragment extends Fragment {
                 }
             }
 
-            // 2. Filtro por Tab y sus Chips específicos
-            if (verSoloConTurnos) {
-                if (p.getHorarios() == null || p.getHorarios().isEmpty()) continue;
+            // 2. Filtros por Chips
+            boolean fTurnos = isChipChecked(R.id.chip_filtro_tiene_turnos);
+            boolean fOS = isChipChecked(R.id.chip_filtro_tiene_os);
+            boolean fPart = isChipChecked(R.id.chip_filtro_particular);
+            boolean fCUD = isChipChecked(R.id.chip_filtro_tiene_cud);
+            boolean fDom = isChipChecked(R.id.chip_filtro_domicilio);
+            boolean fCons = isChipChecked(R.id.chip_filtro_consultorio);
 
-                boolean fPart = isChipChecked(R.id.chip_filtro_particular);
-                boolean fOrden = isChipChecked(R.id.chip_filtro_orden);
-                boolean fCudT = isChipChecked(R.id.chip_filtro_cud_turnos);
-                boolean fDom = isChipChecked(R.id.chip_filtro_domicilio);
-                boolean fCons = isChipChecked(R.id.chip_filtro_consultorio);
-
-                if (fPart || fOrden || fCudT || fDom || fCons) {
-                    boolean pasaCobertura = true;
-                    if (fPart || fOrden || fCudT) {
-                        pasaCobertura = (fPart && p.isParticular()) ||
-                                        (fCudT && p.isCertificadoDiscapacidad()) ||
-                                        (fOrden && !p.isParticular() && !p.isCertificadoDiscapacidad());
-                    }
-
-                    boolean pasaModalidad = true;
-                    if (fDom || fCons) {
-                        pasaModalidad = (fDom && "domicilio".equals(p.getModalidad())) ||
-                                        (fCons && "consultorio".equals(p.getModalidad()));
-                    }
-
-                    if (!pasaCobertura || !pasaModalidad) continue;
-                }
-            } else {
-                boolean fOS = isChipChecked(R.id.chip_filtro_tiene_os);
-                boolean fSinCob = isChipChecked(R.id.chip_filtro_sin_cobertura);
-                boolean fCUD = isChipChecked(R.id.chip_filtro_tiene_cud);
-
-                if (fOS && (p.getObraSocial() == null || p.getObraSocial().isEmpty())) continue;
-                if (fSinCob && p.getObraSocial() != null && !p.getObraSocial().isEmpty()) continue;
-                if (fCUD && !p.isCertificadoDiscapacidad()) continue;
-            }
+            if (fTurnos && (p.getHorarios() == null || p.getHorarios().isEmpty())) continue;
+            
+            // Filtro de cobertura (excluyentes)
+            if (fOS && (p.getObraSocial() == null || p.getObraSocial().isEmpty())) continue;
+            if (fPart && !p.isParticular()) continue;
+            if (fCUD && !p.isCertificadoDiscapacidad()) continue;
+            
+            // Filtro de modalidad (excluyentes)
+            if (fDom && !"domicilio".equals(p.getModalidad())) continue;
+            if (fCons && !"consultorio".equals(p.getModalidad())) continue;
 
             listaFiltrada.add(p);
         }
@@ -268,8 +219,6 @@ public class PacientesFragment extends Fragment {
             
             if (hayBusqueda) {
                 tvEmpty.setText("No se encontraron resultados");
-            } else if (verSoloConTurnos) {
-                tvEmpty.setText("No hay pacientes con turnos asignados");
             } else {
                 tvEmpty.setText("No hay pacientes registrados");
             }
