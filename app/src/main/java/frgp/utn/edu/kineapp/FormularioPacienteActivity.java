@@ -44,6 +44,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
     private TextView tvPacienteEncontradoNombre, tvPacienteEncontradoDni, tvPacienteEncontradoEmail, tvSesionesRealizadas;
     private PacienteRepository repository;
     private Paciente pacienteExistente = null;
+    private List<HorarioAtencion> horariosOriginales = new ArrayList<>();
     private View layoutCud;
     private TextView tvTituloCud;
     private int cantidadBoxes = 1;
@@ -212,6 +213,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
 
     private void seleccionarPaciente(Paciente p) {
         pacienteExistente = p;
+        horariosOriginales = p.getHorarios() != null ? new ArrayList<>(p.getHorarios()) : new ArrayList<>();
         btnCrearNuevo.setVisibility(View.GONE);
         cardPacienteEncontrado.setVisibility(View.VISIBLE);
         layoutFormulario.setVisibility(View.VISIBLE);
@@ -505,9 +507,8 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         if (modoEdicion) {
             horariosFinales.addAll(horariosNuevos);
         } else {
-            if (pacienteExistente.getHorarios() != null) {
-                horariosFinales.addAll(pacienteExistente.getHorarios());
-            }
+            // Usamos la lista original para evitar duplicar turnos si falló una validación previa
+            horariosFinales.addAll(horariosOriginales);
             horariosFinales.addAll(horariosNuevos);
         }
 
@@ -683,6 +684,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
                 .addOnSuccessListener(doc -> {
                     pacienteExistente = doc.toObject(Paciente.class);
                     pacienteExistente.setId(doc.getId());
+                    horariosOriginales = pacienteExistente.getHorarios() != null ? new ArrayList<>(pacienteExistente.getHorarios()) : new ArrayList<>();
                     actualizarUIHeaderCard();
                     precargarFormulario();
                     if (pacienteExistente.getHorarios() != null) {
