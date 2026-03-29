@@ -39,7 +39,7 @@ public class PagosColegioFragment extends Fragment {
     private ChipGroup chipGroupFiltro;
     private boolean filtrandoFacturadas = false;
     
-    private CardView cardTotalAdeudado;
+    private View cardTotalAdeudado;
     private TextView tvTotalAdeudado;
     private TextView tvPeriodo;
     private int mesSeleccionado, anioSeleccionado;
@@ -221,7 +221,30 @@ public class PagosColegioFragment extends Fragment {
         if (!filtrandoFacturadas && totalPendiente > 0) {
             cardTotalAdeudado.setVisibility(View.VISIBLE);
             tvTotalAdeudado.setText(String.format(new Locale("es", "AR"), "$ %,.2f", totalPendiente));
-        } else cardTotalAdeudado.setVisibility(View.GONE);
+        } else {
+            cardTotalAdeudado.setVisibility(View.GONE);
+        }
+        
+        // Ajustar posición del botón +
+        ajustarPosicionFab();
+    }
+
+    private void ajustarPosicionFab() {
+        View view = getView();
+        if (view == null) return;
+        
+        FloatingActionButton fab = view.findViewById(R.id.fab_agregar_liquidacion);
+        if (fab == null) return;
+        
+        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) fab.getLayoutParams();
+        if (cardTotalAdeudado != null && cardTotalAdeudado.getVisibility() == View.VISIBLE) {
+            // Sube para no tapar la tarjeta (aprox 90dp)
+            params.bottomMargin = (int) (90 * getResources().getDisplayMetrics().density);
+        } else {
+            // Baja a la posición normal (16dp)
+            params.bottomMargin = (int) (16 * getResources().getDisplayMetrics().density);
+        }
+        fab.setLayoutParams(params);
     }
 
     private void mostrarDialogoAgregar(LiquidacionColegio liqExistente) {
