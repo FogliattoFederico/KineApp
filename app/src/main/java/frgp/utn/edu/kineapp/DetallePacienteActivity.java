@@ -189,6 +189,11 @@ public class DetallePacienteActivity extends AppCompatActivity {
                 tvDia.setText(displayFecha);
                 tvHorario.setText(h.getHoraInicio() + " - " + h.getHoraFin());
                 
+                fila.setOnLongClickListener(v -> {
+                    confirmarEliminarHorario(index);
+                    return true;
+                });
+
                 LinearLayout layoutFila = fila.findViewById(R.id.layout_item_horario);
                 if (layoutFila != null) {
                     ImageView ivEdit = new ImageView(this);
@@ -213,6 +218,28 @@ public class DetallePacienteActivity extends AppCompatActivity {
             tvVacio.setPadding(0, 8, 0, 8);
             containerHorarios.addView(tvVacio);
         }
+    }
+
+    private void confirmarEliminarHorario(int index) {
+        HorarioAtencion h = paciente.getHorarios().get(index);
+        String fechaDisplay = (h.getFecha() != null && !h.getFecha().isEmpty()) ? h.getFecha() : h.getDia();
+        
+        new AlertDialog.Builder(this)
+                .setTitle("Eliminar turno")
+                .setMessage("¿Deseás eliminar el turno del día " + fechaDisplay + " a las " + h.getHoraInicio() + " hs?")
+                .setPositiveButton("Eliminar", (dialog, which) -> {
+                    paciente.getHorarios().remove(index);
+                    FirebaseFirestore.getInstance().collection("pacientes")
+                            .document(pacienteId)
+                            .set(paciente)
+                            .addOnSuccessListener(unused -> {
+                                Toast.makeText(this, "Turno eliminado correctamente", Toast.LENGTH_SHORT).show();
+                                mostrarDatos(); // Recargar la lista
+                            })
+                            .addOnFailureListener(e -> Toast.makeText(this, "Error al eliminar: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                })
+                .setNegativeButton("Cancelar", null)
+                .show();
     }
 
     private void cargarHistorial() {
