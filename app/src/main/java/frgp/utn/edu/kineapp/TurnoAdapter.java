@@ -32,12 +32,13 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         public int sesionesOrden;
         public String modalidad;
         public String atencionId;
+        public int horarioIndice; // Índice en la lista de horarios del paciente
 
         public Turno(String hora, String nombrePaciente, String diagnostico,
                      String obraSocial, String tipoCobertura,
                      boolean atendido, String pacienteId,
                      double valorSesion, int sesionesRestantes,
-                     int sesionesOrden, String modalidad) {
+                     int sesionesOrden, String modalidad, int horarioIndice) {
             this.hora = hora;
             this.nombrePaciente = nombrePaciente;
             this.diagnostico = diagnostico;
@@ -49,6 +50,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
             this.sesionesRestantes = sesionesRestantes;
             this.sesionesOrden = sesionesOrden;
             this.modalidad = modalidad;
+            this.horarioIndice = horarioIndice;
             this.atencionId = null;
         }
     }
@@ -178,6 +180,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         holder.layoutTurno.setOnClickListener(v -> {
             Intent intent = new Intent(v.getContext(), FormularioPacienteActivity.class);
             intent.putExtra("pacienteId", turno.pacienteId);
+            intent.putExtra("horarioIndice", turno.horarioIndice);
             v.getContext().startActivity(intent);
         });
 
@@ -192,7 +195,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
     private void mostrarConfirmacionEliminar(android.content.Context context, Turno turno) {
         new AlertDialog.Builder(context)
                 .setTitle("Eliminar turno")
-                .setMessage("¿Estás seguro que deseás eliminar este turno?")
+                .setMessage("¿Estás seguro que deseás eliminar este turno de la agenda?")
                 .setPositiveButton("Eliminar", (dialog, which) -> eliminarTurno(context, turno))
                 .setNegativeButton("Cancelar", null).show();
     }
@@ -209,14 +212,32 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         db.collection("pacientes").document(turno.pacienteId).get().addOnSuccessListener(doc -> {
             Paciente p = doc.toObject(Paciente.class);
             if (p != null && p.getHorarios() != null) {
-                List<HorarioAtencion> nuevosHorarios = new ArrayList<>();
-                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
-                String fechaEliminar = sdf.format(fechaAgenda.getTime());
-                for (HorarioAtencion h : p.getHorarios()) {
-                    if (!(turno.hora.equals(h.getHoraInicio()) && fechaEliminar.equals(h.getFecha()))) {
-                        nuevosHorarios.add(h);
+                List<HorarioAtencion> nuevosHorarios = new ArrayList<>(p.getHorarios());
+                
+                // Usar el índice para una eliminación más precisa
+                if (turno.horarioIndice >= 0 && turno.horarioIndice < nuevosHorarios.size()) {
+                    HorarioAtencion h = nuevosHorarios.get(turno.horarioIndice);
+                    // Doble verificación: que coincida la hora
+                    if (h.getHoraInicio().equals(turno.hora)) {
+                        nuevosHorarios.remove(turno.horarioIndice);
+                    } else {
+                        // Fallback si la lista cambió: buscar por hora y fecha/día
+                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault());
+                        String fechaEliminar = sdf.format(fechaAgenda.getTime());
+                        for (int i = 0; i < nuevosHorarios.size(); i++) {
+                            HorarioAtencion item = nuevosHorarios.get(i);
+                            boolean mismoHorario = turno.hora.equals(item.getHoraInicio());
+                            boolean mismaFecha = (item.getFecha() != null && item.getFecha().equals(fechaEliminar));
+                            boolean mismoDiaSemanala = (item.getFecha() == null || item.getFecha().isEmpty()); // Si es recurrente
+
+                            if (mismoHorario && (mismaFecha || mismoDiaSemanala)) {
+                                nuevosHorarios.remove(i);
+                                break;
+                            }
+                        }
                     }
                 }
+                
                 db.collection("pacientes").document(turno.pacienteId).update("horarios", nuevosHorarios)
                         .addOnSuccessListener(unused -> {
                             if (listener != null) listener.onChange(turno, turno.atendido);

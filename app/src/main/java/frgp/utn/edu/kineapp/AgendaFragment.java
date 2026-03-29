@@ -191,7 +191,7 @@ public class AgendaFragment extends Fragment {
     public void onResume() {
         super.onResume();
         if (isAdded() && getContext() != null) {
-            configurarModalidadesSegunPerfil();
+            actualizarVista();
         }
     }
 
@@ -310,7 +310,8 @@ public class AgendaFragment extends Fragment {
 
                         if (!modalidadActual.equals(p.getModalidad())) continue;
 
-                        for (HorarioAtencion h : p.getHorarios()) {
+                        for (int i = 0; i < p.getHorarios().size(); i++) {
+                            HorarioAtencion h = p.getHorarios().get(i);
                             boolean coincide;
                             if (h.getFecha() != null && !h.getFecha().isEmpty()) {
                                 coincide = h.getFecha().equals(fechaSeleccionada);
@@ -339,7 +340,8 @@ public class AgendaFragment extends Fragment {
                                         p.getValorSesion(),
                                         sesRestantes,
                                         p.getSesionesOrden(),
-                                        p.getModalidad()
+                                        p.getModalidad(),
+                                        i
                                 ));
                             }
                         }
@@ -377,6 +379,8 @@ public class AgendaFragment extends Fragment {
                 .addOnSuccessListener(query -> {
                     if (!isAdded() || getContext() == null) return;
                     
+                    SimpleDateFormat sdfHora = new SimpleDateFormat("HH:mm", Locale.getDefault());
+
                     for (var doc : query.getDocuments()) {
                         Atencion a = doc.toObject(Atencion.class);
                         if (a == null || a.getFecha() == null) continue;
@@ -385,8 +389,11 @@ public class AgendaFragment extends Fragment {
                         if (fechaMs < inicioDia.getTimeInMillis() ||
                                 fechaMs > finDia.getTimeInMillis()) continue;
 
+                        String horaAtencion = sdfHora.format(a.getFecha().toDate());
+
                         for (TurnoAdapter.Turno turno : listaTurnos) {
-                            if (turno.pacienteId.equals(a.getPacienteId())) {
+                            // Coincidencia por paciente Y hora aproximada (o exacta si se guarda bien)
+                            if (turno.pacienteId.equals(a.getPacienteId()) && turno.hora.equals(horaAtencion)) {
                                 turno.atendido = true;
                                 turno.atencionId = doc.getId();
                                 break;
