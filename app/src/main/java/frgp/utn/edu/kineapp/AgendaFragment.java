@@ -339,6 +339,7 @@ public class AgendaFragment extends Fragment {
 
                                 listaTurnos.add(new TurnoAdapter.Turno(
                                         h.getHoraInicio(),
+                                        h.getHoraFin(),
                                         p.getNombreCompleto(),
                                         p.getDiagnostico(),
                                         p.getObraSocial(),
@@ -346,7 +347,7 @@ public class AgendaFragment extends Fragment {
                                         false,
                                         p.getId(),
                                         p.getValorSesion(),
-                                        p.getSesionesAtendidas(), // Corregido: pasar atendidas, no restantes
+                                        p.getSesionesAtendidas(),
                                         p.getSesionesOrden(),
                                         p.getModalidad(),
                                         i

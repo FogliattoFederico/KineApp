@@ -13,7 +13,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="#1565C0"
-        android:paddingBottom="12dp">
+        android:paddingBottom="8dp">
 
         <View
             android:id="@+id/status_bar_spacer"
@@ -28,40 +28,40 @@
             app:title="Agenda"
             app:titleTextColor="@android:color/white" />
 
-        <!-- Toggle domicilio / consultorio -->
+        <!-- Toggle domicilio / consultorio (Ajustado para pantallas angostas) -->
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
+            android:layout_height="32dp"
             android:layout_gravity="center_horizontal"
             android:orientation="horizontal"
             android:background="@drawable/bg_toggle_container"
-            android:layout_marginBottom="12dp">
+            android:layout_marginBottom="8dp">
 
             <TextView
                 android:id="@+id/btn_toggle_domicilio"
-                android:layout_width="120dp"
+                android:layout_width="100dp"
                 android:layout_height="match_parent"
                 android:gravity="center"
                 android:text="Domicilio"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 android:textStyle="bold"
                 android:background="@drawable/bg_toggle_activo"
                 android:textColor="@color/primary" />
 
             <TextView
                 android:id="@+id/btn_toggle_consultorio"
-                android:layout_width="120dp"
+                android:layout_width="100dp"
                 android:layout_height="match_parent"
                 android:gravity="center"
                 android:text="Consultorio"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 android:textStyle="bold"
                 android:background="@android:color/transparent"
                 android:textColor="#BBDEFB" />
 
         </LinearLayout>
 
-        <!-- Flechas y fecha -->
+        <!-- Flechas y fecha (Más compacto) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -72,8 +72,8 @@
 
             <ImageButton
                 android:id="@+id/btn_dia_anterior"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:src="@drawable/ic_arrow_back"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:tint="@android:color/white"
@@ -90,7 +90,7 @@
                     android:id="@+id/tv_nombre_dia"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="20sp"
+                    android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="@android:color/white" />
 
@@ -98,16 +98,16 @@
                     android:id="@+id/tv_fecha_completa"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textSize="13sp"
+                    android:textSize="12sp"
                     android:textColor="#BBDEFB"
-                    android:layout_marginTop="2dp" />
+                    android:layout_marginTop="1dp" />
 
             </LinearLayout>
 
             <ImageButton
                 android:id="@+id/btn_dia_siguiente"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:src="@drawable/ic_arrow_forward"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:tint="@android:color/white"
@@ -115,16 +115,16 @@
 
         </LinearLayout>
 
-        <!-- Chips días semana -->
+        <!-- Chips días semana (Más compactos) -->
         <LinearLayout
             android:id="@+id/container_dias_semana"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center"
-            android:paddingTop="8dp"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp" />
+            android:paddingTop="4dp"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp" />
 
     </LinearLayout>
 
@@ -136,8 +136,8 @@
         android:background="#E3F2FD"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
         android:gravity="center_vertical">
 
         <TextView
@@ -145,14 +145,14 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Recaudación del mes"
-            android:textSize="12sp"
+            android:textSize="11sp"
             android:textColor="#0C447C" />
 
         <TextView
             android:id="@+id/tv_recaudacion"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:textStyle="bold"
             android:textColor="#0C447C"
             android:text="$ 0" />
@@ -162,7 +162,7 @@
     <!-- Header columnas -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="40dp"
+        android:layout_height="36dp"
         android:orientation="horizontal"
         android:background="@color/surface"
         android:paddingStart="16dp"
@@ -170,27 +170,28 @@
         android:gravity="center_vertical">
 
         <TextView
-            android:layout_width="72dp"
+            android:layout_width="60dp"
             android:layout_height="wrap_content"
             android:text="Horario"
-            android:textSize="11sp"
+            android:textSize="10sp"
             android:textStyle="bold"
             android:textColor="@color/text_secondary" />
 
         <TextView
+            android:id="@+id/tv_header_paciente"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Paciente"
-            android:textSize="11sp"
+            android:textSize="10sp"
             android:textStyle="bold"
             android:textColor="@color/text_secondary" />
 
         <TextView
-            android:layout_width="80dp"
+            android:layout_width="60dp"
             android:layout_height="wrap_content"
-            android:text="Atendido"
-            android:textSize="11sp"
+            android:text="Estado"
+            android:textSize="10sp"
             android:textStyle="bold"
             android:textColor="@color/text_secondary"
             android:gravity="center" />
@@ -226,16 +227,16 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Sin turnos para este día"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:textColor="@color/text_secondary" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Disfrutá el descanso"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 android:textColor="@color/text_secondary"
-                android:layout_marginTop="4dp" />
+                android:layout_marginTop="2dp" />
 
         </LinearLayout>
 
@@ -246,6 +247,7 @@
             android:layout_gravity="bottom|end"
             android:layout_margin="16dp"
             android:src="@drawable/ic_add"
+            app:fabSize="mini"
             android:contentDescription="Nuevo paciente" />
 
     </FrameLayout>

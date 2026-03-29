@@ -86,7 +86,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="12dp"
-                    android:text="De adeudar recibos de más de 60 días, su depósito será retenido por el Colegio."
+                    android:text="En caso de adeudar recibos de más de 60 días, su depósito será retenido por el Colegio."
                     android:textSize="12sp"
                     android:textColor="#D32F2F"
                     android:textStyle="bold" />

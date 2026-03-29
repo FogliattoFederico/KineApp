@@ -21,6 +21,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
 
     public static class Turno {
         public String hora;
+        public String horaFin;
         public String nombrePaciente;
         public String diagnostico;
         public String obraSocial;
@@ -34,12 +35,13 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         public String atencionId;
         public int horarioIndice;
 
-        public Turno(String hora, String nombrePaciente, String diagnostico,
+        public Turno(String hora, String horaFin, String nombrePaciente, String diagnostico,
                      String obraSocial, String tipoCobertura,
                      boolean atendido, String pacienteId,
                      double valorSesion, int sesionesAtendidas,
                      int sesionesTotales, String modalidad, int horarioIndice) {
             this.hora = hora;
+            this.horaFin = horaFin;
             this.nombrePaciente = nombrePaciente;
             this.diagnostico = diagnostico;
             this.obraSocial = obraSocial;
@@ -90,15 +92,19 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Turno turno = turnos.get(position);
 
-        holder.tvHora.setText(turno.hora);
+        String rangoHorario = turno.hora;
+        if (turno.horaFin != null && !turno.horaFin.isEmpty()) {
+            rangoHorario += " - " + turno.horaFin;
+        }
+        holder.tvHora.setText(rangoHorario);
+        
         holder.tvNombre.setText(turno.nombrePaciente);
-        holder.tvDiagnostico.setText(turno.diagnostico);
+        holder.tvDiagnostico.setText(turno.diagnostico != null && !turno.diagnostico.isEmpty() ? turno.diagnostico : "Sin diagnóstico");
 
         // 1. Obra Social
         boolean tieneObraSocial = turno.obraSocial != null && !turno.obraSocial.isEmpty();
         holder.tvObraSocial.setVisibility(tieneObraSocial ? View.VISIBLE : View.GONE);
         holder.tvObraSocial.setText(tieneObraSocial ? turno.obraSocial : "");
-        holder.tvSep1.setVisibility(tieneObraSocial ? View.VISIBLE : View.GONE);
 
         // 2. Cobertura (Badge)
         holder.tvTipoCobertura.setVisibility(View.VISIBLE);
@@ -130,14 +136,9 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
                 holder.tvModalidad.setBackgroundResource(R.drawable.bg_badge_particular);
                 holder.tvModalidad.setTextColor(Color.parseColor("#5F5E5A"));
             }
-            holder.tvSep2.setVisibility(View.VISIBLE);
         } else {
             holder.tvModalidad.setVisibility(View.GONE);
-            holder.tvSep2.setVisibility(View.GONE);
         }
-
-        // 4. Diagnóstico
-        holder.tvDiagnostico.setText(turno.diagnostico != null && !turno.diagnostico.isEmpty() ? turno.diagnostico : "Sin diagnóstico");
 
         // Sesiones: x/m
         if ("Orden".equals(turno.tipoCobertura) && turno.sesionesTotales > 0) {
@@ -326,7 +327,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
     public void actualizar(List<Turno> nuevos) { this.turnos = nuevos; notifyDataSetChanged(); }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvHora, tvNombre, tvDiagnostico, tvObraSocial, tvTipoCobertura, tvSep1, tvSep2, tvSesiones, tvModalidad;
+        TextView tvHora, tvNombre, tvDiagnostico, tvObraSocial, tvTipoCobertura, tvSesiones, tvModalidad;
         ImageView ivAtendido, ivMenu;
         LinearLayout layoutTurno;
         ViewHolder(View v) {
@@ -336,8 +337,6 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
             tvDiagnostico = v.findViewById(R.id.tv_diagnostico_turno);
             tvObraSocial = v.findViewById(R.id.tv_obra_social_turno);
             tvTipoCobertura = v.findViewById(R.id.tv_tipo_cobertura);
-            tvSep1 = v.findViewById(R.id.tv_sep1);
-            tvSep2 = v.findViewById(R.id.tv_sep2);
             tvSesiones = v.findViewById(R.id.tv_sesiones);
             ivAtendido = v.findViewById(R.id.cb_atendido);
             ivMenu = v.findViewById(R.id.iv_menu_turno);
