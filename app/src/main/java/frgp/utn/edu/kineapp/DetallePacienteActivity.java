@@ -176,7 +176,9 @@ public class DetallePacienteActivity extends AppCompatActivity {
         containerHorarios.removeAllViews();
         
         if (paciente.getHorarios() != null && !paciente.getHorarios().isEmpty()) {
-            for (HorarioAtencion h : paciente.getHorarios()) {
+            for (int i = 0; i < paciente.getHorarios().size(); i++) {
+                final int index = i;
+                HorarioAtencion h = paciente.getHorarios().get(i);
                 View fila = getLayoutInflater().inflate(R.layout.item_horario_detalle, containerHorarios, false);
                 TextView tvDia = fila.findViewById(R.id.tv_dia);
                 TextView tvHorario = fila.findViewById(R.id.tv_horario);
@@ -199,6 +201,7 @@ public class DetallePacienteActivity extends AppCompatActivity {
                     ivEdit.setOnClickListener(v -> {
                         Intent intent = new Intent(this, FormularioPacienteActivity.class);
                         intent.putExtra("pacienteId", pacienteId);
+                        intent.putExtra("horarioIndice", index);
                         startActivity(intent);
                     });
                 }
@@ -312,7 +315,12 @@ public class DetallePacienteActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        if (id == R.id.action_eliminar) {
+        if (id == R.id.action_editar) {
+            Intent intent = new Intent(this, FormularioPacienteSimpleActivity.class);
+            intent.putExtra("pacienteId", pacienteId);
+            startActivity(intent);
+            return true;
+        } else if (id == R.id.action_eliminar) {
             new AlertDialog.Builder(this)
                     .setTitle("Eliminar paciente")
                     .setMessage("¿Estás seguro que querés eliminar a " + paciente.getNombreCompleto() + "?")

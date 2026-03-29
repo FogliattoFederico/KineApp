@@ -4,145 +4,142 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background">
+    android:background="@color/background"
+    android:fitsSystemWindows="true">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/primary">
+        android:background="@color/primary"
+        android:theme="@style/AppTheme.AppBarOverlay">
 
         <View
             android:id="@+id/status_bar_spacer"
             android:layout_width="match_parent"
-            android:layout_height="24dp" />
+            android:layout_height="0dp" />
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/primary"
+            app:title="Detalle del Paciente"
+            app:titleTextColor="@android:color/white"
             app:navigationIcon="@drawable/ic_arrow_back"
-            app:menu="@menu/menu_detalle_paciente"
-            app:navigationIconTint="@android:color/white"
-            app:titleTextColor="@android:color/white" />
+            app:navigationIconTint="@android:color/white" />
+
+        <!-- Header con información principal (Achicado) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="16dp"
+            android:gravity="center">
+
+            <FrameLayout
+                android:layout_width="64dp"
+                android:layout_height="64dp">
+                
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_avatar_circle"
+                    android:backgroundTint="#BBDEFB" />
+
+                <TextView
+                    android:id="@+id/tv_avatar_grande"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="P"
+                    android:textColor="#1565C0"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tv_nombre_completo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Nombre del Paciente"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_dni_header"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="DNI: 00.000.000"
+                android:textColor="#E3F2FD"
+                android:textSize="13sp" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tv_badge_cud"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_badge_cud"
+                    android:paddingStart="10dp"
+                    android:paddingTop="3dp"
+                    android:paddingEnd="10dp"
+                    android:paddingBottom="3dp"
+                    android:text="CUD"
+                    android:textColor="#1565C0"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tv_badge_modalidad"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_badge_modalidad"
+                    android:paddingStart="10dp"
+                    android:paddingTop="3dp"
+                    android:paddingEnd="10dp"
+                    android:paddingBottom="3dp"
+                    android:text="Domicilio"
+                    android:textColor="#2E7D32"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+        </LinearLayout>
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <ScrollView
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true"
+        android:background="@color/background"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp"
-            android:paddingBottom="120dp">
+            android:padding="16dp">
 
-            <!-- Header -->
+            <!-- Card Contacto -->
             <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="2dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:padding="24dp">
-
-                    <TextView
-                        android:id="@+id/tv_avatar_grande"
-                        android:layout_width="72dp"
-                        android:layout_height="72dp"
-                        android:gravity="center"
-                        android:textSize="28sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/surface"
-                        android:background="@drawable/bg_avatar"
-                        android:layout_marginBottom="12dp" />
-
-                    <TextView
-                        android:id="@+id/tv_nombre_completo"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textSize="20sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/text_primary" />
-
-                    <TextView
-                        android:id="@+id/tv_dni_header"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textSize="14sp"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginTop="4dp" />
-
-                    <!-- Badges -->
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center"
-                        android:layout_marginTop="8dp">
-
-                        <TextView
-                            android:id="@+id/tv_badge_cud"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="CUD"
-                            android:textSize="11sp"
-                            android:textStyle="bold"
-                            android:textColor="#1565C0"
-                            android:background="@drawable/bg_badge_cud"
-                            android:paddingStart="10dp"
-                            android:paddingEnd="10dp"
-                            android:paddingTop="4dp"
-                            android:paddingBottom="4dp"
-                            android:layout_marginEnd="6dp"
-                            android:visibility="gone" />
-
-                        <TextView
-                            android:id="@+id/tv_badge_modalidad"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:textSize="11sp"
-                            android:textStyle="bold"
-                            android:background="@drawable/bg_badge_particular"
-                            android:paddingStart="10dp"
-                            android:paddingEnd="10dp"
-                            android:paddingTop="4dp"
-                            android:paddingBottom="4dp"
-                            android:visibility="gone" />
-
-                    </LinearLayout>
-
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Contacto -->
-            <TextView
-                android:id="@+id/label_contacto_seccion"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Contacto"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:textColor="@color/primary"
-                android:layout_marginBottom="8dp" />
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_contacto"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="1dp">
+                app:cardElevation="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -153,132 +150,150 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="TELÉFONO"
-                        android:textSize="11sp"
-                        android:textColor="@color/text_secondary"
-                        android:letterSpacing="0.08" />
-
-                    <TextView
-                        android:id="@+id/tv_telefono"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textSize="15sp"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginTop="2dp"
+                        android:text="INFORMACIÓN DE CONTACTO"
+                        android:textColor="@color/primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
                         android:layout_marginBottom="12dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_phone"
+                            app:tint="@color/text_secondary" />
+                        <TextView
+                            android:id="@+id/tv_telefono"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:text="Teléfono"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp" />
+                    </LinearLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:background="@color/divider"
+                        android:layout_marginTop="12dp"
                         android:layout_marginBottom="12dp" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="EMAIL"
-                        android:textSize="11sp"
-                        android:textColor="@color/text_secondary"
-                        android:letterSpacing="0.08" />
-
-                    <TextView
-                        android:id="@+id/tv_email_detalle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textSize="15sp"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginTop="2dp"
-                        android:layout_marginBottom="12dp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_location"
+                            app:tint="@color/text_secondary" />
+                        <TextView
+                            android:id="@+id/tv_direccion"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:text="Dirección"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp" />
+                    </LinearLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:background="@color/divider"
+                        android:layout_marginTop="12dp"
                         android:layout_marginBottom="12dp" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="DIRECCIÓN"
-                        android:textSize="11sp"
-                        android:textColor="@color/text_secondary"
-                        android:letterSpacing="0.08" />
-
-                    <TextView
-                        android:id="@+id/tv_direccion"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textSize="15sp"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginTop="2dp"
-                        android:layout_marginBottom="12dp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_email"
+                            app:tint="@color/text_secondary" />
+                        <TextView
+                            android:id="@+id/tv_email_detalle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
+                            android:text="Email"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp" />
+                    </LinearLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:background="@color/divider"
+                        android:layout_marginTop="12dp"
                         android:layout_marginBottom="12dp" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="FECHA DE NACIMIENTO"
-                        android:textSize="11sp"
-                        android:textColor="@color/text_secondary"
-                        android:letterSpacing="0.08" />
-
-                    <TextView
-                        android:id="@+id/tv_fecha_nacimiento_detalle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textSize="15sp"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginTop="2dp"
-                        android:layout_marginBottom="12dp" />
-
-                    <View
+                    <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="@color/divider"
-                        android:layout_marginBottom="12dp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="EDAD"
-                        android:textSize="11sp"
-                        android:textColor="@color/text_secondary"
-                        android:letterSpacing="0.08" />
-
-                    <TextView
-                        android:id="@+id/tv_edad_detalle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textSize="15sp"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginTop="2dp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@drawable/ic_calendar"
+                            app:tint="@color/text_secondary" />
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+                            <TextView
+                                android:id="@+id/tv_fecha_nacimiento_detalle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="12dp"
+                                android:text="Fecha Nac."
+                                android:textColor="@color/text_primary"
+                                android:textSize="15sp" />
+                            <TextView
+                                android:id="@+id/tv_edad_detalle"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:text="(0 años)"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="15sp" />
+                        </LinearLayout>
+                    </LinearLayout>
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Datos clínicos -->
+            <!-- Card Datos Clínicos -->
             <TextView
                 android:id="@+id/label_clinica_seccion"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Datos clínicos"
-                android:textSize="13sp"
-                android:textStyle="bold"
+                android:text="INFORMACIÓN CLÍNICA"
                 android:textColor="@color/primary"
-                android:layout_marginBottom="8dp" />
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone" />
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_clinica"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
+                android:visibility="gone"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="1dp">
+                app:cardElevation="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -290,62 +305,65 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="DIAGNÓSTICO"
-                        android:textSize="11sp"
                         android:textColor="@color/text_secondary"
-                        android:letterSpacing="0.08" />
-
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
                     <TextView
                         android:id="@+id/tv_diagnostico"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:textSize="15sp"
+                        android:layout_marginTop="4dp"
+                        android:text="Diagnóstico"
                         android:textColor="@color/text_primary"
-                        android:layout_marginTop="2dp"
-                        android:layout_marginBottom="12dp" />
+                        android:textSize="15sp" />
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:background="@color/divider"
+                        android:layout_marginTop="12dp"
                         android:layout_marginBottom="12dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="OBSERVACIONES"
-                        android:textSize="11sp"
+                        android:text="OBSERVACIONES / TRATAMIENTO"
                         android:textColor="@color/text_secondary"
-                        android:letterSpacing="0.08" />
-
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
                     <TextView
                         android:id="@+id/tv_observaciones"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:textSize="15sp"
+                        android:layout_marginTop="4dp"
+                        android:text="Observaciones"
                         android:textColor="@color/text_primary"
-                        android:layout_marginTop="2dp" />
+                        android:textSize="15sp" />
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Cobertura -->
+            <!-- Card Cobertura -->
             <TextView
                 android:id="@+id/label_cobertura_seccion"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Cobertura médica"
-                android:textSize="13sp"
-                android:textStyle="bold"
+                android:text="COBERTURA MÉDICA"
                 android:textColor="@color/primary"
-                android:layout_marginBottom="8dp" />
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone" />
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_cobertura"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
+                android:visibility="gone"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="1dp">
+                app:cardElevation="2dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -356,25 +374,25 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="TIPO"
-                        android:textSize="11sp"
+                        android:text="TIPO DE COBERTURA"
                         android:textColor="@color/text_secondary"
-                        android:letterSpacing="0.08" />
-
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
                     <TextView
                         android:id="@+id/tv_tipo_cobertura"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:textSize="15sp"
+                        android:layout_marginTop="4dp"
+                        android:text="Cobertura"
                         android:textColor="@color/text_primary"
-                        android:layout_marginTop="2dp"
-                        android:layout_marginBottom="12dp" />
+                        android:textSize="15sp" />
 
                     <View
                         android:id="@+id/divider_obra_social"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:background="@color/divider"
+                        android:layout_marginTop="12dp"
                         android:layout_marginBottom="12dp"
                         android:visibility="gone" />
 
@@ -383,25 +401,26 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="OBRA SOCIAL"
-                        android:textSize="11sp"
                         android:textColor="@color/text_secondary"
-                        android:letterSpacing="0.08"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
                         android:visibility="gone" />
-
                     <TextView
                         android:id="@+id/tv_obra_social"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:textSize="15sp"
+                        android:layout_marginTop="4dp"
+                        android:text="Obra Social"
                         android:textColor="@color/text_primary"
-                        android:layout_marginTop="2dp"
-                        android:layout_marginBottom="12dp" />
+                        android:textSize="15sp"
+                        android:visibility="gone" />
 
                     <View
                         android:id="@+id/divider_afiliado"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:background="@color/divider"
+                        android:layout_marginTop="12dp"
                         android:layout_marginBottom="12dp"
                         android:visibility="gone" />
 
@@ -409,26 +428,27 @@
                         android:id="@+id/label_numero_afiliado"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="N° AFILIADO"
-                        android:textSize="11sp"
+                        android:text="NÚMERO DE AFILIADO"
                         android:textColor="@color/text_secondary"
-                        android:letterSpacing="0.08"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
                         android:visibility="gone" />
-
                     <TextView
                         android:id="@+id/tv_numero_afiliado"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:textSize="15sp"
+                        android:layout_marginTop="4dp"
+                        android:text="0000000"
                         android:textColor="@color/text_primary"
-                        android:layout_marginTop="2dp"
-                        android:layout_marginBottom="12dp" />
+                        android:textSize="15sp"
+                        android:visibility="gone" />
 
                     <View
                         android:id="@+id/divider_sesiones"
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
                         android:background="@color/divider"
+                        android:layout_marginTop="12dp"
                         android:layout_marginBottom="12dp"
                         android:visibility="gone" />
 
@@ -436,64 +456,67 @@
                         android:id="@+id/label_sesiones"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textSize="11sp"
+                        android:text="SESIONES"
                         android:textColor="@color/text_secondary"
-                        android:letterSpacing="0.08"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
                         android:visibility="gone" />
-
                     <TextView
                         android:id="@+id/tv_sesiones"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:textSize="15sp"
+                        android:layout_marginTop="4dp"
+                        android:text="0/0"
                         android:textColor="@color/text_primary"
-                        android:layout_marginTop="2dp"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
                         android:visibility="gone" />
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Horarios -->
+            <!-- Sección Horarios -->
             <TextView
                 android:id="@+id/label_horarios_seccion"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Días y horarios de atención"
-                android:textSize="13sp"
-                android:textStyle="bold"
+                android:text="TURNOS ASIGNADOS"
                 android:textColor="@color/primary"
-                android:layout_marginBottom="8dp" />
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone" />
 
             <LinearLayout
                 android:id="@+id/container_horarios"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_marginBottom="16dp" />
+                android:layout_marginBottom="16dp"
+                android:visibility="gone" />
 
-            <!-- Historial de atenciones -->
+            <!-- Sección Historial -->
             <TextView
                 android:id="@+id/label_historial_seccion"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Historial de atenciones"
-                android:textSize="13sp"
-                android:textStyle="bold"
+                android:text="HISTORIAL DE ATENCIONES"
                 android:textColor="@color/primary"
-                android:layout_marginBottom="8dp" />
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginStart="4dp"
+                android:layout_marginBottom="8dp"
+                android:visibility="gone" />
 
             <LinearLayout
                 android:id="@+id/container_historial"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
-
-            <!-- Espacio extra al final para asegurar el scroll -->
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="150dp" />
+                android:orientation="vertical"
+                android:visibility="gone" />
 
         </LinearLayout>
-    </ScrollView>
+    </androidx.core.widget.NestedScrollView>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

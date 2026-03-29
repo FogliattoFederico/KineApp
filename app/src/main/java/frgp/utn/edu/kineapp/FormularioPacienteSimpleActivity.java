@@ -20,8 +20,10 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
 
     private TextInputEditText etNombre, etApellido, etDni, etTelefono,
             etDireccion, etFechaNacimiento, etEdad, etNumeroAfiliado,
-            etEmailPaciente, etSesionesSemanales, etSesionesOrden, etDiagnostico, etObservaciones;
-    private TextInputLayout tilObraSocial, tilNumeroAfiliado, tilSesionesSemanales, tilSesionesOrden;
+            etEmailPaciente, etSesionesSemanales, etSesionesOrden, 
+            etDiagnostico, etObservaciones, etValorSesion;
+    private TextInputLayout tilObraSocial, tilNumeroAfiliado, tilSesionesSemanales, 
+            tilSesionesOrden, tilValorSesion;
     private AutoCompleteTextView etObraSocial;
     private SwitchMaterial switchObraSocial, switchCud;
     private PacienteRepository repository;
@@ -73,11 +75,13 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         etSesionesOrden = findViewById(R.id.et_sesiones_orden);
         etDiagnostico = findViewById(R.id.et_diagnostico);
         etObservaciones = findViewById(R.id.et_observaciones);
+        etValorSesion = findViewById(R.id.et_valor_sesion);
 
         tilObraSocial = findViewById(R.id.til_obra_social);
         tilNumeroAfiliado = findViewById(R.id.til_numero_afiliado);
         tilSesionesSemanales = findViewById(R.id.til_sesiones_semanales);
         tilSesionesOrden = findViewById(R.id.til_sesiones_orden);
+        tilValorSesion = findViewById(R.id.til_valor_sesion);
 
         switchObraSocial = findViewById(R.id.switch_obra_social);
         switchCud = findViewById(R.id.switch_cud);
@@ -85,9 +89,12 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         switchObraSocial.setOnCheckedChangeListener((btn, checked) -> {
             tilObraSocial.setVisibility(checked ? View.VISIBLE : View.GONE);
             tilNumeroAfiliado.setVisibility(checked ? View.VISIBLE : View.GONE);
+            tilValorSesion.setVisibility(checked ? View.GONE : View.VISIBLE);
             if (!checked) {
                 etObraSocial.setText("");
                 etNumeroAfiliado.setText("");
+            } else {
+                etValorSesion.setText("");
             }
         });
 
@@ -135,6 +142,9 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         if (pacienteId != null) {
             toolbar.setTitle("Editar Paciente");
             cargarPaciente(pacienteId);
+        } else {
+            // Valor por defecto para nuevos: mostrar valor sesión si no tiene OS
+            tilValorSesion.setVisibility(switchObraSocial.isChecked() ? View.GONE : View.VISIBLE);
         }
 
         MaterialButton btnGuardar = findViewById(R.id.btn_guardar);
@@ -168,8 +178,15 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
                         etObraSocial.setText(pacienteExistente.getObraSocial());
                         tilObraSocial.setVisibility(View.VISIBLE);
                         tilNumeroAfiliado.setVisibility(View.VISIBLE);
+                        tilValorSesion.setVisibility(View.GONE);
                         if (pacienteExistente.getNumeroAfiliado() != null)
                             etNumeroAfiliado.setText(pacienteExistente.getNumeroAfiliado());
+                    } else {
+                        tilObraSocial.setVisibility(View.GONE);
+                        tilNumeroAfiliado.setVisibility(View.GONE);
+                        tilValorSesion.setVisibility(View.VISIBLE);
+                        if (pacienteExistente.getValorSesion() > 0)
+                            etValorSesion.setText(String.valueOf(pacienteExistente.getValorSesion()));
                     }
 
                     switchCud.setChecked(pacienteExistente.isCertificadoDiscapacidad());
@@ -209,6 +226,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
 
         String sesionesSemStr = etSesionesSemanales.getText().toString().trim();
         String sesionesTotStr = etSesionesOrden.getText().toString().trim();
+        String valorSesionStr = etValorSesion.getText().toString().trim();
 
         if (nombre.isEmpty()) { etNombre.setError("Requerido"); etNombre.requestFocus(); return; }
         if (apellido.isEmpty()) { etApellido.setError("Requerido"); etApellido.requestFocus(); return; }
@@ -250,6 +268,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         final String emailFinal = emailPaciente;
         final int sesSem = tieneCud ? Integer.parseInt(sesionesSemStr) : 0;
         final int sesTot = !tieneCud ? Integer.parseInt(sesionesTotStr) : 0;
+        final double valorSesion = (!tieneOS && !valorSesionStr.isEmpty()) ? Double.parseDouble(valorSesionStr) : 0.0;
 
         if (pacienteExistente == null) {
             repository.buscarPorDni(dni)
@@ -268,6 +287,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
                         nuevo.setParticular(!tieneOS);
                         nuevo.setSesionesSemanales(sesSem);
                         nuevo.setSesionesOrden(sesTot);
+                        nuevo.setValorSesion(valorSesion);
                         nuevo.setObservaciones(observaciones);
                         repository.guardar(nuevo)
                                 .addOnSuccessListener(unused -> {
@@ -294,6 +314,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
             pacienteExistente.setParticular(!tieneOS);
             pacienteExistente.setSesionesSemanales(sesSem);
             pacienteExistente.setSesionesOrden(sesTot);
+            pacienteExistente.setValorSesion(valorSesion);
             pacienteExistente.setDiagnostico(diagnostico);
             pacienteExistente.setObservaciones(observaciones);
             repository.guardar(pacienteExistente)

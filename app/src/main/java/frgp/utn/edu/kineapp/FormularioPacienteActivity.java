@@ -49,6 +49,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
     private TextView tvTituloCud;
     private int cantidadBoxes = 1;
     private boolean modoEdicion = false;
+    private int indiceEdicionIndividual = -1;
     private String professionalNombre = "";
     private String professionalDireccionConsultorio = "";
 
@@ -126,9 +127,11 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         btnGuardar.setOnClickListener(v -> guardarPaciente());
 
         String pacienteId = getIntent().getStringExtra("pacienteId");
+        indiceEdicionIndividual = getIntent().getIntExtra("horarioIndice", -1);
+
         if (pacienteId != null) {
             modoEdicion = true;
-            toolbar.setTitle("Editar Turno");
+            toolbar.setTitle(indiceEdicionIndividual != -1 ? "Editar Turno" : "Editar Turnos");
             findViewById(R.id.layout_buscar_dni).setVisibility(View.GONE);
             layoutFormulario.setVisibility(View.VISIBLE);
             cargarPacienteParaEditar(pacienteId);
@@ -348,6 +351,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
 
     private boolean puedeAgregarHorario() {
         if (pacienteExistente == null) return false;
+        if (indiceEdicionIndividual != -1) return false; // No agregar más si edito uno solo
         
         int turnosActuales = containerHorarios.getChildCount();
         
@@ -361,6 +365,11 @@ public class FormularioPacienteActivity extends AppCompatActivity {
     }
 
     private void actualizarBotonHorario() {
+        if (indiceEdicionIndividual != -1) {
+            btnAgregarHorario.setVisibility(View.GONE);
+            return;
+        }
+        
         boolean puede = puedeAgregarHorario();
         btnAgregarHorario.setEnabled(puede);
         if (pacienteExistente == null) {
@@ -395,10 +404,15 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         etHoraInicio.setOnClickListener(v -> mostrarTimePicker(etHoraInicio));
         etHoraFin.setOnClickListener(v -> mostrarTimePicker(etHoraFin));
 
-        fila.findViewById(R.id.btn_eliminar_horario).setOnClickListener(v -> {
-            containerHorarios.removeView(fila);
-            actualizarBotonHorario();
-        });
+        View btnEliminar = fila.findViewById(R.id.btn_eliminar_horario);
+        if (indiceEdicionIndividual != -1) {
+            btnEliminar.setVisibility(View.GONE);
+        } else {
+            btnEliminar.setOnClickListener(v -> {
+                containerHorarios.removeView(fila);
+                actualizarBotonHorario();
+            });
+        }
 
         if (horario != null) {
             if (horario.getFecha() != null && !horario.getFecha().isEmpty()) {
@@ -465,14 +479,14 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             return;
         }
 
-        List<HorarioAtencion> horariosNuevos = obtenerHorarios();
+        List<HorarioAtencion> horariosEnPantalla = obtenerHorarios();
         
-        if (horariosNuevos.size() < containerHorarios.getChildCount()) {
+        if (horariosEnPantalla.size() < containerHorarios.getChildCount()) {
              Toast.makeText(this, "Completá fecha y horas para todos los turnos", Toast.LENGTH_SHORT).show();
              return;
         }
 
-        for (HorarioAtencion h : horariosNuevos) {
+        for (HorarioAtencion h : horariosEnPantalla) {
             if (h.getFecha() == null || h.getFecha().isEmpty() || h.getHoraInicio() == null || h.getHoraInicio().isEmpty() || h.getHoraFin() == null || h.getHoraFin().isEmpty()) {
                 Toast.makeText(this, "Completá fecha, hora de inicio y fin para todos los horarios", Toast.LENGTH_SHORT).show();
                 return;
@@ -484,32 +498,39 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         }
 
         // Validar cruce entre los turnos que se están cargando ahora para este mismo paciente
-        for (int i = 0; i < horariosNuevos.size(); i++) {
-            for (int j = i + 1; j < horariosNuevos.size(); j++) {
-                if (hayCruce(horariosNuevos.get(i), horariosNuevos.get(j))) {
+        for (int i = 0; i < horariosEnPantalla.size(); i++) {
+            for (int j = i + 1; j < horariosEnPantalla.size(); j++) {
+                if (hayCruce(horariosEnPantalla.get(i), horariosEnPantalla.get(j))) {
                     Toast.makeText(this, "Error: Estás intentando asignar dos turnos que se superponen entre sí para este paciente.", Toast.LENGTH_LONG).show();
                     return;
                 }
             }
         }
 
-        if (horariosNuevos.isEmpty() && modoEdicion) {
+        if (horariosEnPantalla.isEmpty() && modoEdicion) {
             Toast.makeText(this, "El paciente debe tener al menos un horario", Toast.LENGTH_SHORT).show();
             return;
         }
         
-        if (horariosNuevos.isEmpty() && !modoEdicion) {
+        if (horariosEnPantalla.isEmpty() && !modoEdicion) {
             Toast.makeText(this, "Asigná al menos un horario al turno", Toast.LENGTH_SHORT).show();
             return;
         }
 
         List<HorarioAtencion> horariosFinales = new ArrayList<>();
-        if (modoEdicion) {
-            horariosFinales.addAll(horariosNuevos);
-        } else {
-            // Usamos la lista original para evitar duplicar turnos si falló una validación previa
+        if (indiceEdicionIndividual != -1) {
+            // Edición de un solo turno específico
             horariosFinales.addAll(horariosOriginales);
-            horariosFinales.addAll(horariosNuevos);
+            if (indiceEdicionIndividual < horariosFinales.size()) {
+                horariosFinales.set(indiceEdicionIndividual, horariosEnPantalla.get(0));
+            }
+        } else if (modoEdicion) {
+            // Edición masiva (reemplaza todo)
+            horariosFinales.addAll(horariosEnPantalla);
+        } else {
+            // Alta nueva (agrega a los existentes)
+            horariosFinales.addAll(horariosOriginales);
+            horariosFinales.addAll(horariosEnPantalla);
         }
 
         pacienteExistente.setModalidad(modalidad);
@@ -519,7 +540,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         if (!etValorSesion.getText().toString().isEmpty())
             pacienteExistente.setValorSesion(Double.parseDouble(etValorSesion.getText().toString()));
 
-        guardarEnFirestore(pacienteExistente, horariosNuevos);
+        guardarEnFirestore(pacienteExistente, horariosEnPantalla);
     }
 
     private void guardarEnFirestore(Paciente paciente, List<HorarioAtencion> horariosNuevos) {
@@ -613,7 +634,22 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         repository.obtenerTodos().addOnSuccessListener(query -> {
             for (var doc : query.getDocuments()) {
                 // No comparar contra el mismo paciente que estamos editando
-                if (paciente.getId() != null && doc.getId().equals(paciente.getId())) continue;
+                if (paciente.getId() != null && doc.getId().equals(paciente.getId())) {
+                     // Pero SI comparar contra sus otros horarios que no estamos editando ahora
+                     Paciente miPropio = doc.toObject(Paciente.class);
+                     if (miPropio != null && miPropio.getHorarios() != null && indiceEdicionIndividual != -1) {
+                         for (HorarioAtencion hNuevo : horariosNuevos) {
+                             for (int k = 0; k < miPropio.getHorarios().size(); k++) {
+                                 if (k == indiceEdicionIndividual) continue; // Ignorar el que estoy editando
+                                 if (hayCruce(hNuevo, miPropio.getHorarios().get(k))) {
+                                      Toast.makeText(this, "Error: El horario se superpone con otro turno del mismo paciente.", Toast.LENGTH_LONG).show();
+                                      return;
+                                 }
+                             }
+                         }
+                     }
+                     continue;
+                }
                 
                 Paciente existente = doc.toObject(Paciente.class);
                 if (existente == null || existente.getHorarios() == null) continue;
@@ -637,13 +673,15 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             for (HorarioAtencion hNuevo : horariosNuevos) {
                 int ocupados = 0;
                 for (var doc : query.getDocuments()) {
-                    if (paciente.getId() != null && doc.getId().equals(paciente.getId())) continue;
                     Paciente existente = doc.toObject(Paciente.class);
                     if (existente == null || existente.getHorarios() == null) continue;
                     if (!"consultorio".equals(existente.getModalidad())) continue;
 
-                    for (HorarioAtencion hExistente : existente.getHorarios()) {
-                        if (hayCruce(hNuevo, hExistente)) {
+                    for (int k = 0; k < existente.getHorarios().size(); k++) {
+                        // Si es el mismo paciente, no contar el slot que estamos editando
+                        if (paciente.getId() != null && doc.getId().equals(paciente.getId()) && k == indiceEdicionIndividual) continue;
+                        
+                        if (hayCruce(hNuevo, existente.getHorarios().get(k))) {
                             ocupados++;
                         }
                     }
@@ -687,8 +725,15 @@ public class FormularioPacienteActivity extends AppCompatActivity {
                     horariosOriginales = pacienteExistente.getHorarios() != null ? new ArrayList<>(pacienteExistente.getHorarios()) : new ArrayList<>();
                     actualizarUIHeaderCard();
                     precargarFormulario();
+                    
                     if (pacienteExistente.getHorarios() != null) {
-                        for (HorarioAtencion h : pacienteExistente.getHorarios()) agregarFilaHorario(h);
+                        if (indiceEdicionIndividual != -1 && indiceEdicionIndividual < pacienteExistente.getHorarios().size()) {
+                            // Solo cargar el turno específico
+                            agregarFilaHorario(pacienteExistente.getHorarios().get(indiceEdicionIndividual));
+                        } else {
+                            // Cargar todos (comportamiento anterior)
+                            for (HorarioAtencion h : pacienteExistente.getHorarios()) agregarFilaHorario(h);
+                        }
                     }
                 });
     }
