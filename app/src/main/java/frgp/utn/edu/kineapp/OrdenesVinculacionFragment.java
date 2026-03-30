@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -399,6 +400,8 @@ public class OrdenesVinculacionFragment extends Fragment {
         TextInputEditText etCodigo = v.findViewById(R.id.et_edit_codigo);
         TextInputEditText etCant = v.findViewById(R.id.et_edit_cant);
         TextInputEditText etFecha = v.findViewById(R.id.et_edit_fecha);
+        TextInputLayout tilImporte = v.findViewById(R.id.til_edit_importe);
+        TextInputEditText etImporte = v.findViewById(R.id.et_edit_importe);
         
         configurarAutocompleteEnDialogo(etPaciente, etAfiliado, etOS);
 
@@ -408,6 +411,11 @@ public class OrdenesVinculacionFragment extends Fragment {
         etCodigo.setText(orden.getCodigoPractica());
         etCant.setText(String.valueOf(orden.getCantidadSesiones()));
         etFecha.setText(orden.getFecha());
+
+        if (orden.isEsDeRemitoDirecto()) {
+            tilImporte.setVisibility(View.VISIBLE);
+            etImporte.setText(String.valueOf(orden.getImporte()));
+        }
 
         etFecha.setOnClickListener(view -> {
             Calendar cal = Calendar.getInstance();
@@ -425,6 +433,9 @@ public class OrdenesVinculacionFragment extends Fragment {
                     orden.setCodigoPractica(etCodigo.getText().toString());
                     orden.setFecha(etFecha.getText().toString());
                     try { orden.setCantidadSesiones(Integer.parseInt(etCant.getText().toString())); } catch (Exception e) {}
+                    if (orden.isEsDeRemitoDirecto()) {
+                        try { orden.setImporte(Double.parseDouble(etImporte.getText().toString())); } catch (Exception e) {}
+                    }
                     actualizarOrdenEnRemito(orden);
                 }).setNegativeButton("Cancelar", null).show();
     }
@@ -437,7 +448,10 @@ public class OrdenesVinculacionFragment extends Fragment {
         TextInputEditText etCodigo = v.findViewById(R.id.et_edit_codigo);
         TextInputEditText etCant = v.findViewById(R.id.et_edit_cant);
         TextInputEditText etFecha = v.findViewById(R.id.et_edit_fecha);
+        TextInputLayout tilImporte = v.findViewById(R.id.til_edit_importe);
+        TextInputEditText etImporte = v.findViewById(R.id.et_edit_importe);
 
+        tilImporte.setVisibility(View.VISIBLE);
         configurarAutocompleteEnDialogo(etPaciente, etAfiliado, etOS);
 
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM", Locale.getDefault());
@@ -456,6 +470,8 @@ public class OrdenesVinculacionFragment extends Fragment {
                     String paciente = etPaciente.getText().toString().trim();
                     String os = etOS.getText().toString().trim();
                     String cantStr = etCant.getText().toString().trim();
+                    String impStr = etImporte.getText().toString().trim();
+                    
                     if (paciente.isEmpty() || os.isEmpty() || cantStr.isEmpty()) {
                         Toast.makeText(getContext(), "Completá los campos obligatorios", Toast.LENGTH_SHORT).show();
                         return;
@@ -464,6 +480,10 @@ public class OrdenesVinculacionFragment extends Fragment {
                     OrdenRemito nueva = new OrdenRemito(os, Integer.parseInt(cantStr), 
                             etCodigo.getText().toString(), etFecha.getText().toString(), 
                             paciente, etAfiliado.getText().toString());
+                    
+                    if (!impStr.isEmpty()) {
+                        try { nueva.setImporte(Double.parseDouble(impStr)); } catch (Exception e) {}
+                    }
                     
                     guardarNuevaOrdenDirecta(nueva);
                 }).setNegativeButton("Cancelar", null).show();

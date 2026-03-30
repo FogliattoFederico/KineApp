@@ -17,6 +17,7 @@ public class OrdenRemito {
     private String numeroAfiliado;
     private boolean asociadaAPago;
     private String mesVinculo; // Mes de emisión de la factura/liquidación vinculada
+    private double importe;    // Nuevo campo para órdenes directas
 
     // Campos auxiliares (no se guardan en Firestore directamente bajo el objeto, 
     // se usan para la interfaz)
@@ -78,6 +79,9 @@ public class OrdenRemito {
 
     public String getMesVinculo() { return mesVinculo; }
     public void setMesVinculo(String mesVinculo) { this.mesVinculo = mesVinculo; }
+
+    public double getImporte() { return importe; }
+    public void setImporte(double importe) { this.importe = importe; }
 
     @Exclude
     public boolean isEsDeRemitoDirecto() { return esDeRemitoDirecto; }

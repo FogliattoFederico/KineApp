@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.button.MaterialButton;
 import java.util.List;
+import java.util.Locale;
 
 public class OrdenVinculacionAdapter extends RecyclerView.Adapter<OrdenVinculacionAdapter.ViewHolder> {
 
@@ -43,10 +44,16 @@ public class OrdenVinculacionAdapter extends RecyclerView.Adapter<OrdenVinculaci
         if (!o.isEsDeRemitoDirecto() && o.getNombreRemito() != null) {
             remitoTexto = "[Remito: " + o.getNombreRemito() + "] ";
         }
+
+        String importeTexto = "";
+        if (o.isEsDeRemitoDirecto() && o.getImporte() > 0) {
+            importeTexto = String.format(new Locale("es", "AR"), " | Importe: $%,.2f", o.getImporte());
+        }
         
-        String detalle = String.format("%sOS: %s | Sesiones: %d | Fecha: %s\nAfiliado: %s | Código: %s", 
+        String detalle = String.format("%sOS: %s | Sesiones: %d | Fecha: %s%s\nAfiliado: %s | Código: %s", 
                 remitoTexto,
                 o.getObraSocialNombre(), o.getCantidadSesiones(), o.getFecha(),
+                importeTexto,
                 o.getNumeroAfiliado() != null ? o.getNumeroAfiliado() : "-",
                 o.getCodigoPractica() != null ? o.getCodigoPractica() : "-");
         
