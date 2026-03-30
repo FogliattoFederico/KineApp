@@ -42,11 +42,20 @@ public class LiquidacionAdapter extends RecyclerView.Adapter<LiquidacionAdapter.
         holder.tvFecha.setText(liq.getFechaLiquidacion() != null ? sdf.format(liq.getFechaLiquidacion().toDate()) : "—");
         holder.tvImporte.setText(String.format(new Locale("es", "AR"), "$ %,.2f", liq.getImporte()));
 
-        // Si la liquidación ya está facturada, ocultamos los días pendientes
+        // Si la liquidación ya está facturada, ocultamos los días pendientes y mostramos info de factura
         if (liq.isFacturada()) {
             holder.tvDias.setVisibility(View.GONE);
+            holder.tvInfoFactura.setVisibility(View.VISIBLE);
+            String info = String.format("%s %s - %s", 
+                liq.getFacturaTipo() != null ? liq.getFacturaTipo() : "Comp.",
+                liq.getFacturaNumero() != null ? liq.getFacturaNumero() : "-",
+                liq.getFacturaFecha() != null ? sdf.format(liq.getFacturaFecha().toDate()) : "-");
+            holder.tvInfoFactura.setText(info);
+            holder.btnFacturar.setVisibility(View.GONE);
         } else {
             holder.tvDias.setVisibility(View.VISIBLE);
+            holder.tvInfoFactura.setVisibility(View.GONE);
+            holder.btnFacturar.setVisibility(View.VISIBLE);
             long dias = liq.getDiasPendientes();
             holder.tvDias.setText(dias + " días");
 
@@ -87,7 +96,7 @@ public class LiquidacionAdapter extends RecyclerView.Adapter<LiquidacionAdapter.
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvFecha, tvImporte, tvDias;
+        TextView tvFecha, tvImporte, tvDias, tvInfoFactura;
         View btnFacturar;
 
         ViewHolder(View v) {
@@ -95,8 +104,9 @@ public class LiquidacionAdapter extends RecyclerView.Adapter<LiquidacionAdapter.
             tvFecha = v.findViewById(R.id.tv_fecha_liquidacion);
             tvImporte = v.findViewById(R.id.tv_importe_liquidacion);
             tvDias = v.findViewById(R.id.tv_dias_pendiente);
+            tvInfoFactura = v.findViewById(R.id.tv_info_factura);
             btnFacturar = v.findViewById(R.id.btn_facturar_liq);
-            if (btnFacturar == null) btnFacturar = v; // Fallback si no existe el id especifico
+            if (btnFacturar == null) btnFacturar = v; // Fallback
         }
     }
 }

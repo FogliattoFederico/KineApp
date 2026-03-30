@@ -34,6 +34,7 @@ public class PagosColegioFragment extends Fragment {
     private LinearLayout layoutEmpty;
     private LiquidacionRepository repository;
     private RemitoRepository remitoRepository;
+    private FacturaRepository facturaRepository;
     private List<LiquidacionColegio> listaLiquidaciones = new ArrayList<>();
     private LiquidacionAdapter adapter;
     private ChipGroup chipGroupFiltro;
@@ -62,6 +63,8 @@ public class PagosColegioFragment extends Fragment {
 
         repository = new LiquidacionRepository();
         remitoRepository = new RemitoRepository();
+        facturaRepository = new FacturaRepository();
+        
         rvLiquidaciones = view.findViewById(R.id.rv_liquidaciones);
         layoutEmpty = view.findViewById(R.id.layout_empty);
         chipGroupFiltro = view.findViewById(R.id.chip_group_filtro_liq);
@@ -92,16 +95,65 @@ public class PagosColegioFragment extends Fragment {
             }
             @Override
             public void onMarkAsFacturada(LiquidacionColegio liq) {
-                String titulo = liq.isFacturada() ? "Mover a pendientes" : "Liquidación facturada";
-                String mensaje = liq.isFacturada() ? "¿Deseás marcar esta liquidación como pendiente nuevamente?" : "¿Ya emitiste el recibo para este pago?";
-                String botonPositivo = liq.isFacturada() ? "Mover" : "Sí, ya facturé";
-                new AlertDialog.Builder(getContext())
-                        .setTitle(titulo).setMessage(mensaje)
-                        .setPositiveButton(botonPositivo, (d, w) -> {
-                            repository.marcarComoFacturada(liq.getId(), !liq.isFacturada()).addOnSuccessListener(a -> {
-                                if (isAdded()) cargarLiquidaciones();
-                            });
-                        }).setNegativeButton("Cancelar", null).show();
+                if (liq.isFacturada()) {
+                    new AlertDialog.Builder(getContext())
+                            .setTitle("Mover a pendientes")
+                            .setMessage("¿Deseás quitar la factura vinculada y volver esta liquidación a estado pendiente?")
+                            .setPositiveButton("Quitar Factura", (d, w) -> {
+                                liq.setFacturada(false);
+                                liq.setFacturaId(null);
+                                liq.setFacturaNumero(null);
+                                liq.setFacturaTipo(null);
+                                liq.setFacturaFecha(null);
+                                repository.guardar(liq).addOnSuccessListener(a -> {
+                                    if (isAdded()) cargarLiquidaciones();
+                                });
+                            })
+                            .setNegativeButton("Cancelar", null)
+                            .show();
+                } else {
+                    facturaRepository.obtenerTodas().addOnSuccessListener(query -> {
+                        List<Factura> facturasColegio = new ArrayList<>();
+                        for (var doc : query.getDocuments()) {
+                            Factura f = doc.toObject(Factura.class);
+                            if (f != null && f.isCobrada() && "Colegio de Kinesiologos".equalsIgnoreCase(f.getObraSocial())) {
+                                facturasColegio.add(f);
+                            }
+                        }
+
+                        if (facturasColegio.isEmpty()) {
+                            Toast.makeText(getContext(), "No se encontraron facturas cobradas del Colegio de Kinesiologos", Toast.LENGTH_LONG).show();
+                            return;
+                        }
+
+                        String[] items = new String[facturasColegio.size()];
+                        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+                        for (int i = 0; i < facturasColegio.size(); i++) {
+                            Factura f = facturasColegio.get(i);
+                            items[i] = String.format("%s %s (%s) - $%,.2f", 
+                                f.getTipoComprobante(), f.getNumero(), 
+                                sdf.format(f.getFecha().toDate()), f.getImporte());
+                        }
+
+                        new AlertDialog.Builder(getContext())
+                            .setTitle("Vincular Factura de Cobro")
+                            .setItems(items, (dialog, which) -> {
+                                Factura seleccionada = facturasColegio.get(which);
+                                liq.setFacturada(true);
+                                liq.setFacturaId(seleccionada.getId());
+                                liq.setFacturaNumero(seleccionada.getNumero());
+                                liq.setFacturaTipo(seleccionada.getTipoComprobante());
+                                liq.setFacturaFecha(seleccionada.getFecha());
+                                
+                                repository.guardar(liq).addOnSuccessListener(a -> {
+                                    if (isAdded()) cargarLiquidaciones();
+                                    Toast.makeText(getContext(), "Factura vinculada correctamente", Toast.LENGTH_SHORT).show();
+                                });
+                            })
+                            .setNegativeButton("Cancelar", null)
+                            .show();
+                    });
+                }
             }
             @Override
             public void onEdit(LiquidacionColegio liq) {

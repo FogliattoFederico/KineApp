@@ -45,4 +45,12 @@ public class FacturaRepository {
                 .whereEqualTo("uidKinesiologo", uid)
                 .get();
     }
+
+    public Task<QuerySnapshot> obtenerCobradasPorObraSocial(String obraSocial) {
+        return coleccion
+                .whereEqualTo("uidKinesiologo", uid)
+                .whereEqualTo("obraSocial", obraSocial)
+                .whereEqualTo("cobrada", true)
+                .get();
+    }
 }

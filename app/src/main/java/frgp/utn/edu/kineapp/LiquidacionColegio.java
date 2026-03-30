@@ -12,6 +12,12 @@ public class LiquidacionColegio {
     private String uidKinesiologo;
     private List<OrdenRemito> ordenesVinculadas; // Lista de órdenes vinculadas a este pago
 
+    // Información de la factura asociada
+    private String facturaId;
+    private String facturaNumero;
+    private String facturaTipo;
+    private Timestamp facturaFecha;
+
     public LiquidacionColegio() {}
 
     public LiquidacionColegio(Timestamp fechaLiquidacion, double importe, String uidKinesiologo) {
@@ -33,6 +39,15 @@ public class LiquidacionColegio {
     public void setUidKinesiologo(String uidKinesiologo) { this.uidKinesiologo = uidKinesiologo; }
     public List<OrdenRemito> getOrdenesVinculadas() { return ordenesVinculadas; }
     public void setOrdenesVinculadas(List<OrdenRemito> ordenesVinculadas) { this.ordenesVinculadas = ordenesVinculadas; }
+
+    public String getFacturaId() { return facturaId; }
+    public void setFacturaId(String facturaId) { this.facturaId = facturaId; }
+    public String getFacturaNumero() { return facturaNumero; }
+    public void setFacturaNumero(String facturaNumero) { this.facturaNumero = facturaNumero; }
+    public String getFacturaTipo() { return facturaTipo; }
+    public void setFacturaTipo(String facturaTipo) { this.facturaTipo = facturaTipo; }
+    public Timestamp getFacturaFecha() { return facturaFecha; }
+    public void setFacturaFecha(Timestamp facturaFecha) { this.facturaFecha = facturaFecha; }
 
     public long getDiasPendientes() {
         if (fechaLiquidacion == null) return 0;
