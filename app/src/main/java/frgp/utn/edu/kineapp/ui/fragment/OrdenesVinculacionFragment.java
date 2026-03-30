@@ -171,20 +171,29 @@ public class OrdenesVinculacionFragment extends Fragment {
     }
 
     private void seleccionarFacturaParaVinculo(OrdenRemito orden) {
+        String osOrden = orden.getObraSocialNombre() != null ? orden.getObraSocialNombre().trim() : "";
+
         // Filtrar facturas que:
         // 1. No estén cobradas (pendientes)
         // 2. No sean del Colegio de Kinesiologos
+        // 3. SEAN de la misma Obra Social que la orden
         List<Factura> facturasFiltradas = todasLasFacturas.stream()
                 .filter(f -> !f.isCobrada())
                 .filter(f -> {
-                    if (f.getObraSocial() == null) return true;
-                    String os = f.getObraSocial().toLowerCase().trim();
-                    return !os.contains("colegio") && !os.contains("kinesiologo");
+                    if (f.getObraSocial() == null) return false;
+                    String osFactura = f.getObraSocial().trim();
+                    
+                    // Excluir Colegio
+                    String osLower = osFactura.toLowerCase();
+                    if (osLower.contains("colegio") || osLower.contains("kinesiologo")) return false;
+                    
+                    // Comparar con la de la orden
+                    return osFactura.equalsIgnoreCase(osOrden);
                 })
                 .collect(Collectors.toList());
 
         if (facturasFiltradas.isEmpty()) {
-            Toast.makeText(getContext(), "No hay facturas pendientes (fuera del Colegio) para vincular", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "No hay facturas pendientes de " + osOrden + " para vincular", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -218,7 +227,7 @@ public class OrdenesVinculacionFragment extends Fragment {
     private void desvincularOrden(OrdenRemito orden) {
         new AlertDialog.Builder(getContext())
                 .setTitle("Desvincular Orden")
-                .setMessage("¿Deseas marcar esta orden como pendiente nuevamente?")
+                .setMessage("¿Deseás marcar esta orden como pendiente nuevamente?")
                 .setPositiveButton("Sí, desvincular", (d, w) -> {
                     String tipoAnterior = orden.getTipoVinculo();
                     String idAnterior = orden.getId();
