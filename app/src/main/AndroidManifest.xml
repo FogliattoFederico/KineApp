@@ -13,7 +13,7 @@
         android:theme="@style/Theme.KineApp">
 
         <activity
-            android:name=".LoginActivity"
+            android:name=".ui.activity.LoginActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -23,35 +23,35 @@
         </activity>
 
         <activity
-            android:name=".RegisterActivity"
+            android:name=".ui.activity.RegisterActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".ForgotPasswordActivity"
+            android:name=".ui.activity.ForgotPasswordActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.activity.MainActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".FormularioPacienteActivity"
+            android:name=".ui.activity.FormularioPacienteActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".DetallePacienteActivity"
+            android:name=".ui.activity.DetallePacienteActivity"
             android:exported="false" />
         <activity
-            android:name=".FormularioPacienteSimpleActivity"
+            android:name=".ui.activity.FormularioPacienteSimpleActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".FormularioRemitoActivity"
+            android:name=".ui.activity.FormularioRemitoActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 

@@ -11,6 +11,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDelegate;
 import com.google.firebase.auth.FirebaseAuth;
 
+import frgp.utn.edu.kineapp.ui.activity.LoginActivity;
+
 public class KineApp extends Application implements Application.ActivityLifecycleCallbacks {
 
     private Handler logoutHandler = new Handler(Looper.getMainLooper());
