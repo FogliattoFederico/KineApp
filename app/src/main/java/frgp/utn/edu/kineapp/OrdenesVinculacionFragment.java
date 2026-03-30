@@ -26,8 +26,11 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class OrdenesVinculacionFragment extends Fragment {
 
@@ -157,20 +160,32 @@ public class OrdenesVinculacionFragment extends Fragment {
     }
 
     private void seleccionarFacturaParaVinculo(OrdenRemito orden) {
-        if (todasLasFacturas.isEmpty()) {
-            Toast.makeText(getContext(), "No hay facturas cargadas para vincular", Toast.LENGTH_SHORT).show();
+        // Filtrar facturas que:
+        // 1. No estén cobradas (pendientes)
+        // 2. No sean del Colegio de Kinesiologos
+        List<Factura> facturasFiltradas = todasLasFacturas.stream()
+                .filter(f -> !f.isCobrada())
+                .filter(f -> {
+                    if (f.getObraSocial() == null) return true;
+                    String os = f.getObraSocial().toLowerCase().trim();
+                    return !os.contains("colegio") && !os.contains("kinesiologo");
+                })
+                .collect(Collectors.toList());
+
+        if (facturasFiltradas.isEmpty()) {
+            Toast.makeText(getContext(), "No hay facturas pendientes (fuera del Colegio) para vincular", Toast.LENGTH_SHORT).show();
             return;
         }
 
         List<String> items = new ArrayList<>();
-        for (Factura f : todasLasFacturas) {
+        for (Factura f : facturasFiltradas) {
             items.add(f.getTipoComprobante() + " " + f.getNumero() + " (" + f.getObraSocial() + ")");
         }
 
         new AlertDialog.Builder(getContext())
                 .setTitle("Seleccionar Factura de Respaldo")
                 .setItems(items.toArray(new String[0]), (dialog, which) -> {
-                    Factura f = todasLasFacturas.get(which);
+                    Factura f = facturasFiltradas.get(which);
                     orden.setAsociadaAPago(true);
                     orden.setTipoVinculo("DIRECTO");
                     orden.setIdVinculoAsociado(f.getId());
