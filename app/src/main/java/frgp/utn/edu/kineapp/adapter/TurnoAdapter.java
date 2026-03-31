@@ -147,8 +147,11 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
             holder.tvModalidad.setVisibility(View.GONE);
         }
 
-        // Sesiones: x/m
-        if ("Orden".equals(turno.tipoCobertura) && turno.sesionesTotales > 0) {
+        // Sesiones: x/m (Ahora visible para particulares también si tienen tope de sesiones)
+        boolean mostrarSesiones = ("Orden".equals(turno.tipoCobertura) || "Particular".equals(turno.tipoCobertura)) 
+                                    && turno.sesionesTotales > 0;
+        
+        if (mostrarSesiones) {
             holder.tvSesiones.setVisibility(View.VISIBLE);
             holder.tvSesiones.setText(turno.sesionesAtendidas + "/" + turno.sesionesTotales);
             
@@ -176,7 +179,11 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
             if (turno.atendido) {
                 desmarcarAtencion(holder, turno);
             } else {
-                if ("Orden".equals(turno.tipoCobertura) && (turno.sesionesTotales - turno.sesionesAtendidas) <= 0) {
+                // Validación de sesiones para Particulares también
+                boolean haySesionesExcedidas = ("Orden".equals(turno.tipoCobertura) || "Particular".equals(turno.tipoCobertura)) 
+                                                && (turno.sesionesTotales - turno.sesionesAtendidas) <= 0;
+                                                
+                if (haySesionesExcedidas && turno.sesionesTotales > 0) {
                     new AlertDialog.Builder(v.getContext())
                             .setTitle("Sesiones finalizadas")
                             .setMessage(turno.nombrePaciente + " ya completó sus sesiones autorizadas.")
@@ -215,7 +222,8 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         if (turno.atencionId != null) {
             db.collection("atenciones").document(turno.atencionId).delete();
-            if ("Orden".equals(turno.tipoCobertura)) {
+            // Descuenta sesión para particulares también
+            if ("Orden".equals(turno.tipoCobertura) || "Particular".equals(turno.tipoCobertura)) {
                 db.collection("pacientes").document(turno.pacienteId)
                         .update("sesionesAtendidas", com.google.firebase.firestore.FieldValue.increment(-1));
             }
@@ -257,10 +265,12 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
     private void desmarcarAtencion(ViewHolder holder, Turno turno) {
         AtencionRepository repo = new AtencionRepository();
         turno.atendido = false;
-        if ("Orden".equals(turno.tipoCobertura)) turno.sesionesAtendidas--;
+        boolean aplicaContador = "Orden".equals(turno.tipoCobertura) || "Particular".equals(turno.tipoCobertura);
+        
+        if (aplicaContador) turno.sesionesAtendidas--;
         if (turno.atencionId != null) {
             repo.eliminar(turno.atencionId);
-            if ("Orden".equals(turno.tipoCobertura)) {
+            if (aplicaContador) {
                 FirebaseFirestore.getInstance().collection("pacientes").document(turno.pacienteId)
                         .update("sesionesAtendidas", com.google.firebase.firestore.FieldValue.increment(-1));
             }
@@ -287,7 +297,9 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
 
             AtencionRepository repo = new AtencionRepository();
             turno.atendido = true;
-            if ("Orden".equals(turno.tipoCobertura)) turno.sesionesAtendidas++;
+            boolean aplicaContador = "Orden".equals(turno.tipoCobertura) || "Particular".equals(turno.tipoCobertura);
+            
+            if (aplicaContador) turno.sesionesAtendidas++;
 
             int sesionNum = turno.sesionesAtendidas;
             Calendar cal = (Calendar) fechaAgenda.clone();
@@ -305,7 +317,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
 
             repo.guardar(atencion).addOnSuccessListener(a -> {
                 turno.atencionId = atencion.getId();
-                if ("Orden".equals(turno.tipoCobertura)) {
+                if (aplicaContador) {
                     FirebaseFirestore.getInstance().collection("pacientes").document(turno.pacienteId)
                             .update("sesionesAtendidas", com.google.firebase.firestore.FieldValue.increment(1));
                 }

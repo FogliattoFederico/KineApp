@@ -174,11 +174,8 @@ public class DetallePacienteActivity extends AppCompatActivity {
             setVisible(R.id.divider_sesiones, R.id.label_sesiones, R.id.tv_sesiones);
             ((TextView) findViewById(R.id.label_sesiones)).setText("SESIONES SEMANALES");
             mostrarCampo(R.id.tv_sesiones, String.valueOf(paciente.getSesionesSemanales()));
-        } else if (paciente.isParticular() && paciente.getValorSesion() > 0) {
-            setVisible(R.id.divider_sesiones, R.id.label_sesiones, R.id.tv_sesiones);
-            ((TextView) findViewById(R.id.label_sesiones)).setText("VALOR SESIÓN");
-            mostrarCampo(R.id.tv_sesiones, String.format(new Locale("es", "AR"), "$ %,.0f", paciente.getValorSesion()));
         } else if (paciente.getSesionesOrden() > 0) {
+            // Se muestra el contador para Particulares u Obra Social si tienen sesiones cargadas
             setVisible(R.id.divider_sesiones, R.id.label_sesiones, R.id.tv_sesiones);
             ((TextView) findViewById(R.id.label_sesiones)).setText("SESIONES");
             mostrarCampo(R.id.tv_sesiones, paciente.getSesionesAtendidas() + " / " + paciente.getSesionesOrden());
@@ -257,7 +254,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
         HorarioAtencion h = paciente.getHorarios().get(index);
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         
-        // Caso: Turno sin fecha (semanal recurrente)
         if (h.getFecha() == null || h.getFecha().isEmpty()) {
             paciente.getHorarios().remove(index);
             db.collection("pacientes").document(pacienteId)
@@ -270,7 +266,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
             return;
         }
 
-        // Caso: Turno con fecha. Buscamos en historial filtrando en memoria para evitar problemas de índices.
         new AtencionRepository().obtenerPorPaciente(pacienteId)
                 .addOnSuccessListener(query -> {
                     WriteBatch batch = db.batch();
@@ -287,7 +282,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
                                 String strFecha = sdfFecha.format(d);
                                 String strHora = sdfHora.format(d);
                                 
-                                // Coincidencia exacta de día y hora de inicio
                                 if (strFecha.equals(h.getFecha()) && strHora.equals(h.getHoraInicio())) {
                                     batch.delete(doc.getReference());
                                     huboAtencion[0] = true;
@@ -297,12 +291,11 @@ public class DetallePacienteActivity extends AppCompatActivity {
                         }
                     }
 
-                    // Quitamos el horario de la lista local
                     paciente.getHorarios().remove(index);
                     batch.update(db.collection("pacientes").document(pacienteId), "horarios", paciente.getHorarios());
                     
-                    // Si se borró atención y es de Obra Social, descontamos sesión
-                    if (huboAtencion[0] && !paciente.isParticular() && !paciente.isCertificadoDiscapacidad()) {
+                    // AHORA: Descuenta sesión tanto si es Particular como si es de Obra Social (siempre que no sea CUD)
+                    if (huboAtencion[0] && !paciente.isCertificadoDiscapacidad()) {
                         batch.update(db.collection("pacientes").document(pacienteId), "sesionesAtendidas", FieldValue.increment(-1));
                     }
 
@@ -315,7 +308,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
                     });
                 })
                 .addOnFailureListener(e -> {
-                    // Si falla el acceso al historial, procedemos solo con borrar el turno para no bloquear al usuario
                     Log.e("DetallePaciente", "Error buscando atención", e);
                     paciente.getHorarios().remove(index);
                     db.collection("pacientes").document(pacienteId)
@@ -376,7 +368,8 @@ public class DetallePacienteActivity extends AppCompatActivity {
                         String info = a.getTipoCobertura() != null ? a.getTipoCobertura().trim() : "";
                         if (a.getSesionNumero() > 0) {
                             int totalSesiones = a.getSesionesTotal();
-                            if (!paciente.isParticular() && !paciente.isCertificadoDiscapacidad() && paciente.getSesionesOrden() > 0) {
+                            // AHORA: Usa sesionesOrden para Particulares también si está definido
+                            if (!paciente.isCertificadoDiscapacidad() && paciente.getSesionesOrden() > 0) {
                                 totalSesiones = paciente.getSesionesOrden();
                             }
                             info += " · Sesión " + a.getSesionNumero() + "/" + totalSesiones;
@@ -424,7 +417,8 @@ public class DetallePacienteActivity extends AppCompatActivity {
                 .setMessage("¿Deseás eliminar la atención del día " + fechaStr + "?\nSe restará una sesión del contador.")
                 .setPositiveButton("Eliminar", (dialog, which) -> {
                     new AtencionRepository().eliminar(a.getId()).addOnSuccessListener(v -> {
-                        if (!paciente.isParticular() && !paciente.isCertificadoDiscapacidad()) {
+                        // AHORA: Descuenta sesión tanto si es Particular como Obra Social (siempre que no sea CUD)
+                        if (!paciente.isCertificadoDiscapacidad()) {
                             FirebaseFirestore.getInstance().collection("pacientes").document(pacienteId)
                                     .update("sesionesAtendidas", FieldValue.increment(-1))
                                     .addOnSuccessListener(u -> cargarPaciente());
