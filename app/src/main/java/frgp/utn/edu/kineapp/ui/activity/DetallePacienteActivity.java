@@ -15,6 +15,7 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.WriteBatch;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -237,7 +238,7 @@ public class DetallePacienteActivity extends AppCompatActivity {
         
         new AlertDialog.Builder(this)
                 .setTitle("Eliminar turno")
-                .setMessage("¿Deseás eliminar el turno del día " + fechaDisplay + " a las " + h.getHoraInicio() + " hs?\nSe eliminará la atención registrada hoy (si existe) y se descontará la sesión.")
+                .setMessage("¿Deseás eliminar el turno del día " + fechaDisplay + " a las " + h.getHoraInicio() + " hs?\nSe eliminará la atención asociada del historial y se descontará la sesión automáticamente.")
                 .setPositiveButton("Eliminar", (dialog, which) -> eliminarTurnoYAtencion(index))
                 .setNegativeButton("Cancelar", null)
                 .show();
@@ -245,13 +246,13 @@ public class DetallePacienteActivity extends AppCompatActivity {
 
     private void eliminarTurnoYAtencion(int index) {
         HorarioAtencion h = paciente.getHorarios().get(index);
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
         AtencionRepository atencionRepo = new AtencionRepository();
 
         Calendar calInicio = Calendar.getInstance();
         Calendar calFin = Calendar.getInstance();
         
-        // 1. Determinar el día de búsqueda (Fecha del turno o Hoy si es recurrente)
-        Date fechaBusqueda = new Date(); // Hoy por defecto
+        Date fechaBusqueda = new Date();
         if (h.getFecha() != null && !h.getFecha().isEmpty()) {
             try {
                 SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
@@ -259,48 +260,52 @@ public class DetallePacienteActivity extends AppCompatActivity {
                 if (d != null) fechaBusqueda = d;
             } catch (Exception ignored) {}
         }
-
         calInicio.setTime(fechaBusqueda);
-        calInicio.set(Calendar.HOUR_OF_DAY, 0);
-        calInicio.set(Calendar.MINUTE, 0);
-        calInicio.set(Calendar.SECOND, 0);
-        
+        calInicio.set(Calendar.HOUR_OF_DAY, 0); calInicio.set(Calendar.MINUTE, 0); calInicio.set(Calendar.SECOND, 0);
         calFin.setTime(fechaBusqueda);
-        calFin.set(Calendar.HOUR_OF_DAY, 23);
-        calFin.set(Calendar.MINUTE, 59);
-        calFin.set(Calendar.SECOND, 59);
+        calFin.set(Calendar.HOUR_OF_DAY, 23); calFin.set(Calendar.MINUTE, 59); calFin.set(Calendar.SECOND, 59);
 
-        // 2. Buscar y eliminar la atención si existe
         atencionRepo.buscarAtencionDelDia(pacienteId, new Timestamp(calInicio.getTime()), new Timestamp(calFin.getTime()))
                 .addOnSuccessListener(query -> {
+                    WriteBatch batch = db.batch();
+                    boolean huboAtencion = false;
+
                     if (!query.isEmpty()) {
-                        String atencionId = query.getDocuments().get(0).getId();
-                        atencionRepo.eliminar(atencionId).addOnSuccessListener(v -> {
-                            // 3. Descontar sesión si corresponde
-                            if (!paciente.isParticular() && !paciente.isCertificadoDiscapacidad()) {
-                                if (paciente.getSesionesAtendidas() > 0) {
-                                    paciente.setSesionesAtendidas(paciente.getSesionesAtendidas() - 1);
+                        String atencionIdAEliminar = null;
+                        for (var doc : query.getDocuments()) {
+                            Atencion a = doc.toObject(Atencion.class);
+                            if (a != null && a.getFecha() != null) {
+                                SimpleDateFormat sdfHora = new SimpleDateFormat("HH:mm", Locale.getDefault());
+                                String horaAtencion = sdfHora.format(a.getFecha().toDate());
+                                if (horaAtencion.equals(h.getHoraInicio())) {
+                                    atencionIdAEliminar = doc.getId();
+                                    break;
                                 }
                             }
-                            guardarCambiosPaciente(index);
-                        });
-                    } else {
-                        // Si no hay atención hoy, solo borra el turno
-                        guardarCambiosPaciente(index);
-                    }
-                })
-                .addOnFailureListener(e -> guardarCambiosPaciente(index));
-    }
+                        }
+                        
+                        if (atencionIdAEliminar == null) atencionIdAEliminar = query.getDocuments().get(0).getId();
 
-    private void guardarCambiosPaciente(int index) {
-        if (index >= 0 && index < paciente.getHorarios().size()) {
-            paciente.getHorarios().remove(index);
-        }
-        FirebaseFirestore.getInstance().collection("pacientes").document(pacienteId)
-                .set(paciente)
-                .addOnSuccessListener(unused -> {
-                    Toast.makeText(this, "Turno eliminado correctamente", Toast.LENGTH_SHORT).show();
-                    cargarPaciente();
+                        batch.delete(db.collection("atenciones").document(atencionIdAEliminar));
+                        huboAtencion = true;
+                    }
+
+                    if (index >= 0 && index < paciente.getHorarios().size()) {
+                        paciente.getHorarios().remove(index);
+                    }
+                    
+                    batch.update(db.collection("pacientes").document(pacienteId), "horarios", paciente.getHorarios());
+                    
+                    if (huboAtencion && !paciente.isParticular() && !paciente.isCertificadoDiscapacidad()) {
+                        batch.update(db.collection("pacientes").document(pacienteId), "sesionesAtendidas", FieldValue.increment(-1));
+                    }
+
+                    batch.commit().addOnSuccessListener(v -> {
+                        Toast.makeText(this, "Turno y atención eliminados correctamente", Toast.LENGTH_SHORT).show();
+                        cargarPaciente();
+                    }).addOnFailureListener(e -> {
+                        Toast.makeText(this, "Error al procesar la baja", Toast.LENGTH_SHORT).show();
+                    });
                 });
     }
 
@@ -350,15 +355,13 @@ public class DetallePacienteActivity extends AppCompatActivity {
 
                         if (a.getFecha() != null) tvFecha.setText(sdf.format(a.getFecha().toDate()));
                         
-                        // Sincronizar el total de sesiones con los datos actuales del paciente
-                        String info = a.getTipoCobertura();
+                        String info = a.getTipoCobertura() != null ? a.getTipoCobertura().trim() : "";
                         if (a.getSesionNumero() > 0) {
-                            int total = a.getSesionesTotal();
-                            // Si el paciente es de Obra Social (Orden), usamos el total actual del paciente
-                            if (paciente.getSesionesOrden() > 0 && "Orden".equalsIgnoreCase(a.getTipoCobertura())) {
-                                total = paciente.getSesionesOrden();
+                            int totalSesiones = a.getSesionesTotal();
+                            if (!paciente.isParticular() && !paciente.isCertificadoDiscapacidad() && paciente.getSesionesOrden() > 0) {
+                                totalSesiones = paciente.getSesionesOrden();
                             }
-                            info += " · Sesión " + a.getSesionNumero() + "/" + total;
+                            info += " · Sesión " + a.getSesionNumero() + "/" + totalSesiones;
                         }
                         tvInfo.setText(info);
                         
@@ -400,7 +403,7 @@ public class DetallePacienteActivity extends AppCompatActivity {
 
         new AlertDialog.Builder(this)
                 .setTitle("Eliminar del historial")
-                .setMessage("¿Deseás eliminar la atención del día " + fechaStr + "?\nSi es un paciente de obra social, se restará una sesión del contador.")
+                .setMessage("¿Deseás eliminar la atención del día " + fechaStr + "?\nSe restará una sesión del contador.")
                 .setPositiveButton("Eliminar", (dialog, which) -> {
                     new AtencionRepository().eliminar(a.getId()).addOnSuccessListener(v -> {
                         if (!paciente.isParticular() && !paciente.isCertificadoDiscapacidad()) {
