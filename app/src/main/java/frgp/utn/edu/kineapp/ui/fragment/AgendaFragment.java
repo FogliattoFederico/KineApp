@@ -15,6 +15,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -31,6 +32,7 @@ import frgp.utn.edu.kineapp.model.Atencion;
 import frgp.utn.edu.kineapp.model.HorarioAtencion;
 import frgp.utn.edu.kineapp.model.Paciente;
 import frgp.utn.edu.kineapp.ui.activity.FormularioPacienteActivity;
+import frgp.utn.edu.kineapp.ui.activity.LoginActivity;
 
 public class AgendaFragment extends Fragment {
 
@@ -75,6 +77,27 @@ public class AgendaFragment extends Fragment {
                 }
             }
         }
+
+        MaterialToolbar toolbar = view.findViewById(R.id.toolbar);
+        toolbar.inflateMenu(R.menu.menu_agenda);
+        toolbar.setOnMenuItemClickListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.action_perfil) {
+                // Como Perfil ya no está en el menú inferior, lo abrimos manualmente
+                getParentFragmentManager().beginTransaction()
+                        .replace(R.id.fragment_container, new PerfilFragment())
+                        .addToBackStack(null)
+                        .commit();
+                return true;
+            } else if (id == R.id.action_logout) {
+                FirebaseAuth.getInstance().signOut();
+                Intent intent = new Intent(getContext(), LoginActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+                return true;
+            }
+            return false;
+        });
 
         tvNombreDia = view.findViewById(R.id.tv_nombre_dia);
         tvFechaCompleta = view.findViewById(R.id.tv_fecha_completa);

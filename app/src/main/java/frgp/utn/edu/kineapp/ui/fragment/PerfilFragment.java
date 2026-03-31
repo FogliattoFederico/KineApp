@@ -76,18 +76,10 @@ public class PerfilFragment extends Fragment {
         });
 
         MaterialButton btnGuardar = view.findViewById(R.id.btn_guardar_perfil);
-        MaterialButton btnCerrar = view.findViewById(R.id.btn_cerrar_sesion);
 
         cargarDatos();
 
         btnGuardar.setOnClickListener(v -> guardarCambios());
-
-        btnCerrar.setOnClickListener(v -> {
-            mAuth.signOut();
-            Intent intent = new Intent(getContext(), LoginActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            startActivity(intent);
-        });
     }
 
     private void cargarDatos() {

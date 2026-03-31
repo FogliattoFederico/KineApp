@@ -8,7 +8,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import frgp.utn.edu.kineapp.ui.fragment.AgendaFragment;
 import frgp.utn.edu.kineapp.ui.fragment.FacturacionFragment;
 import frgp.utn.edu.kineapp.ui.fragment.PacientesFragment;
-import frgp.utn.edu.kineapp.ui.fragment.PerfilFragment;
+import frgp.utn.edu.kineapp.ui.fragment.ReportesFragment;
 import frgp.utn.edu.kineapp.R;
 
 public class MainActivity extends AppCompatActivity {
@@ -34,8 +34,8 @@ public class MainActivity extends AppCompatActivity {
                 cargarFragment(new PacientesFragment());
             } else if (id == R.id.nav_facturacion) {
                 cargarFragment(new FacturacionFragment());
-            } else if (id == R.id.nav_perfil) {
-                cargarFragment(new PerfilFragment());
+            } else if (id == R.id.nav_reportes) {
+                cargarFragment(new ReportesFragment());
             }
             return true;
         });

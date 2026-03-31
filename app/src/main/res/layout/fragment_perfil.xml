@@ -219,16 +219,6 @@
             android:layout_height="56dp"
             android:text="Guardar cambios"
             app:cornerRadius="12dp"
-            android:layout_marginBottom="12dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_cerrar_sesion"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="Cerrar sesión"
-            app:cornerRadius="12dp"
-            app:strokeColor="@color/primary"
             android:layout_marginBottom="16dp" />
 
     </LinearLayout>
