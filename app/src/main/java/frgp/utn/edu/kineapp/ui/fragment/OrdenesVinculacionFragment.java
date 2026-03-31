@@ -138,8 +138,11 @@ public class OrdenesVinculacionFragment extends Fragment {
                 Paciente p = doc.toObject(Paciente.class);
                 if (p != null) {
                     p.setId(doc.getId());
-                    listaPacientes.add(p);
-                    nombres.add(p.getNombreCompleto());
+                    // Excluir pacientes particulares para órdenes de remito/vinculación
+                    if (!p.isParticular()) {
+                        listaPacientes.add(p);
+                        nombres.add(p.getNombreCompleto());
+                    }
                 }
             }
             nombresPacientes = nombres.toArray(new String[0]);
