@@ -19,10 +19,10 @@ public class FacturacionPagerAdapter extends FragmentStateAdapter {
     @Override
     public Fragment createFragment(int position) {
         switch (position) {
-            case 0: return new FacturasEmitidasFragment();
-            case 1: return new RemitosFragment();
-            case 2: return new OrdenesVinculacionFragment();
-            default: return new PagosColegioFragment();
+            case 0: return new RemitosFragment();
+            case 1: return new OrdenesVinculacionFragment();
+            case 2: return new PagosColegioFragment();
+            default: return new FacturasEmitidasFragment();
         }
     }
 

@@ -46,10 +46,10 @@ public class FacturacionFragment extends Fragment {
 
         new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {
             switch (position) {
-                case 0: tab.setText("Facturas"); break;
-                case 1: tab.setText("Remitos"); break;
-                case 2: tab.setText("Órdenes"); break;
-                case 3: tab.setText("Pagos"); break;
+                case 0: tab.setText("Remitos"); break;
+                case 1: tab.setText("Órdenes"); break;
+                case 2: tab.setText("Pagos"); break;
+                case 3: tab.setText("Facturas"); break;
             }
         }).attach();
     }
