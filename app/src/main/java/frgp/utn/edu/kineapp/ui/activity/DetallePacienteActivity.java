@@ -3,6 +3,7 @@ package frgp.utn.edu.kineapp.ui.activity;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
@@ -16,6 +17,7 @@ import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.WriteBatch;
+import com.google.firebase.firestore.DocumentSnapshot;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -233,6 +235,8 @@ public class DetallePacienteActivity extends AppCompatActivity {
     }
 
     private void confirmarEliminarHorario(int index) {
+        if (paciente.getHorarios() == null || index >= paciente.getHorarios().size()) return;
+        
         HorarioAtencion h = paciente.getHorarios().get(index);
         String fechaDisplay = (h.getFecha() != null && !h.getFecha().isEmpty()) ? h.getFecha() : h.getDia();
         
@@ -245,67 +249,81 @@ public class DetallePacienteActivity extends AppCompatActivity {
     }
 
     private void eliminarTurnoYAtencion(int index) {
+        if (paciente == null || paciente.getHorarios() == null || index >= paciente.getHorarios().size()) {
+            Toast.makeText(this, "Error al identificar el turno", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         HorarioAtencion h = paciente.getHorarios().get(index);
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        AtencionRepository atencionRepo = new AtencionRepository();
-
-        Calendar calInicio = Calendar.getInstance();
-        Calendar calFin = Calendar.getInstance();
         
-        Date fechaBusqueda = new Date();
-        if (h.getFecha() != null && !h.getFecha().isEmpty()) {
-            try {
-                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-                Date d = sdf.parse(h.getFecha());
-                if (d != null) fechaBusqueda = d;
-            } catch (Exception ignored) {}
+        // Caso: Turno sin fecha (semanal recurrente)
+        if (h.getFecha() == null || h.getFecha().isEmpty()) {
+            paciente.getHorarios().remove(index);
+            db.collection("pacientes").document(pacienteId)
+                    .update("horarios", paciente.getHorarios())
+                    .addOnSuccessListener(v -> {
+                        Toast.makeText(this, "Turno eliminado correctamente", Toast.LENGTH_SHORT).show();
+                        cargarPaciente();
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(this, "Error al actualizar horarios", Toast.LENGTH_SHORT).show());
+            return;
         }
-        calInicio.setTime(fechaBusqueda);
-        calInicio.set(Calendar.HOUR_OF_DAY, 0); calInicio.set(Calendar.MINUTE, 0); calInicio.set(Calendar.SECOND, 0);
-        calFin.setTime(fechaBusqueda);
-        calFin.set(Calendar.HOUR_OF_DAY, 23); calFin.set(Calendar.MINUTE, 59); calFin.set(Calendar.SECOND, 59);
 
-        atencionRepo.buscarAtencionDelDia(pacienteId, new Timestamp(calInicio.getTime()), new Timestamp(calFin.getTime()))
+        // Caso: Turno con fecha. Buscamos en historial filtrando en memoria para evitar problemas de índices.
+        new AtencionRepository().obtenerPorPaciente(pacienteId)
                 .addOnSuccessListener(query -> {
                     WriteBatch batch = db.batch();
-                    boolean huboAtencion = false;
+                    final boolean[] huboAtencion = {false};
+                    
+                    SimpleDateFormat sdfFecha = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+                    SimpleDateFormat sdfHora = new SimpleDateFormat("HH:mm", Locale.getDefault());
 
                     if (!query.isEmpty()) {
-                        String atencionIdAEliminar = null;
-                        for (var doc : query.getDocuments()) {
+                        for (DocumentSnapshot doc : query.getDocuments()) {
                             Atencion a = doc.toObject(Atencion.class);
                             if (a != null && a.getFecha() != null) {
-                                SimpleDateFormat sdfHora = new SimpleDateFormat("HH:mm", Locale.getDefault());
-                                String horaAtencion = sdfHora.format(a.getFecha().toDate());
-                                if (horaAtencion.equals(h.getHoraInicio())) {
-                                    atencionIdAEliminar = doc.getId();
-                                    break;
+                                Date d = a.getFecha().toDate();
+                                String strFecha = sdfFecha.format(d);
+                                String strHora = sdfHora.format(d);
+                                
+                                // Coincidencia exacta de día y hora de inicio
+                                if (strFecha.equals(h.getFecha()) && strHora.equals(h.getHoraInicio())) {
+                                    batch.delete(doc.getReference());
+                                    huboAtencion[0] = true;
+                                    break; 
                                 }
                             }
                         }
-                        
-                        if (atencionIdAEliminar == null) atencionIdAEliminar = query.getDocuments().get(0).getId();
-
-                        batch.delete(db.collection("atenciones").document(atencionIdAEliminar));
-                        huboAtencion = true;
                     }
 
-                    if (index >= 0 && index < paciente.getHorarios().size()) {
-                        paciente.getHorarios().remove(index);
-                    }
-                    
+                    // Quitamos el horario de la lista local
+                    paciente.getHorarios().remove(index);
                     batch.update(db.collection("pacientes").document(pacienteId), "horarios", paciente.getHorarios());
                     
-                    if (huboAtencion && !paciente.isParticular() && !paciente.isCertificadoDiscapacidad()) {
+                    // Si se borró atención y es de Obra Social, descontamos sesión
+                    if (huboAtencion[0] && !paciente.isParticular() && !paciente.isCertificadoDiscapacidad()) {
                         batch.update(db.collection("pacientes").document(pacienteId), "sesionesAtendidas", FieldValue.increment(-1));
                     }
 
                     batch.commit().addOnSuccessListener(v -> {
-                        Toast.makeText(this, "Turno y atención eliminados correctamente", Toast.LENGTH_SHORT).show();
+                        String msg = huboAtencion[0] ? "Turno y atención eliminados" : "Turno eliminado (No se halló atención vinculada)";
+                        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
                         cargarPaciente();
                     }).addOnFailureListener(e -> {
-                        Toast.makeText(this, "Error al procesar la baja", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Error al procesar la baja definitiva", Toast.LENGTH_SHORT).show();
                     });
+                })
+                .addOnFailureListener(e -> {
+                    // Si falla el acceso al historial, procedemos solo con borrar el turno para no bloquear al usuario
+                    Log.e("DetallePaciente", "Error buscando atención", e);
+                    paciente.getHorarios().remove(index);
+                    db.collection("pacientes").document(pacienteId)
+                            .update("horarios", paciente.getHorarios())
+                            .addOnSuccessListener(v -> {
+                                Toast.makeText(this, "Turno eliminado (No se pudo verificar historial)", Toast.LENGTH_SHORT).show();
+                                cargarPaciente();
+                            });
                 });
     }
 
@@ -327,7 +345,7 @@ public class DetallePacienteActivity extends AppCompatActivity {
                     }
 
                     java.util.List<Atencion> atenciones = new java.util.ArrayList<>();
-                    for (var doc : query.getDocuments()) {
+                    for (DocumentSnapshot doc : query.getDocuments()) {
                         Atencion a = doc.toObject(Atencion.class);
                         if (a != null) {
                             a.setId(doc.getId());
