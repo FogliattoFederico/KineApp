@@ -35,9 +35,11 @@ import java.util.Locale;
 import frgp.utn.edu.kineapp.R;
 import frgp.utn.edu.kineapp.adapter.FacturaAdapter;
 import frgp.utn.edu.kineapp.model.Factura;
+import frgp.utn.edu.kineapp.model.LiquidacionColegio;
 import frgp.utn.edu.kineapp.model.OrdenRemito;
 import frgp.utn.edu.kineapp.model.Remito;
 import frgp.utn.edu.kineapp.repository.FacturaRepository;
+import frgp.utn.edu.kineapp.repository.LiquidacionRepository;
 import frgp.utn.edu.kineapp.repository.RemitoRepository;
 import frgp.utn.edu.kineapp.ui.activity.FormularioPacienteSimpleActivity;
 
@@ -47,6 +49,7 @@ public class FacturasEmitidasFragment extends Fragment {
     private LinearLayout layoutEmpty;
     private FacturaRepository repository;
     private RemitoRepository remitoRepository;
+    private LiquidacionRepository liquidacionRepository;
     private List<Factura> listaFacturas = new ArrayList<>();
     private List<Factura> listaFiltrada = new ArrayList<>();
     private FacturaAdapter adapter;
@@ -75,6 +78,8 @@ public class FacturasEmitidasFragment extends Fragment {
 
         repository = new FacturaRepository();
         remitoRepository = new RemitoRepository();
+        liquidacionRepository = new LiquidacionRepository();
+        
         rvFacturas = view.findViewById(R.id.rv_facturas);
         layoutEmpty = view.findViewById(R.id.layout_empty);
         chipGroupEstado = view.findViewById(R.id.chip_group_estado);
@@ -94,7 +99,7 @@ public class FacturasEmitidasFragment extends Fragment {
             }
             @Override
             public void onLongClick(Factura factura) {
-                confirmarEliminacion(factura);
+                verificarYConfirmarEliminacion(factura);
             }
         }, (factura, cobrada) -> {
             repository.actualizarCobrada(factura.getId(), cobrada)
@@ -151,16 +156,37 @@ public class FacturasEmitidasFragment extends Fragment {
         tvPeriodo.setText(meses[mesSeleccionado] + " " + anioSeleccionado);
     }
 
-    private void confirmarEliminacion(Factura factura) {
+    private void verificarYConfirmarEliminacion(Factura factura) {
+        // Verificar si hay liquidaciones (pagos) asociados a esta factura
+        liquidacionRepository.obtenerTodas().addOnSuccessListener(query -> {
+            boolean tienePagosAsociados = false;
+            for (var doc : query.getDocuments()) {
+                LiquidacionColegio liq = doc.toObject(LiquidacionColegio.class);
+                if (liq != null && factura.getId().equals(liq.getFacturaId())) {
+                    tienePagosAsociados = true;
+                    break;
+                }
+            }
+            confirmarEliminacion(factura, tienePagosAsociados);
+        });
+    }
+
+    private void confirmarEliminacion(Factura factura, boolean tienePagosAsociados) {
+        String mensaje = "¿Estás seguro que deseás eliminar esta factura definitivamente? Esto desvinculará cualquier orden asociada.";
+        if (tienePagosAsociados) {
+            mensaje = "ATENCIÓN: Esta factura está asociada a un PAGO (liquidación). Si la eliminás, el pago se desvinculará y volverá a quedar pendiente de facturar. ¿Deseás continuar?";
+        }
+
         new AlertDialog.Builder(getContext())
                 .setTitle("Eliminar factura")
-                .setMessage("¿Estás seguro que deseás eliminar esta factura definitivamente? Esto desvinculará cualquier orden asociada.")
+                .setMessage(mensaje)
                 .setPositiveButton("Eliminar", (dialog, which) -> {
                     String facturaId = factura.getId();
                     repository.eliminar(facturaId)
                             .addOnSuccessListener(a -> {
                                 desvincularOrdenesDeFactura(facturaId);
-                                Toast.makeText(getContext(), "Factura eliminada y órdenes desvinculadas", Toast.LENGTH_SHORT).show();
+                                desvincularPagosDeFactura(facturaId);
+                                Toast.makeText(getContext(), "Factura eliminada", Toast.LENGTH_SHORT).show();
                                 cargarFacturas();
                             });
                 })
@@ -187,6 +213,22 @@ public class FacturasEmitidasFragment extends Fragment {
                     if (modificado) {
                         remitoRepository.guardar(r);
                     }
+                }
+            }
+        });
+    }
+
+    private void desvincularPagosDeFactura(String facturaId) {
+        liquidacionRepository.obtenerTodas().addOnSuccessListener(query -> {
+            for (var doc : query.getDocuments()) {
+                LiquidacionColegio liq = doc.toObject(LiquidacionColegio.class);
+                if (liq != null && facturaId.equals(liq.getFacturaId())) {
+                    liq.setFacturada(false);
+                    liq.setFacturaId(null);
+                    liq.setFacturaNumero(null);
+                    liq.setFacturaTipo(null);
+                    liq.setFacturaFecha(null);
+                    liquidacionRepository.guardar(liq);
                 }
             }
         });
