@@ -41,13 +41,12 @@ public class PdfGenerator {
         canvas.drawLine(150, 20, 150, 120, paint);
         canvas.drawLine(400, 20, 400, 120, paint);
 
-        // Logo del Colegio - Ajustado para ocupar TODO el cuadrado (20,20 a 150,120)
+        // Logo del Colegio
         try {
             int resId = context.getResources().getIdentifier("logo_colegio", "drawable", context.getPackageName());
             if (resId != 0) {
                 Bitmap logo = BitmapFactory.decodeResource(context.getResources(), resId);
                 if (logo != null) {
-                    // Rect(left, top, right, bottom) - Ocupando los límites del recuadro
                     Rect dest = new Rect(20, 20, 150, 120);
                     canvas.drawBitmap(logo, null, dest, null);
                 }
@@ -82,7 +81,10 @@ public class PdfGenerator {
         paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
         canvas.drawText("Profesional: " + kine.get("nombre") + " " + kine.get("apellido"), 30, 150, paint);
         canvas.drawText("Matrícula: " + kine.get("matricula"), 450, 150, paint);
-        canvas.drawText("Departamento: Rosario", 30, 175, paint);
+        
+        // Uso del campo dinámico "departamento"
+        String depto = (String) kine.get("departamento");
+        canvas.drawText("Departamento: " + (depto != null ? depto : ""), 30, 175, paint);
         
         String modalidad = (String) kine.get("modalidadTrabajo");
         if ("ambos".equals(modalidad)) modalidad = "Domicilio / Consultorio";
@@ -153,15 +155,11 @@ public class PdfGenerator {
             }
         }
 
-        // --- PIE DE PAGINA (Más abajo para aprovechar el final de la hoja A4) ---
-        // tableTop + headerHeight + (28 * rowHeight) es aprox 754. 
-        // A4 es 842. Dejamos margen de seguridad.
         float footerY = tableTop + headerHeight + (28 * rowHeight) + 60;
         paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
         canvas.drawText("Cantidad de órdenes: " + (ordenes != null ? ordenes.size() : 0), 30, footerY, paint);
         
         paint.setStyle(Paint.Style.STROKE);
-        // Líneas para firma y aclaración
         canvas.drawLine(230, footerY + 5, 370, footerY + 5, paint);
         canvas.drawLine(400, footerY + 5, 570, footerY + 5, paint);
         

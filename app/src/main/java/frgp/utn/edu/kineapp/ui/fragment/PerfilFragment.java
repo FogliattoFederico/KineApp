@@ -10,6 +10,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
@@ -27,7 +28,7 @@ import frgp.utn.edu.kineapp.ui.activity.LoginActivity;
 public class PerfilFragment extends Fragment {
 
     private TextView tvAvatar;
-    private TextInputEditText etNombre, etApellido, etMatricula,
+    private TextInputEditText etNombre, etApellido, etMatricula, etDepartamento,
             etEmail, etPassword, etConfirmPassword, etBoxes, etDireccionConsultorio;
     private TextInputLayout tilBoxes, tilDireccionConsultorio;
     private ChipGroup chipGroupModalidad;
@@ -49,10 +50,15 @@ public class PerfilFragment extends Fragment {
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
+        MaterialToolbar toolbar = view.findViewById(R.id.toolbar);
+        toolbar.setNavigationIcon(R.drawable.ic_arrow_back);
+        toolbar.setNavigationOnClickListener(v -> getParentFragmentManager().popBackStack());
+
         tvAvatar = view.findViewById(R.id.tv_avatar);
         etNombre = view.findViewById(R.id.et_nombre);
         etApellido = view.findViewById(R.id.et_apellido);
         etMatricula = view.findViewById(R.id.et_matricula);
+        etDepartamento = view.findViewById(R.id.et_departamento);
         etEmail = view.findViewById(R.id.et_email);
         etPassword = view.findViewById(R.id.et_password);
         etConfirmPassword = view.findViewById(R.id.et_confirm_password);
@@ -94,6 +100,7 @@ public class PerfilFragment extends Fragment {
                     String nombre = doc.getString("nombre");
                     String apellido = doc.getString("apellido");
                     String matricula = doc.getString("matricula");
+                    String departamento = doc.getString("departamento");
                     String modalidad = doc.getString("modalidadTrabajo");
                     String direccionC = doc.getString("direccionConsultorio");
                     Long boxes = doc.getLong("cantidadBoxes");
@@ -104,6 +111,7 @@ public class PerfilFragment extends Fragment {
                     }
                     if (apellido != null) etApellido.setText(apellido);
                     if (matricula != null) etMatricula.setText(matricula);
+                    if (departamento != null) etDepartamento.setText(departamento);
                     if (direccionC != null) etDireccionConsultorio.setText(direccionC);
 
                     if (modalidad != null) {
@@ -145,6 +153,7 @@ public class PerfilFragment extends Fragment {
         String nombre = etNombre.getText().toString().trim();
         String apellido = etApellido.getText().toString().trim();
         String matricula = etMatricula.getText().toString().trim();
+        String departamento = etDepartamento.getText().toString().trim();
         String email = etEmail.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
         String confirmPassword = etConfirmPassword.getText().toString().trim();
@@ -186,6 +195,7 @@ public class PerfilFragment extends Fragment {
         datos.put("nombre", nombre);
         datos.put("apellido", apellido);
         datos.put("matricula", matricula);
+        datos.put("departamento", departamento);
         datos.put("modalidadTrabajo", modalidad);
         datos.put("cantidadBoxes", boxes);
         datos.put("direccionConsultorio", direccionC);
