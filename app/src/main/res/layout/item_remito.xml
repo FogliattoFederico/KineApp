@@ -13,26 +13,44 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical">
 
-        <TextView
-            android:id="@+id/tv_periodo_remito"
-            android:layout_width="match_parent"
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="Quincena/Mes/Año"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="@color/primary" />
+            android:layout_weight="1"
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/tv_cantidad_ordenes"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="0 órdenes incluidas"
-            android:textSize="14sp"
-            android:textColor="@color/text_secondary"
-            android:layout_marginTop="4dp" />
+            <TextView
+                android:id="@+id/tv_periodo_remito"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Quincena/Mes/Año"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary" />
+
+            <TextView
+                android:id="@+id/tv_cantidad_ordenes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 órdenes incluidas"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="4dp" />
+
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_exportar_pdf"
+            style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:icon="@android:drawable/ic_menu_save"
+            app:iconTint="@color/primary"
+            android:tooltipText="Exportar PDF" />
 
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

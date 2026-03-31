@@ -19,15 +19,19 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
 
 import frgp.utn.edu.kineapp.R;
 import frgp.utn.edu.kineapp.adapter.RemitoAdapter;
 import frgp.utn.edu.kineapp.model.Remito;
 import frgp.utn.edu.kineapp.repository.RemitoRepository;
 import frgp.utn.edu.kineapp.ui.activity.FormularioRemitoActivity;
+import frgp.utn.edu.kineapp.util.PdfGenerator;
 
 public class RemitosFragment extends Fragment {
 
@@ -77,6 +81,10 @@ public class RemitosFragment extends Fragment {
             public void onLongClick(Remito remito) {
                 confirmarEliminacion(remito);
             }
+            @Override
+            public void onExportClick(Remito remito) {
+                exportarPdf(remito);
+            }
         });
         rvRemitos.setAdapter(adapter);
 
@@ -99,6 +107,25 @@ public class RemitosFragment extends Fragment {
         });
 
         cargarRemitos();
+    }
+
+    private void exportarPdf(Remito remito) {
+        String uid = FirebaseAuth.getInstance().getUid();
+        if (uid == null) return;
+
+        FirebaseFirestore.getInstance().collection("usuarios").document(uid)
+                .get()
+                .addOnSuccessListener(doc -> {
+                    Map<String, Object> data = doc.getData();
+                    if (data != null) {
+                        PdfGenerator.generarRemitoPdf(getContext(), remito, data);
+                    } else {
+                        Toast.makeText(getContext(), "Error al obtener datos del profesional", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
     }
 
     private void mostrarDialogoMesAnio() {

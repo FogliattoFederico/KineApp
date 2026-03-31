@@ -24,6 +24,7 @@ public class RemitoAdapter extends RecyclerView.Adapter<RemitoAdapter.ViewHolder
     public interface OnRemitoClickListener {
         void onClick(Remito remito);
         void onLongClick(Remito remito);
+        void onExportClick(Remito remito);
     }
 
     public RemitoAdapter(List<Remito> listaRemitos, OnRemitoClickListener listener) {
@@ -70,6 +71,10 @@ public class RemitoAdapter extends RecyclerView.Adapter<RemitoAdapter.ViewHolder
             if (listener != null) listener.onLongClick(remito);
             return true;
         });
+
+        holder.btnExportar.setOnClickListener(v -> {
+            if (listener != null) listener.onExportClick(remito);
+        });
     }
 
     @Override
@@ -111,11 +116,13 @@ public class RemitoAdapter extends RecyclerView.Adapter<RemitoAdapter.ViewHolder
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvPeriodo, tvCantidad;
+        View btnExportar;
 
         ViewHolder(@NonNull View itemView) {
             super(itemView);
             tvPeriodo = itemView.findViewById(R.id.tv_periodo_remito);
             tvCantidad = itemView.findViewById(R.id.tv_cantidad_ordenes);
+            btnExportar = itemView.findViewById(R.id.btn_exportar_pdf);
         }
     }
 }
