@@ -6,7 +6,6 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.util.AttributeSet;
@@ -52,93 +51,113 @@ public class SimplePieChartView extends View {
         float width = getWidth();
         float height = getHeight();
         
-        // --- EFECTO 3D Y TORTA MÁS GRANDE ---
-        // Aumentamos el tamaño de la torta (0.6f del ancho)
-        float chartSize = Math.min(width, height) * 0.65f;
+        // --- GRÁFICO ---
+        float chartSize = Math.min(width, height) * 0.60f; 
         float radius = chartSize / 2;
         float centerX = width / 2;
-        float centerY = height * 0.35f; // Posición de la torta
+        float centerY = height * 0.38f; 
         
-        // Rectángulo base para la torta
         rectF.set(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
 
-        // Dibujamos el "espesor" para el efecto 3D
-        float depth = 25f;
+        float depth = 30f;
         float startAngle = -90;
 
-        // Capa inferior (Sombra/Espesor)
+        // Espesor 3D
         for (Entry e : entries) {
             float sweepAngle = (e.value / total) * 360f;
-            paint.setColor(darkenColor(e.color));
-            
-            // Dibujar el arco desplazado hacia abajo para simular profundidad
-            RectF rectDepth = new RectF(rectF.left, rectF.top + depth, rectF.right, rectF.bottom + depth);
-            canvas.drawArc(rectDepth, startAngle, sweepAngle, true, paint);
-            
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(darkenColor(e.color, 0.6f));
+            for (int i = 1; i <= depth; i++) {
+                RectF sideRect = new RectF(rectF.left, rectF.top + i, rectF.right, rectF.bottom + i);
+                canvas.drawArc(sideRect, startAngle, sweepAngle, true, paint);
+            }
             startAngle += sweepAngle;
         }
 
-        // Capa superior (Cara de la torta)
+        // Cara Superior
         startAngle = -90;
         for (Entry e : entries) {
             float sweepAngle = (e.value / total) * 360f;
-            paint.setColor(e.color);
+            int colorStart = e.color;
+            int colorEnd = darkenColor(e.color, 0.85f);
+            Shader shader = new LinearGradient(rectF.left, rectF.top, rectF.right, rectF.bottom, 
+                                             colorStart, colorEnd, Shader.TileMode.CLAMP);
+            paint.setShader(shader);
             canvas.drawArc(rectF, startAngle, sweepAngle, true, paint);
+            paint.setShader(null);
             startAngle += sweepAngle;
         }
 
-        // --- LEYENDAS (Bajadas al borde inferior) ---
-        int textColor;
+        // Hueco Central (Donut)
+        float holeRadius = radius * 0.55f;
+        int backgroundColor;
         int nightModeFlags = getContext().getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-        if (nightModeFlags == Configuration.UI_MODE_NIGHT_YES) {
-            textColor = Color.WHITE;
-        } else {
-            textColor = Color.parseColor("#333333");
+        backgroundColor = (nightModeFlags == Configuration.UI_MODE_NIGHT_YES) ? Color.parseColor("#1E1E1E") : Color.WHITE;
+        
+        paint.setColor(Color.argb(30, 0, 0, 0));
+        canvas.drawCircle(centerX, centerY + depth, holeRadius, paint);
+        paint.setColor(backgroundColor);
+        canvas.drawCircle(centerX, centerY, holeRadius, paint);
+
+        // --- PORCENTAJES SOBRE LAS PORCIONES ---
+        paint.setColor(Color.WHITE);
+        paint.setTextSize(34f);
+        paint.setTypeface(android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD));
+        paint.setTextAlign(Paint.Align.CENTER);
+        
+        startAngle = -90;
+        for (Entry e : entries) {
+            float sweepAngle = (e.value / total) * 360f;
+            if (sweepAngle > 15) { // Solo mostrar si la porción es suficientemente grande
+                float middleAngle = startAngle + sweepAngle / 2;
+                double radians = Math.toRadians(middleAngle);
+                
+                // Calculamos la posición del texto (a una distancia intermedia entre el hueco y el borde)
+                float textRadius = holeRadius + (radius - holeRadius) / 2;
+                float tx = (float) (centerX + textRadius * Math.cos(radians));
+                float ty = (float) (centerY + textRadius * Math.sin(radians)) + 12f; // +12 para centrar verticalmente el texto
+                
+                String percentText = Math.round((e.value / total) * 100) + "%";
+                canvas.drawText(percentText, tx, ty, paint);
+            }
+            startAngle += sweepAngle;
         }
 
-        paint.setTextSize(42f);
+        // --- LEYENDAS ---
+        int textColor = (nightModeFlags == Configuration.UI_MODE_NIGHT_YES) ? Color.WHITE : Color.parseColor("#333333");
+        paint.setTextSize(38f); 
+        paint.setTextAlign(Paint.Align.LEFT);
         paint.setTypeface(android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD));
         
-        float marginX = 50;
+        float marginX = 40;
         float currentX = marginX;
-        float boxSize = 40;
-        
-        // Calculamos la posición Y para que queden cerca del borde inferior del contenedor
-        // Usamos una posición relativa al final del alto total
-        float currentY = height - 60; 
-        
-        // Si hay muchas entradas, subimos un poco para que no se corten
-        if (entries.size() > 2) {
-            currentY = height - 110;
-        }
+        float boxSize = 35;
+        float currentY = height - 40; 
 
-        for (int i = entries.size() - 1; i >= 0; i--) {
-            Entry e = entries.get(i);
-            
-            // Cuadradito de color
-            paint.setColor(e.color);
-            canvas.drawRect(currentX, currentY - boxSize, currentX + boxSize, currentY, paint);
-            
-            // Texto
-            paint.setColor(textColor);
+        for (Entry e : entries) {
             String text = e.label + " (" + (int)e.value + ")";
-            canvas.drawText(text, currentX + boxSize + 20, currentY, paint);
-            
             float textWidth = paint.measureText(text);
-            currentX += boxSize + textWidth + 80;
-            
-            // Si desborda horizontalmente (en sentido inverso o normal)
-            if (currentX > width - marginX) {
+            float itemWidth = boxSize + 20 + textWidth;
+
+            if (currentX + itemWidth > width - marginX) {
                 currentX = marginX;
-                currentY -= 60; // Subimos una línea si necesitamos más espacio
+                currentY -= 60;
             }
+
+            paint.setColor(e.color);
+            canvas.drawRoundRect(currentX, currentY - boxSize, currentX + boxSize, currentY, 8, 8, paint);
+            
+            paint.setColor(textColor);
+            canvas.drawText(text, currentX + boxSize + 15, currentY - 5, paint);
+            
+            currentX += itemWidth + 50;
         }
     }
 
-    private int darkenColor(int color) {
+    private int darkenColor(int color, float factor) {
         float[] hsv = new float[3];
         Color.colorToHSV(color, hsv);
-        hsv[2] *= 0.7f; // Reducir brillo al 70%
+        hsv[2] *= factor;
         return Color.HSVToColor(hsv);
     }
 }
