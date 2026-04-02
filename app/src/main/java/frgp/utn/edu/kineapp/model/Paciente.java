@@ -24,10 +24,6 @@ public class Paciente {
     private int sesionesOrden;       // solo si no tiene CUD
     private boolean particular;
     private String observaciones;
-    public boolean isParticular() { return particular; }
-    public void setParticular(boolean particular) { this.particular = particular; }
-    public String getObservaciones() { return observaciones; }
-    public void setObservaciones(String observaciones) { this.observaciones = observaciones; }
     private String modalidad;        // "domicilio", "consultorio", "ambos"
     private double valorSesion;      // solo para particulares
     private int sesionesAtendidas;   // contador de sesiones atendidas
@@ -35,6 +31,10 @@ public class Paciente {
     private String fechaNacimiento; // "dd/MM/yyyy"
     private int edad;
     private String email;
+    
+    // Periodo autorizado para pacientes con CUD
+    private String fechaInicioPeriodo; // "dd/MM/yyyy"
+    private String fechaFinPeriodo;    // "dd/MM/yyyy"
 
     // Constructor vacío requerido por Firestore
     public Paciente() {}
@@ -114,6 +114,12 @@ public class Paciente {
     public int getSesionesOrden() { return sesionesOrden; }
     public void setSesionesOrden(int sesionesOrden) { this.sesionesOrden = sesionesOrden; }
 
+    public boolean isParticular() { return particular; }
+    public void setParticular(boolean particular) { this.particular = particular; }
+
+    public String getObservaciones() { return observaciones; }
+    public void setObservaciones(String observaciones) { this.observaciones = observaciones; }
+
     public String getModalidad() { return modalidad; }
     public void setModalidad(String modalidad) { this.modalidad = modalidad; }
 
@@ -125,6 +131,7 @@ public class Paciente {
 
     public int getSesionesRestantes() { return sesionesRestantes; }
     public void setSesionesRestantes(int sesionesRestantes) { this.sesionesRestantes = sesionesRestantes; }
+    
     public String getFechaNacimiento() { return fechaNacimiento; }
     public void setFechaNacimiento(String fechaNacimiento) { this.fechaNacimiento = fechaNacimiento; }
 
@@ -132,6 +139,11 @@ public class Paciente {
     public void setEdad(int edad) { this.edad = edad; }
 
     public String getEmail() { return email; }
-
     public void setEmail(String email) { this.email = email; }
+
+    public String getFechaInicioPeriodo() { return fechaInicioPeriodo; }
+    public void setFechaInicioPeriodo(String fechaInicioPeriodo) { this.fechaInicioPeriodo = fechaInicioPeriodo; }
+
+    public String getFechaFinPeriodo() { return fechaFinPeriodo; }
+    public void setFechaFinPeriodo(String fechaFinPeriodo) { this.fechaFinPeriodo = fechaFinPeriodo; }
 }

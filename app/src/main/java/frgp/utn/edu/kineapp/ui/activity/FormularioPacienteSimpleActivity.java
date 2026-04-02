@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -12,8 +13,10 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
 
 import frgp.utn.edu.kineapp.R;
@@ -25,9 +28,11 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
     private TextInputEditText etNombre, etApellido, etDni, etTelefono,
             etDireccion, etFechaNacimiento, etEdad, etNumeroAfiliado,
             etEmailPaciente, etSesionesSemanales, etSesionesOrden, 
-            etDiagnostico, etObservaciones, etValorSesion;
+            etDiagnostico, etObservaciones, etValorSesion,
+            etFechaInicioPeriodo, etFechaFinPeriodo;
     private TextInputLayout tilObraSocial, tilNumeroAfiliado, tilSesionesSemanales, 
             tilSesionesOrden, tilValorSesion;
+    private LinearLayout layoutPeriodoCud;
     private AutoCompleteTextView etObraSocial;
     private SwitchMaterial switchObraSocial, switchCud;
     private PacienteRepository repository;
@@ -80,12 +85,15 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         etDiagnostico = findViewById(R.id.et_diagnostico);
         etObservaciones = findViewById(R.id.et_observaciones);
         etValorSesion = findViewById(R.id.et_valor_sesion);
+        etFechaInicioPeriodo = findViewById(R.id.et_fecha_inicio_periodo);
+        etFechaFinPeriodo = findViewById(R.id.et_fecha_fin_periodo);
 
         tilObraSocial = findViewById(R.id.til_obra_social);
         tilNumeroAfiliado = findViewById(R.id.til_numero_afiliado);
         tilSesionesSemanales = findViewById(R.id.til_sesiones_semanales);
         tilSesionesOrden = findViewById(R.id.til_sesiones_orden);
         tilValorSesion = findViewById(R.id.til_valor_sesion);
+        layoutPeriodoCud = findViewById(R.id.layout_periodo_cud);
 
         switchObraSocial = findViewById(R.id.switch_obra_social);
         switchCud = findViewById(R.id.switch_cud);
@@ -104,11 +112,14 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
 
         switchCud.setOnCheckedChangeListener((btn, checked) -> {
             tilSesionesSemanales.setVisibility(checked ? View.VISIBLE : View.GONE);
+            layoutPeriodoCud.setVisibility(checked ? View.VISIBLE : View.GONE);
             tilSesionesOrden.setVisibility(checked ? View.GONE : View.VISIBLE);
             if (checked) {
                 etSesionesOrden.setText("");
             } else {
                 etSesionesSemanales.setText("");
+                etFechaInicioPeriodo.setText("");
+                etFechaFinPeriodo.setText("");
             }
         });
 
@@ -120,13 +131,31 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         etObraSocial.setAdapter(osAdapter);
         etObraSocial.setThreshold(1);
 
-        etFechaNacimiento.setOnClickListener(v -> {
-            Calendar hoy = Calendar.getInstance();
-            DatePickerDialog dialog = new DatePickerDialog(this,
-                    (dp, y, m, d) -> {
-                        String fechaStr = String.format(Locale.getDefault(),
-                                "%02d/%02d/%04d", d, m + 1, y);
-                        etFechaNacimiento.setText(fechaStr);
+        etFechaNacimiento.setOnClickListener(v -> mostrarDatePicker(etFechaNacimiento, true));
+        etFechaInicioPeriodo.setOnClickListener(v -> mostrarDatePicker(etFechaInicioPeriodo, false));
+        etFechaFinPeriodo.setOnClickListener(v -> mostrarDatePicker(etFechaFinPeriodo, false));
+
+        String pacienteId = getIntent().getStringExtra("pacienteId");
+        if (pacienteId != null) {
+            toolbar.setTitle("Editar Paciente");
+            cargarPaciente(pacienteId);
+        } else {
+            tilValorSesion.setVisibility(switchObraSocial.isChecked() ? View.GONE : View.VISIBLE);
+        }
+
+        MaterialButton btnGuardar = findViewById(R.id.btn_guardar);
+        btnGuardar.setOnClickListener(v -> guardarPaciente());
+    }
+
+    private void mostrarDatePicker(TextInputEditText editText, boolean esNacimiento) {
+        Calendar hoy = Calendar.getInstance();
+        DatePickerDialog dialog = new DatePickerDialog(this,
+                (dp, y, m, d) -> {
+                    String fechaStr = String.format(Locale.getDefault(),
+                            "%02d/%02d/%04d", d, m + 1, y);
+                    editText.setText(fechaStr);
+                    
+                    if (esNacimiento) {
                         int edad = hoy.get(Calendar.YEAR) - y;
                         if (hoy.get(Calendar.MONTH) < m ||
                                 (hoy.get(Calendar.MONTH) == m &&
@@ -134,25 +163,14 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
                             edad--;
                         }
                         etEdad.setText(String.valueOf(edad));
-                    },
-                    hoy.get(Calendar.YEAR) - 30,
-                    hoy.get(Calendar.MONTH),
-                    hoy.get(Calendar.DAY_OF_MONTH));
-            dialog.getDatePicker().setMaxDate(hoy.getTimeInMillis());
-            dialog.show();
-        });
-
-        String pacienteId = getIntent().getStringExtra("pacienteId");
-        if (pacienteId != null) {
-            toolbar.setTitle("Editar Paciente");
-            cargarPaciente(pacienteId);
-        } else {
-            // Valor por defecto para nuevos: mostrar valor sesión si no tiene OS
-            tilValorSesion.setVisibility(switchObraSocial.isChecked() ? View.GONE : View.VISIBLE);
-        }
-
-        MaterialButton btnGuardar = findViewById(R.id.btn_guardar);
-        btnGuardar.setOnClickListener(v -> guardarPaciente());
+                    }
+                },
+                hoy.get(Calendar.YEAR) - (esNacimiento ? 30 : 0),
+                hoy.get(Calendar.MONTH),
+                hoy.get(Calendar.DAY_OF_MONTH));
+        
+        if (esNacimiento) dialog.getDatePicker().setMaxDate(hoy.getTimeInMillis());
+        dialog.show();
     }
 
     private void cargarPaciente(String pacienteId) {
@@ -196,10 +214,16 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
                     switchCud.setChecked(pacienteExistente.isCertificadoDiscapacidad());
                     if (pacienteExistente.isCertificadoDiscapacidad()) {
                         tilSesionesSemanales.setVisibility(View.VISIBLE);
+                        layoutPeriodoCud.setVisibility(View.VISIBLE);
                         tilSesionesOrden.setVisibility(View.GONE);
                         etSesionesSemanales.setText(String.valueOf(pacienteExistente.getSesionesSemanales()));
+                        if (pacienteExistente.getFechaInicioPeriodo() != null)
+                            etFechaInicioPeriodo.setText(pacienteExistente.getFechaInicioPeriodo());
+                        if (pacienteExistente.getFechaFinPeriodo() != null)
+                            etFechaFinPeriodo.setText(pacienteExistente.getFechaFinPeriodo());
                     } else {
                         tilSesionesSemanales.setVisibility(View.GONE);
+                        layoutPeriodoCud.setVisibility(View.GONE);
                         tilSesionesOrden.setVisibility(View.VISIBLE);
                         etSesionesOrden.setText(String.valueOf(pacienteExistente.getSesionesOrden()));
                     }
@@ -231,6 +255,8 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         String sesionesSemStr = etSesionesSemanales.getText().toString().trim();
         String sesionesTotStr = etSesionesOrden.getText().toString().trim();
         String valorSesionStr = etValorSesion.getText().toString().trim();
+        String fechaInicio = etFechaInicioPeriodo.getText().toString().trim();
+        String fechaFin = etFechaFinPeriodo.getText().toString().trim();
 
         if (nombre.isEmpty()) { etNombre.setError("Requerido"); etNombre.requestFocus(); return; }
         if (apellido.isEmpty()) { etApellido.setError("Requerido"); etApellido.requestFocus(); return; }
@@ -249,6 +275,31 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
             etSesionesOrden.setError("Requerido");
             etSesionesOrden.requestFocus();
             return;
+        }
+
+        if (tieneCud) {
+            if (fechaInicio.isEmpty()) {
+                etFechaInicioPeriodo.setError("Requerido");
+                etFechaInicioPeriodo.requestFocus();
+                return;
+            }
+            if (fechaFin.isEmpty()) {
+                etFechaFinPeriodo.setError("Requerido");
+                etFechaFinPeriodo.requestFocus();
+                return;
+            }
+
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+                Date start = sdf.parse(fechaInicio);
+                Date end = sdf.parse(fechaFin);
+                if (start != null && end != null && end.before(start)) {
+                    etFechaFinPeriodo.setError("No puede ser anterior al inicio");
+                    etFechaFinPeriodo.requestFocus();
+                    Toast.makeText(this, "La fecha de fin no puede ser anterior a la de inicio", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+            } catch (Exception ignored) {}
         }
 
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(emailPaciente).matches()) {
@@ -293,6 +344,10 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
                         nuevo.setSesionesOrden(sesTot);
                         nuevo.setValorSesion(valorSesion);
                         nuevo.setObservaciones(observaciones);
+                        if (tieneCud) {
+                            nuevo.setFechaInicioPeriodo(fechaInicio);
+                            nuevo.setFechaFinPeriodo(fechaFin);
+                        }
                         repository.guardar(nuevo)
                                 .addOnSuccessListener(unused -> {
                                     Toast.makeText(this, "Paciente guardado",
@@ -321,6 +376,13 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
             pacienteExistente.setValorSesion(valorSesion);
             pacienteExistente.setDiagnostico(diagnostico);
             pacienteExistente.setObservaciones(observaciones);
+            if (tieneCud) {
+                pacienteExistente.setFechaInicioPeriodo(fechaInicio);
+                pacienteExistente.setFechaFinPeriodo(fechaFin);
+            } else {
+                pacienteExistente.setFechaInicioPeriodo(null);
+                pacienteExistente.setFechaFinPeriodo(null);
+            }
             repository.guardar(pacienteExistente)
                     .addOnSuccessListener(unused -> {
                         Toast.makeText(this, "Paciente guardado",

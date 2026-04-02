@@ -159,6 +159,11 @@ public class DetallePacienteActivity extends AppCompatActivity {
         findViewById(R.id.divider_sesiones).setVisibility(View.GONE);
         findViewById(R.id.label_sesiones).setVisibility(View.GONE);
         findViewById(R.id.tv_sesiones).setVisibility(View.GONE);
+        
+        // Ocultar campos de periodo por defecto
+        findViewById(R.id.divider_periodo).setVisibility(View.GONE);
+        findViewById(R.id.label_periodo).setVisibility(View.GONE);
+        findViewById(R.id.tv_periodo_autorizado).setVisibility(View.GONE);
 
         if (tieneOS) {
             setVisible(R.id.divider_obra_social, R.id.label_obra_social, R.id.tv_obra_social);
@@ -174,8 +179,13 @@ public class DetallePacienteActivity extends AppCompatActivity {
             setVisible(R.id.divider_sesiones, R.id.label_sesiones, R.id.tv_sesiones);
             ((TextView) findViewById(R.id.label_sesiones)).setText("SESIONES SEMANALES");
             mostrarCampo(R.id.tv_sesiones, String.valueOf(paciente.getSesionesSemanales()));
+            
+            // Mostrar Periodo Autorizado para CUD
+            if (paciente.getFechaInicioPeriodo() != null && paciente.getFechaFinPeriodo() != null) {
+                setVisible(R.id.divider_periodo, R.id.label_periodo, R.id.tv_periodo_autorizado);
+                mostrarCampo(R.id.tv_periodo_autorizado, paciente.getFechaInicioPeriodo() + " al " + paciente.getFechaFinPeriodo());
+            }
         } else if (paciente.getSesionesOrden() > 0) {
-            // Se muestra el contador para Particulares u Obra Social si tienen sesiones cargadas
             setVisible(R.id.divider_sesiones, R.id.label_sesiones, R.id.tv_sesiones);
             ((TextView) findViewById(R.id.label_sesiones)).setText("SESIONES");
             mostrarCampo(R.id.tv_sesiones, paciente.getSesionesAtendidas() + " / " + paciente.getSesionesOrden());
@@ -294,7 +304,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
                     paciente.getHorarios().remove(index);
                     batch.update(db.collection("pacientes").document(pacienteId), "horarios", paciente.getHorarios());
                     
-                    // AHORA: Descuenta sesión tanto si es Particular como si es de Obra Social (siempre que no sea CUD)
                     if (huboAtencion[0] && !paciente.isCertificadoDiscapacidad()) {
                         batch.update(db.collection("pacientes").document(pacienteId), "sesionesAtendidas", FieldValue.increment(-1));
                     }
@@ -368,7 +377,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
                         String info = a.getTipoCobertura() != null ? a.getTipoCobertura().trim() : "";
                         if (a.getSesionNumero() > 0) {
                             int totalSesiones = a.getSesionesTotal();
-                            // AHORA: Usa sesionesOrden para Particulares también si está definido
                             if (!paciente.isCertificadoDiscapacidad() && paciente.getSesionesOrden() > 0) {
                                 totalSesiones = paciente.getSesionesOrden();
                             }
@@ -417,7 +425,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
                 .setMessage("¿Deseás eliminar la atención del día " + fechaStr + "?\nSe restará una sesión del contador.")
                 .setPositiveButton("Eliminar", (dialog, which) -> {
                     new AtencionRepository().eliminar(a.getId()).addOnSuccessListener(v -> {
-                        // AHORA: Descuenta sesión tanto si es Particular como Obra Social (siempre que no sea CUD)
                         if (!paciente.isCertificadoDiscapacidad()) {
                             FirebaseFirestore.getInstance().collection("pacientes").document(pacienteId)
                                     .update("sesionesAtendidas", FieldValue.increment(-1))
