@@ -23,6 +23,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -338,6 +339,8 @@ public class FacturasEmitidasFragment extends Fragment {
         Collections.sort(todasObrasSociales);
         ArrayAdapter<String> osAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_dropdown_item_1line, todasObrasSociales);
         etObraSocial.setAdapter(osAdapter);
+        etObraSocial.setThreshold(1);
+        etObraSocial.setOnClickListener(v -> etObraSocial.showDropDown());
 
         if (facturaExistente != null) {
             tvTitulo.setText("Editar factura");
@@ -367,37 +370,68 @@ public class FacturasEmitidasFragment extends Fragment {
             String obraSocial = etObraSocial.getText().toString().trim();
             String descripcion = etDescripcion.getText().toString().trim();
             String importeStr = etImporte.getText().toString().trim();
+            
             if (tipo.isEmpty() || parte1.length() != 5 || parte2.length() != 8 || obraSocial.isEmpty() || importeStr.isEmpty()) {
                 Toast.makeText(getContext(), "Completá todos los campos correctamente", Toast.LENGTH_SHORT).show();
                 return;
             }
-            String numero = parte1 + "-" + parte2;
             
-            // Validación de número y tipo duplicado
-            for (Factura f : listaFacturas) {
-                if (f.getNumero().equals(numero) && f.getTipoComprobante().equals(tipo)) {
-                    if (facturaExistente == null || !f.getId().equals(facturaExistente.getId())) {
-                        Toast.makeText(getContext(), "Ya existe un(a) " + tipo + " con este número", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                }
-            }
+            String numero = parte1 + "-" + parte2;
+            btnGuardar.setEnabled(false); // Evitar múltiples clics
 
-            double importe = Double.parseDouble(importeStr);
-            Timestamp fecha = new Timestamp(new Date(fechaSeleccionada[0].getTimeInMillis()));
-            if (facturaExistente == null) {
-                Factura nueva = new Factura(tipo, numero, fecha, importe, obraSocial, FirebaseAuth.getInstance().getCurrentUser().getUid());
-                nueva.setDescripcion(descripcion);
-                repository.guardar(nueva).addOnSuccessListener(a -> { cargarFacturas(); dialog.dismiss(); });
-            } else {
-                facturaExistente.setTipoComprobante(tipo);
-                facturaExistente.setNumero(numero);
-                facturaExistente.setFecha(fecha);
-                facturaExistente.setImporte(importe);
-                facturaExistente.setObraSocial(obraSocial);
-                facturaExistente.setDescripcion(descripcion);
-                repository.guardar(facturaExistente).addOnSuccessListener(a -> { cargarFacturas(); dialog.dismiss(); });
-            }
+            // Validar contra Firebase para evitar duplicados históricos
+            FirebaseFirestore.getInstance().collection("facturas")
+                    .whereEqualTo("uidKinesiologo", FirebaseAuth.getInstance().getUid())
+                    .whereEqualTo("tipoComprobante", tipo)
+                    .whereEqualTo("numero", numero)
+                    .get()
+                    .addOnSuccessListener(query -> {
+                        if (!query.isEmpty()) {
+                            boolean esMismaFactura = false;
+                            if (facturaExistente != null) {
+                                for (var doc : query.getDocuments()) {
+                                    if (doc.getId().equals(facturaExistente.getId())) {
+                                        esMismaFactura = true;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (!esMismaFactura) {
+                                Toast.makeText(getContext(), "ERROR: Ya existe una " + tipo + " con el número " + numero + " registrada.", Toast.LENGTH_LONG).show();
+                                btnGuardar.setEnabled(true);
+                                return;
+                            }
+                        }
+
+                        // Si pasa la validación, guardar
+                        double importe = Double.parseDouble(importeStr);
+                        Timestamp fecha = new Timestamp(new Date(fechaSeleccionada[0].getTimeInMillis()));
+                        
+                        if (facturaExistente == null) {
+                            Factura nueva = new Factura(tipo, numero, fecha, importe, obraSocial, FirebaseAuth.getInstance().getUid());
+                            nueva.setDescripcion(descripcion);
+                            repository.guardar(nueva).addOnSuccessListener(a -> { 
+                                cargarFacturas(); 
+                                dialog.dismiss(); 
+                            });
+                        } else {
+                            facturaExistente.setTipoComprobante(tipo);
+                            facturaExistente.setNumero(numero);
+                            facturaExistente.setFecha(fecha);
+                            facturaExistente.setImporte(importe);
+                            facturaExistente.setObraSocial(obraSocial);
+                            facturaExistente.setDescripcion(descripcion);
+                            repository.guardar(facturaExistente).addOnSuccessListener(a -> { 
+                                cargarFacturas(); 
+                                dialog.dismiss(); 
+                            });
+                        }
+                    })
+                    .addOnFailureListener(e -> {
+                        btnGuardar.setEnabled(true);
+                        Toast.makeText(getContext(), "Error de validación: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
         });
         dialog.show();
     }
