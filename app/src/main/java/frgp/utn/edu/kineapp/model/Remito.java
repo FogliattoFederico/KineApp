@@ -8,7 +8,7 @@ public class Remito {
     private String id;
     private String uidKinesiologo;
     private List<OrdenRemito> ordenes;
-    private String numeroRemito;
+    private String periodoRemito;
     private Timestamp fechaCreacion;
     private boolean esDirecto; // Nuevo: Para diferenciar remitos de colegio vs facturación directa
 
@@ -33,8 +33,8 @@ public class Remito {
     public List<OrdenRemito> getOrdenes() { return ordenes; }
     public void setOrdenes(List<OrdenRemito> ordenes) { this.ordenes = ordenes; }
 
-    public String getNumeroRemito() { return numeroRemito; }
-    public void setNumeroRemito(String numeroRemito) { this.numeroRemito = numeroRemito; }
+    public String getPeriodoRemito() { return periodoRemito; }
+    public void setPeriodoRemito(String periodoRemito) { this.periodoRemito = periodoRemito; }
 
     public Timestamp getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(Timestamp fechaCreacion) { this.fechaCreacion = fechaCreacion; }

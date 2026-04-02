@@ -337,7 +337,7 @@ public class OrdenesVinculacionFragment extends Fragment {
                                 for (OrdenRemito o : r.getOrdenes()) {
                                     o.setParentRemitoId(r.getId());
                                     o.setEsDeRemitoDirecto(r.isEsDirecto());
-                                    o.setNombreRemito(r.getNumeroRemito());
+                                    o.setNombreRemito(r.getPeriodoRemito());
                                     
                                     // Buscar detalle y fecha del vínculo
                                     if (o.isAsociadaAPago()) {
@@ -553,7 +553,7 @@ public class OrdenesVinculacionFragment extends Fragment {
     private void guardarNuevaOrdenDirecta(OrdenRemito orden) {
         Remito remitoDirecto = null;
         for (Remito r : listaRemitos) {
-            if (r.isEsDirecto() && "Órdenes Directas".equals(r.getNumeroRemito())) {
+            if (r.isEsDirecto() && "Órdenes Directas".equals(r.getPeriodoRemito())) {
                 remitoDirecto = r;
                 break;
             }
@@ -561,7 +561,7 @@ public class OrdenesVinculacionFragment extends Fragment {
 
         if (remitoDirecto == null) {
             remitoDirecto = new Remito(FirebaseAuth.getInstance().getUid(), new ArrayList<>());
-            remitoDirecto.setNumeroRemito("Órdenes Directas");
+            remitoDirecto.setPeriodoRemito("Órdenes Directas");
             remitoDirecto.setEsDirecto(true);
             Calendar cal = Calendar.getInstance();
             cal.set(anioSeleccionado, mesSeleccionado, 1);
@@ -588,10 +588,18 @@ public class OrdenesVinculacionFragment extends Fragment {
             if (r.getId().equals(ordenAEliminar.getParentRemitoId())) {
                 List<OrdenRemito> ordenes = r.getOrdenes();
                 ordenes.remove(ordenAEliminar);
-                remitoRepository.guardar(r).addOnSuccessListener(a -> {
-                    Toast.makeText(getContext(), "Orden eliminada", Toast.LENGTH_SHORT).show();
-                    cargarDatos();
-                });
+                
+                if (ordenes.isEmpty()) {
+                    remitoRepository.eliminar(r.getId()).addOnSuccessListener(a -> {
+                        Toast.makeText(getContext(), "Remito eliminado (estaba vacío)", Toast.LENGTH_SHORT).show();
+                        cargarDatos();
+                    });
+                } else {
+                    remitoRepository.guardar(r).addOnSuccessListener(a -> {
+                        Toast.makeText(getContext(), "Orden eliminada", Toast.LENGTH_SHORT).show();
+                        cargarDatos();
+                    });
+                }
                 return;
             }
         }

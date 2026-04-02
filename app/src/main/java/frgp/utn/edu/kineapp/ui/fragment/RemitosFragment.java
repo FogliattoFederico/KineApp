@@ -190,8 +190,8 @@ public class RemitosFragment extends Fragment {
                 }
             }
             listaRemitos.sort((a, b) -> {
-                String numA = a.getNumeroRemito() != null ? a.getNumeroRemito() : "";
-                String numB = b.getNumeroRemito() != null ? b.getNumeroRemito() : "";
+                String numA = a.getPeriodoRemito() != null ? a.getPeriodoRemito() : "";
+                String numB = b.getPeriodoRemito() != null ? b.getPeriodoRemito() : "";
                 return numB.compareTo(numA);
             });
             actualizarVista();

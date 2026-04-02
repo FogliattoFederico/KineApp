@@ -44,7 +44,7 @@ public class RemitoAdapter extends RecyclerView.Adapter<RemitoAdapter.ViewHolder
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Remito remito = listaRemitos.get(position);
 
-        String periodo = remito.getNumeroRemito() != null ? remito.getNumeroRemito() : "S/N";
+        String periodo = remito.getPeriodoRemito() != null ? remito.getPeriodoRemito() : "S/N";
         
         if (remito.getFechaCreacion() != null) {
             Calendar cal = Calendar.getInstance();
@@ -96,7 +96,7 @@ public class RemitoAdapter extends RecyclerView.Adapter<RemitoAdapter.ViewHolder
             String query = texto.toLowerCase();
             for (Remito r : listaCompleta) {
                 boolean coincide = false;
-                if (r.getNumeroRemito() != null && r.getNumeroRemito().toLowerCase().contains(query)) {
+                if (r.getPeriodoRemito() != null && r.getPeriodoRemito().toLowerCase().contains(query)) {
                     coincide = true;
                 } else if (r.getOrdenes() != null) {
                     for (OrdenRemito orden : r.getOrdenes()) {

@@ -18,6 +18,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -75,15 +76,26 @@ public class FormularioRemitoActivity extends AppCompatActivity {
     private void cargarPacientesParaAutocomplete() {
         pacienteRepository.obtenerTodos().addOnSuccessListener(query -> {
             listaPacientes.clear();
-            List<String> nombres = new ArrayList<>();
             for (var doc : query.getDocuments()) {
                 Paciente p = doc.toObject(Paciente.class);
                 if (p != null) {
-                    p.setId(doc.getId());
-                    listaPacientes.add(p);
-                    nombres.add(p.getNombreCompleto());
+                    // FILTRO: Solo agregar si NO es particular
+                    if (!p.isParticular()) {
+                        p.setId(doc.getId());
+                        listaPacientes.add(p);
+                    }
                 }
             }
+
+            // Ordenar alfabéticamente por nombre completo
+            Collections.sort(listaPacientes, (p1, p2) -> 
+                p1.getNombreCompleto().compareToIgnoreCase(p2.getNombreCompleto()));
+
+            List<String> nombres = new ArrayList<>();
+            for (Paciente p : listaPacientes) {
+                nombres.add(p.getNombreCompleto());
+            }
+
             nombresPacientes = nombres.toArray(new String[0]);
             for (int i = 0; i < containerOrdenes.getChildCount(); i++) {
                 configurarAutocompletePaciente(containerOrdenes.getChildAt(i));
@@ -98,7 +110,7 @@ public class FormularioRemitoActivity extends AppCompatActivity {
                     remitoExistente = doc.toObject(Remito.class);
                     if (remitoExistente != null) {
                         remitoExistente.setId(doc.getId());
-                        etNumeroRemito.setText(remitoExistente.getNumeroRemito());
+                        etNumeroRemito.setText(remitoExistente.getPeriodoRemito());
                         
                         containerOrdenes.removeAllViews();
                         if (remitoExistente.getOrdenes() != null) {
@@ -268,10 +280,10 @@ public class FormularioRemitoActivity extends AppCompatActivity {
         if (remitoExistente != null) {
             remito = remitoExistente;
             remito.setOrdenes(ordenes);
-            remito.setNumeroRemito(numRemito);
+            remito.setPeriodoRemito(numRemito);
         } else {
             remito = new Remito(FirebaseAuth.getInstance().getUid(), ordenes);
-            remito.setNumeroRemito(numRemito);
+            remito.setPeriodoRemito(numRemito);
         }
 
         btnGuardarRemito.setEnabled(false);

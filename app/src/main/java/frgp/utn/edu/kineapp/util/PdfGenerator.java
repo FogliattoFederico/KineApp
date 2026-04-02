@@ -93,7 +93,7 @@ public class PdfGenerator {
         
         canvas.drawText("Lugar de atención: " + modalidad, 380, 175, paint);
         
-        String periodo = remito.getNumeroRemito() != null ? remito.getNumeroRemito() : "";
+        String periodo = remito.getPeriodoRemito() != null ? remito.getPeriodoRemito() : "";
         canvas.drawText("Quincena/Mes/Año: " + periodo, 30, 200, paint);
 
         // --- TABLA ---
@@ -168,7 +168,7 @@ public class PdfGenerator {
         canvas.drawText("Aclaración:", 400, footerY, paint);
 
         document.finishPage(page);
-        String fileName = "Remito_" + (remito.getNumeroRemito() != null ? remito.getNumeroRemito().replace("/", "_") : "sin_numero") + ".pdf";
+        String fileName = "Remito_" + (remito.getPeriodoRemito() != null ? remito.getPeriodoRemito().replace("/", "_") : "sin_numero") + ".pdf";
         File file = new File(context.getExternalFilesDir(null), fileName);
         try {
             document.writeTo(new FileOutputStream(file));
