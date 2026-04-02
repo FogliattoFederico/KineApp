@@ -8,7 +8,6 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
 import frgp.utn.edu.kineapp.R;
@@ -44,21 +43,9 @@ public class RemitoAdapter extends RecyclerView.Adapter<RemitoAdapter.ViewHolder
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Remito remito = listaRemitos.get(position);
 
+        // Ahora solo muestra el periodo tal cual viene (ej: "1ra quincena mayo")
         String periodo = remito.getPeriodoRemito() != null ? remito.getPeriodoRemito() : "S/N";
-        
-        if (remito.getFechaCreacion() != null) {
-            Calendar cal = Calendar.getInstance();
-            cal.setTime(remito.getFechaCreacion().toDate());
-            
-            String[] meses = {"Ene", "Feb", "Mar", "Abr", "May", "Jun", 
-                              "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"};
-            String mes = meses[cal.get(Calendar.MONTH)];
-            int anio = cal.get(Calendar.YEAR);
-            
-            holder.tvPeriodo.setText(String.format("%s (%s/%s)", periodo, mes, anio));
-        } else {
-            holder.tvPeriodo.setText(periodo);
-        }
+        holder.tvPeriodo.setText(periodo);
         
         int cantOrdenes = remito.getOrdenes() != null ? remito.getOrdenes().size() : 0;
         holder.tvCantidad.setText(cantOrdenes + (cantOrdenes == 1 ? " orden incluida" : " órdenes incluidas"));
