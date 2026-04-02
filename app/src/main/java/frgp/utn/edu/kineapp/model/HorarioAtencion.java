@@ -6,7 +6,7 @@ public class HorarioAtencion {
     private String fecha;      // "15/04/2026" — fecha específica
     private String horaInicio;
     private String horaFin;
-    private String observacion;
+    //private String observacion;
 
     public HorarioAtencion() {}
 
@@ -15,7 +15,7 @@ public class HorarioAtencion {
         this.dia = dia;
         this.horaInicio = horaInicio;
         this.horaFin = horaFin;
-        this.observacion = observacion;
+        //this.observacion = observacion;
     }
 
     public HorarioAtencion(String dia, String fecha, String horaInicio,
@@ -24,7 +24,7 @@ public class HorarioAtencion {
         this.fecha = fecha;
         this.horaInicio = horaInicio;
         this.horaFin = horaFin;
-        this.observacion = observacion;
+        //this.observacion = observacion;
     }
 
     public String getDia() { return dia; }
@@ -39,6 +39,6 @@ public class HorarioAtencion {
     public String getHoraFin() { return horaFin; }
     public void setHoraFin(String horaFin) { this.horaFin = horaFin; }
 
-    public String getObservacion() { return observacion; }
-    public void setObservacion(String observacion) { this.observacion = observacion; }
+    /*public String getObservacion() { return observacion; }
+    public void setObservacion(String observacion) { this.observacion = observacion; }*/
 }
