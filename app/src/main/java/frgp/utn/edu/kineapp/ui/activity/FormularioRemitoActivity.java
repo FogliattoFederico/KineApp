@@ -97,6 +97,8 @@ public class FormularioRemitoActivity extends AppCompatActivity {
             }
 
             nombresPacientes = nombres.toArray(new String[0]);
+            
+            // Actualizar todos los autocompletes existentes si los hubiera
             for (int i = 0; i < containerOrdenes.getChildCount(); i++) {
                 configurarAutocompletePaciente(containerOrdenes.getChildAt(i));
             }
@@ -140,6 +142,8 @@ public class FormularioRemitoActivity extends AppCompatActivity {
         ArrayAdapter<String> osAdapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_dropdown_item_1line, FormularioPacienteSimpleActivity.OBRAS_SOCIALES);
         etObraSocial.setAdapter(osAdapter);
+        etObraSocial.setThreshold(1);
+        etObraSocial.setOnClickListener(v -> etObraSocial.showDropDown());
 
         TextInputEditText etCant = view.findViewById(R.id.et_cant_sesiones);
         TextInputEditText etCodigo = view.findViewById(R.id.et_codigo_practica);
@@ -195,11 +199,18 @@ public class FormularioRemitoActivity extends AppCompatActivity {
         TextInputEditText etNroAfiliado = ordenView.findViewById(R.id.et_nro_afiliado);
         AutoCompleteTextView etOS = ordenView.findViewById(R.id.et_obra_social_nombre);
 
+        // Crear un nuevo adaptador cada vez para asegurar que el filtrado sea fresco
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_dropdown_item_1line, nombresPacientes);
         etPaciente.setAdapter(adapter);
-
-        etPaciente.setOnClickListener(v -> etPaciente.showDropDown());
+        
+        // Configuraciones críticas para que filtre igual que Obra Social
+        etPaciente.setThreshold(1); 
+        etPaciente.setOnClickListener(v -> {
+            if (etPaciente.getText().toString().isEmpty()) {
+                etPaciente.showDropDown();
+            }
+        });
 
         etPaciente.setOnItemClickListener((parent, view, position, id) -> {
             String seleccionado = (String) parent.getItemAtPosition(position);

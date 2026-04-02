@@ -7,6 +7,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +28,7 @@ public class RemitoAdapter extends RecyclerView.Adapter<RemitoAdapter.ViewHolder
     }
 
     public RemitoAdapter(List<Remito> listaRemitos, OnRemitoClickListener listener) {
-        this.listaRemitos = listaRemitos;
+        this.listaRemitos = new ArrayList<>(listaRemitos);
         this.listaCompleta = new ArrayList<>(listaRemitos);
         this.listener = listener;
     }
@@ -43,7 +44,6 @@ public class RemitoAdapter extends RecyclerView.Adapter<RemitoAdapter.ViewHolder
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Remito remito = listaRemitos.get(position);
 
-        // Ahora solo muestra el periodo tal cual viene (ej: "1ra quincena mayo")
         String periodo = remito.getPeriodoRemito() != null ? remito.getPeriodoRemito() : "S/N";
         holder.tvPeriodo.setText(periodo);
         
@@ -70,25 +70,25 @@ public class RemitoAdapter extends RecyclerView.Adapter<RemitoAdapter.ViewHolder
     }
 
     public void actualizar(List<Remito> nuevaLista) {
-        this.listaRemitos = nuevaLista;
         this.listaCompleta = new ArrayList<>(nuevaLista);
+        this.listaRemitos = new ArrayList<>(nuevaLista);
         notifyDataSetChanged();
     }
 
     public void filtrar(String texto) {
-        if (texto.isEmpty()) {
+        if (texto == null || texto.trim().isEmpty()) {
             listaRemitos = new ArrayList<>(listaCompleta);
         } else {
             List<Remito> filtrados = new ArrayList<>();
-            String query = texto.toLowerCase();
+            String query = normalizarTexto(texto);
             for (Remito r : listaCompleta) {
                 boolean coincide = false;
-                if (r.getPeriodoRemito() != null && r.getPeriodoRemito().toLowerCase().contains(query)) {
+                if (r.getPeriodoRemito() != null && normalizarTexto(r.getPeriodoRemito()).contains(query)) {
                     coincide = true;
                 } else if (r.getOrdenes() != null) {
                     for (OrdenRemito orden : r.getOrdenes()) {
                         if (orden.getPacienteNombreCompleto() != null && 
-                            orden.getPacienteNombreCompleto().toLowerCase().contains(query)) {
+                            normalizarTexto(orden.getPacienteNombreCompleto()).contains(query)) {
                             coincide = true;
                             break;
                         }
@@ -99,6 +99,12 @@ public class RemitoAdapter extends RecyclerView.Adapter<RemitoAdapter.ViewHolder
             listaRemitos = filtrados;
         }
         notifyDataSetChanged();
+    }
+
+    private String normalizarTexto(String texto) {
+        if (texto == null) return "";
+        return Normalizer.normalize(texto.toLowerCase(), Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
