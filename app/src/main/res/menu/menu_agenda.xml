@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
+    
+    <!-- determina que por defecto no se muestre a menos que 
+         el usuario haga algo con el menú -->
     <item
         android:id="@+id/action_perfil"
         android:title="Ver Perfil"
         app:showAsAction="never" />
+        
     <item
         android:id="@+id/action_logout"
         android:title="Cerrar sesión"

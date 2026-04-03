@@ -49,7 +49,8 @@
             android:layout_width="48dp"
             android:layout_height="48dp"
             app:icon="@android:drawable/ic_menu_save"
-            app:iconTint="@color/primary"
+            app:iconTint="#1565C0"
+            app:backgroundTint="#E3F2FD"
             android:tooltipText="Exportar PDF" />
 
     </LinearLayout>
