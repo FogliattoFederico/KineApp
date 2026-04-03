@@ -1,5 +1,6 @@
 package frgp.utn.edu.kineapp.ui.view;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Canvas;
@@ -10,6 +11,7 @@ import android.graphics.RectF;
 import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.animation.DecelerateInterpolator;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,6 +20,7 @@ public class SimplePieChartView extends View {
     private List<Entry> entries = new ArrayList<>();
     private Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private RectF rectF = new RectF();
+    private float animationSweep = 0f; // 0.0 a 1.0
 
     public static class Entry {
         public String label;
@@ -37,7 +40,18 @@ public class SimplePieChartView extends View {
 
     public void setEntries(List<Entry> entries) {
         this.entries = entries;
-        invalidate();
+        animateChart();
+    }
+
+    public void animateChart() {
+        ValueAnimator animator = ValueAnimator.ofFloat(0f, 1f);
+        animator.setDuration(1200);
+        animator.setInterpolator(new DecelerateInterpolator());
+        animator.addUpdateListener(animation -> {
+            animationSweep = (float) animation.getAnimatedValue();
+            invalidate();
+        });
+        animator.start();
     }
 
     @Override
@@ -64,7 +78,7 @@ public class SimplePieChartView extends View {
 
         // Espesor 3D
         for (Entry e : entries) {
-            float sweepAngle = (e.value / total) * 360f;
+            float sweepAngle = (e.value / total) * 360f * animationSweep;
             paint.setStyle(Paint.Style.FILL);
             paint.setColor(darkenColor(e.color, 0.6f));
             for (int i = 1; i <= depth; i++) {
@@ -77,7 +91,7 @@ public class SimplePieChartView extends View {
         // Cara Superior
         startAngle = -90;
         for (Entry e : entries) {
-            float sweepAngle = (e.value / total) * 360f;
+            float sweepAngle = (e.value / total) * 360f * animationSweep;
             int colorStart = e.color;
             int colorEnd = darkenColor(e.color, 0.85f);
             Shader shader = new LinearGradient(rectF.left, rectF.top, rectF.right, rectF.bottom, 
@@ -100,27 +114,29 @@ public class SimplePieChartView extends View {
         canvas.drawCircle(centerX, centerY, holeRadius, paint);
 
         // --- PORCENTAJES SOBRE LAS PORCIONES ---
-        paint.setColor(Color.WHITE);
-        paint.setTextSize(34f);
-        paint.setTypeface(android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD));
-        paint.setTextAlign(Paint.Align.CENTER);
-        
-        startAngle = -90;
-        for (Entry e : entries) {
-            float sweepAngle = (e.value / total) * 360f;
-            if (sweepAngle > 15) { // Solo mostrar si la porción es suficientemente grande
-                float middleAngle = startAngle + sweepAngle / 2;
-                double radians = Math.toRadians(middleAngle);
-                
-                // Calculamos la posición del texto (a una distancia intermedia entre el hueco y el borde)
-                float textRadius = holeRadius + (radius - holeRadius) / 2;
-                float tx = (float) (centerX + textRadius * Math.cos(radians));
-                float ty = (float) (centerY + textRadius * Math.sin(radians)) + 12f; // +12 para centrar verticalmente el texto
-                
-                String percentText = Math.round((e.value / total) * 100) + "%";
-                canvas.drawText(percentText, tx, ty, paint);
+        if (animationSweep > 0.8f) { // Solo mostrar cuando la animación esté terminando
+            paint.setColor(Color.WHITE);
+            paint.setTextSize(34f);
+            paint.setAlpha((int)((animationSweep - 0.8f) * 5 * 255)); // Fade in al final
+            paint.setTypeface(android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD));
+            paint.setTextAlign(Paint.Align.CENTER);
+            
+            startAngle = -90;
+            for (Entry e : entries) {
+                float sweepAngle = (e.value / total) * 360f * animationSweep;
+                if (sweepAngle > 15) { 
+                    float middleAngle = startAngle + sweepAngle / 2;
+                    double radians = Math.toRadians(middleAngle);
+                    float textRadius = holeRadius + (radius - holeRadius) / 2;
+                    float tx = (float) (centerX + textRadius * Math.cos(radians));
+                    float ty = (float) (centerY + textRadius * Math.sin(radians)) + 12f;
+                    
+                    String percentText = Math.round((e.value / total) * 100) + "%";
+                    canvas.drawText(percentText, tx, ty, paint);
+                }
+                startAngle += sweepAngle;
             }
-            startAngle += sweepAngle;
+            paint.setAlpha(255);
         }
 
         // --- LEYENDAS ---

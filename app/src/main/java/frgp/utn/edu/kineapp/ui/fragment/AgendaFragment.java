@@ -139,10 +139,11 @@ public class AgendaFragment extends Fragment {
         rvPacientes.setLayoutManager(new LinearLayoutManager(getContext()));
         //agrega un separador entre los items
         rvPacientes.addItemDecoration(
-                new DividerItemDecoration(getContext(), DividerItemDecoration.VERTICAL));
+                        new DividerItemDecoration(getContext(), DividerItemDecoration.VERTICAL));
         //Asignacion del adapter
         rvPacientes.setAdapter(adapter);
 
+        //CHIPS DE MODIALIDAD DE ATENCION
         btnToggleDomicilio.setOnClickListener(v -> {
             modalidadActual = "domicilio";
             actualizarToggle();
@@ -155,16 +156,18 @@ public class AgendaFragment extends Fragment {
             actualizarVista();
         });
 
-        view.findViewById(R.id.btn_dia_anterior).setOnClickListener(v -> {
+        //BOTONES DE DIA ANTERIOR Y SIGUIENTE
+        view.findViewById(R.id.btn_semana_anterior).setOnClickListener(v -> {
             fechaActual.add(Calendar.DAY_OF_MONTH, -7);
             actualizarVista();
         });
 
-        view.findViewById(R.id.btn_dia_siguiente).setOnClickListener(v -> {
+        view.findViewById(R.id.btn_semana_siguiente).setOnClickListener(v -> {
             fechaActual.add(Calendar.DAY_OF_MONTH, 7);
             actualizarVista();
         });
 
+        //BOTON AGREGAR TURNO
         FloatingActionButton fab = view.findViewById(R.id.fab_nuevo_paciente);
         fab.setOnClickListener(v ->
                 startActivity(new Intent(getContext(), FormularioPacienteActivity.class))
@@ -174,13 +177,19 @@ public class AgendaFragment extends Fragment {
     }
 
     private void configurarModalidadesSegunPerfil() {
+        //Validacion de usuario logueado
         if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
+        //Se trae los datos del usuario
         FirebaseFirestore.getInstance().collection("usuarios").document(uid)
                 .get()
                 .addOnSuccessListener(doc -> {
                     Context context = getContext();
+                    //Si el usuario cerró la app o cambió de pantalla mientras
+                    // los datos cargaban, el código se detiene para evitar un "crash"
+                    //IsAdded verifica si el fragmento está cargado y context devuelve null si
+                    // el fragmento no está cargado
                     if (!isAdded() || context == null) return;
                     
                     String plan = doc.getString("plan");
