@@ -1,6 +1,7 @@
 package frgp.utn.edu.kineapp.repository;
 
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -20,22 +21,20 @@ public class FacturaRepository {
     }
 
     public Task<Void> guardar(Factura factura) {
-        // VITAL: Asignar siempre el dueño del dato
         factura.setUidKinesiologo(uid);
-        
         if (factura.getId() == null || factura.getId().isEmpty()) {
-            // Si es nueva, generamos ID
             String id = coleccion.document().getId();
             factura.setId(id);
         }
-        
-        // Usamos el ID de la factura (sea nuevo o existente) para no duplicar
         return coleccion.document(factura.getId()).set(factura);
     }
 
-    public Task<Void> actualizarCobrada(String id, boolean cobrada) {
-        // Al usar update, Firebase mantiene el uidKinesiologo existente, por lo que las reglas permiten el cambio
-        return coleccion.document(id).update("cobrada", cobrada);
+    public Task<Void> actualizarCobrada(String id, boolean cobrada, Timestamp fechaPago) {
+        if (cobrada) {
+            return coleccion.document(id).update("cobrada", true, "fechaPago", fechaPago);
+        } else {
+            return coleccion.document(id).update("cobrada", false, "fechaPago", null);
+        }
     }
 
     public Task<Void> eliminar(String id) {

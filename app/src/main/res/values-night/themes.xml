@@ -5,4 +5,31 @@
         <item name="colorOnPrimary">#0D47A1</item>
         <item name="android:windowBackground">@color/background</item>
     </style>
+
+    <!-- Estilo para Diálogos Comunes (Modo Noche) -->
+    <style name="CustomDialogTheme" parent="Theme.MaterialComponents.DayNight.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/bg_dialog_rounded</item>
+        <item name="colorPrimary">#90CAF9</item>
+        <item name="colorAccent">#FFFFFF</item>
+        <item name="android:buttonBarPositiveButtonStyle">@style/DialogButtonStyle.Night</item>
+        <item name="android:buttonBarNegativeButtonStyle">@style/DialogButtonStyle.Night</item>
+    </style>
+
+    <!-- Estilo específico para Calendarios (Modo Noche) -->
+    <style name="CustomDatePickerTheme" parent="Theme.MaterialComponents.DayNight.Dialog">
+        <item name="colorPrimary">#1565C0</item>
+        <item name="colorAccent">#FFFFFF</item>
+        <item name="android:windowBackground">@drawable/bg_dialog_rounded</item>
+        <item name="android:buttonBarPositiveButtonStyle">@style/DialogButtonStyle.Night</item>
+        <item name="android:buttonBarNegativeButtonStyle">@style/DialogButtonStyle.Night</item>
+    </style>
+
+    <style name="DialogButtonStyle.Night" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="ShapeAppearance.App.LargeComponent" parent="ShapeAppearance.MaterialComponents.LargeComponent">
+        <item name="cornerSize">24dp</item>
+    </style>
 </resources>

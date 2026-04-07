@@ -102,8 +102,8 @@ public class FacturasEmitidasFragment extends Fragment {
             public void onLongClick(Factura factura) {
                 verificarYConfirmarEliminacion(factura);
             }
-        }, (factura, cobrada) -> {
-            repository.actualizarCobrada(factura.getId(), cobrada)
+        }, (factura, cobrada, fechaPago) -> {
+            repository.actualizarCobrada(factura.getId(), cobrada, fechaPago)
                     .addOnSuccessListener(unused -> cargarFacturas());
         });
 
@@ -138,7 +138,7 @@ public class FacturasEmitidasFragment extends Fragment {
         yearPicker.setMaxValue(currentYear + 1);
         yearPicker.setValue(anioSeleccionado);
 
-        new AlertDialog.Builder(getContext())
+        new AlertDialog.Builder(getContext(), R.style.CustomDialogTheme)
                 .setTitle("Seleccionar Período")
                 .setView(dialogView)
                 .setPositiveButton("Aceptar", (dialog, which) -> {
@@ -178,7 +178,7 @@ public class FacturasEmitidasFragment extends Fragment {
             mensaje = "ATENCIÓN: Esta factura está asociada a un PAGO (liquidación). Si la eliminás, el pago se desvinculará y volverá a quedar pendiente de facturar. ¿Deseás continuar?";
         }
 
-        new AlertDialog.Builder(getContext())
+        new AlertDialog.Builder(getContext(), R.style.CustomDialogTheme)
                 .setTitle("Eliminar factura")
                 .setMessage(mensaje)
                 .setPositiveButton("Eliminar", (dialog, which) -> {
@@ -361,7 +361,7 @@ public class FacturasEmitidasFragment extends Fragment {
             }
         }
 
-        AlertDialog dialog = new AlertDialog.Builder(getContext()).setView(dialogView).setCancelable(true).create();
+        AlertDialog dialog = new AlertDialog.Builder(getContext(), R.style.CustomDialogTheme).setView(dialogView).setCancelable(true).create();
         btnCancelar.setOnClickListener(v -> dialog.dismiss());
         btnGuardar.setOnClickListener(v -> {
             String tipo = etTipo.getText().toString().trim();

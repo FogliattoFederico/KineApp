@@ -57,6 +57,16 @@
                 android:layout_marginTop="2dp" />
 
             <TextView
+                android:id="@+id/tv_fecha_pago"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#2E7D32"
+                android:layout_marginTop="2dp"
+                android:visibility="gone" />
+
+            <TextView
                 android:id="@+id/tv_importe"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
