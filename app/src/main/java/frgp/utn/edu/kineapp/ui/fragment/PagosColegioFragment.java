@@ -89,7 +89,7 @@ public class PagosColegioFragment extends Fragment {
         adapter = new LiquidacionAdapter(listaLiquidaciones, new LiquidacionAdapter.OnLiquidacionClickListener() {
             @Override
             public void onDelete(LiquidacionColegio liq) {
-                new AlertDialog.Builder(getContext())
+                new AlertDialog.Builder(getContext(), R.style.CustomDialogTheme)
                         .setTitle("Eliminar liquidación")
                         .setMessage("¿Deseás borrar este registro definitivamente?")
                         .setPositiveButton("Eliminar", (d, w) -> {
@@ -104,7 +104,7 @@ public class PagosColegioFragment extends Fragment {
             @Override
             public void onMarkAsFacturada(LiquidacionColegio liq) {
                 if (liq.isFacturada()) {
-                    new AlertDialog.Builder(getContext())
+                    new AlertDialog.Builder(getContext(), R.style.CustomDialogTheme)
                             .setTitle("Mover a pendientes")
                             .setMessage("¿Deseás quitar la factura vinculada y volver esta liquidación a estado pendiente?")
                             .setPositiveButton("Quitar Factura", (d, w) -> {
@@ -143,7 +143,7 @@ public class PagosColegioFragment extends Fragment {
                                 sdf.format(f.getFecha().toDate()), f.getImporte());
                         }
 
-                        new AlertDialog.Builder(getContext())
+                        new AlertDialog.Builder(getContext(), R.style.CustomDialogTheme)
                             .setTitle("Vincular Factura de Cobro")
                             .setItems(items, (dialog, which) -> {
                                 Factura seleccionada = facturasColegio.get(which);
@@ -210,7 +210,7 @@ public class PagosColegioFragment extends Fragment {
         yearPicker.setMaxValue(currentYear + 1);
         yearPicker.setValue(anioSeleccionado);
 
-        new AlertDialog.Builder(getContext())
+        new AlertDialog.Builder(getContext(), R.style.CustomDialogTheme)
                 .setTitle("Seleccionar Período")
                 .setView(dialogView)
                 .setPositiveButton("Aceptar", (dialog, which) -> {
@@ -370,7 +370,7 @@ public class PagosColegioFragment extends Fragment {
                         o.getCodigoPractica() != null ? o.getCodigoPractica() : "-");
                 checkedItems[i] = ordenesSeleccionadas.stream().anyMatch(os -> os.getId().equals(o.getId()));
             }
-            new AlertDialog.Builder(getContext()).setTitle("Vincular Órdenes Oficiales")
+            new AlertDialog.Builder(getContext(), R.style.CustomDialogTheme).setTitle("Vincular Órdenes Oficiales")
                     .setMultiChoiceItems(items, checkedItems, (dialog, which, isChecked) -> {
                         OrdenRemito o = listaOrdenesDisponibles.get(which);
                         if (isChecked) { 
@@ -383,7 +383,7 @@ public class PagosColegioFragment extends Fragment {
                     }).show();
         });
 
-        AlertDialog dialog = new AlertDialog.Builder(getContext())
+        AlertDialog dialog = new AlertDialog.Builder(getContext(), R.style.CustomDialogTheme)
                 .setTitle(liqExistente == null ? "Nueva Liquidación Pendiente" : "Editar Liquidación")
                 .setView(dialogView)
                 .setPositiveButton(liqExistente == null ? "Agregar" : "Guardar", null)

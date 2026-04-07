@@ -184,7 +184,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
                                                 && (turno.sesionesTotales - turno.sesionesAtendidas) <= 0;
                                                 
                 if (haySesionesExcedidas && turno.sesionesTotales > 0) {
-                    new AlertDialog.Builder(v.getContext())
+                    new AlertDialog.Builder(v.getContext(), R.style.CustomDialogTheme)
                             .setTitle("Sesiones finalizadas")
                             .setMessage(turno.nombrePaciente + " ya completó sus sesiones autorizadas.")
                             .setPositiveButton("Registrar igual", (d, w) -> mostrarDialogoRegistroSesion(holder, turno))
@@ -211,7 +211,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
     }
 
     private void mostrarConfirmacionEliminar(android.content.Context context, Turno turno) {
-        new AlertDialog.Builder(context)
+        new AlertDialog.Builder(context, R.style.CustomDialogTheme)
                 .setTitle("Eliminar turno")
                 .setMessage("¿Estás seguro que deseás eliminar este turno de la agenda?")
                 .setPositiveButton("Eliminar", (dialog, which) -> eliminarTurno(context, turno))

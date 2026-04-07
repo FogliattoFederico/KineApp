@@ -215,7 +215,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             nombres[i] = resultados.get(i).getNombreCompleto() + " (DNI: " + resultados.get(i).getDni() + ")";
         }
 
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(this, R.style.CustomDialogTheme)
                 .setTitle("Seleccioná un paciente")
                 .setItems(nombres, (dialog, which) -> seleccionarPaciente(resultados.get(which)))
                 .setNegativeButton("Cancelar", null)
@@ -617,7 +617,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
                 ? "¿Deseás enviar la reprogramación por WhatsApp al paciente?" 
                 : "¿Deseás enviar una notificación por WhatsApp al paciente?";
 
-        new AlertDialog.Builder(this)
+        new AlertDialog.Builder(this, R.style.CustomDialogTheme)
                 .setTitle(titulo)
                 .setMessage(mensajePregunta)
                 .setPositiveButton("Enviar", (dialog, which) -> {
