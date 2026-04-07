@@ -1,5 +1,6 @@
 package frgp.utn.edu.kineapp.adapter;
 
+import android.app.DatePickerDialog;
 import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -8,9 +9,13 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.firebase.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -25,7 +30,7 @@ public class FacturaAdapter extends RecyclerView.Adapter<FacturaAdapter.ViewHold
     }
 
     public interface OnCobradaChangeListener {
-        void onChange(Factura factura, boolean cobrada);
+        void onChange(Factura factura, boolean cobrada, Timestamp fechaPago);
     }
 
     private List<Factura> facturas;
@@ -62,6 +67,13 @@ public class FacturaAdapter extends RecyclerView.Adapter<FacturaAdapter.ViewHold
             holder.tvFecha.setText("Emisión: " + sdf.format(factura.getFecha().toDate()));
         }
 
+        if (factura.isCobrada() && factura.getFechaPago() != null) {
+            holder.tvFechaPago.setText("Pagado el: " + sdf.format(factura.getFechaPago().toDate()));
+            holder.tvFechaPago.setVisibility(View.VISIBLE);
+        } else {
+            holder.tvFechaPago.setVisibility(View.GONE);
+        }
+
         if (factura.getDescripcion() != null && !factura.getDescripcion().isEmpty()) {
             holder.tvDescripcion.setText(factura.getDescripcion());
             holder.tvDescripcion.setVisibility(View.VISIBLE);
@@ -72,11 +84,36 @@ public class FacturaAdapter extends RecyclerView.Adapter<FacturaAdapter.ViewHold
         actualizarEstado(holder, factura.isCobrada());
 
         holder.ivCobrada.setOnClickListener(v -> {
-            boolean nuevoCobrada = !factura.isCobrada();
-            factura.setCobrada(nuevoCobrada);
-            actualizarEstado(holder, nuevoCobrada);
-            if (cobradaListener != null)
-                cobradaListener.onChange(factura, nuevoCobrada);
+            if (!factura.isCobrada()) {
+                // Seleccionar fecha de pago
+                Calendar cal = Calendar.getInstance();
+                new DatePickerDialog(v.getContext(), R.style.CustomDatePickerTheme, (view, year, month, day) -> {
+                    Calendar selected = Calendar.getInstance();
+                    selected.set(year, month, day);
+                    Timestamp timestampPago = new Timestamp(selected.getTime());
+                    
+                    factura.setCobrada(true);
+                    factura.setFechaPago(timestampPago);
+                    actualizarEstado(holder, true);
+                    
+                    if (cobradaListener != null)
+                        cobradaListener.onChange(factura, true, timestampPago);
+                        
+                }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show();
+            } else {
+                // Desmarcar pagada
+                new AlertDialog.Builder(v.getContext(), R.style.CustomDialogTheme)
+                        .setTitle("Quitar pago")
+                        .setMessage("¿Deseás marcar esta factura como NO cobrada?")
+                        .setPositiveButton("Sí", (dialog, which) -> {
+                            factura.setCobrada(false);
+                            factura.setFechaPago(null);
+                            actualizarEstado(holder, false);
+                            if (cobradaListener != null)
+                                cobradaListener.onChange(factura, false, null);
+                        })
+                        .setNegativeButton("No", null).show();
+            }
         });
 
         holder.layoutFactura.setOnClickListener(v -> {
@@ -92,7 +129,6 @@ public class FacturaAdapter extends RecyclerView.Adapter<FacturaAdapter.ViewHold
     private void actualizarEstado(ViewHolder holder, boolean cobrada) {
         if (cobrada) {
             holder.ivCobrada.setImageResource(R.drawable.ic_checkbox_checked);
-            // Usamos el color semántico que definimos antes para la agenda
             holder.layoutFactura.setBackgroundColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.color_atendido));
         } else {
             holder.ivCobrada.setImageResource(R.drawable.ic_checkbox_unchecked);
@@ -111,7 +147,7 @@ public class FacturaAdapter extends RecyclerView.Adapter<FacturaAdapter.ViewHold
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView tvTipoNumero, tvObraSocial, tvImporte, tvFecha, tvDescripcion;
+        TextView tvTipoNumero, tvObraSocial, tvImporte, tvFecha, tvDescripcion, tvFechaPago;
         ImageView ivCobrada;
         LinearLayout layoutFactura;
 
@@ -121,6 +157,7 @@ public class FacturaAdapter extends RecyclerView.Adapter<FacturaAdapter.ViewHold
             tvObraSocial = v.findViewById(R.id.tv_obra_social_factura);
             tvImporte = v.findViewById(R.id.tv_importe);
             tvFecha = v.findViewById(R.id.tv_fecha_factura);
+            tvFechaPago = v.findViewById(R.id.tv_fecha_pago);
             tvDescripcion = v.findViewById(R.id.tv_descripcion_factura);
             ivCobrada = v.findViewById(R.id.iv_cobrada);
             layoutFactura = v.findViewById(R.id.layout_factura);

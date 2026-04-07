@@ -102,8 +102,8 @@ public class FacturasEmitidasFragment extends Fragment {
             public void onLongClick(Factura factura) {
                 verificarYConfirmarEliminacion(factura);
             }
-        }, (factura, cobrada) -> {
-            repository.actualizarCobrada(factura.getId(), cobrada)
+        }, (factura, cobrada, fechaPago) -> {
+            repository.actualizarCobrada(factura.getId(), cobrada, fechaPago)
                     .addOnSuccessListener(unused -> cargarFacturas());
         });
 

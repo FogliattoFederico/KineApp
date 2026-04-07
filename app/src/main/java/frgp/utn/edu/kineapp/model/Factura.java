@@ -10,6 +10,7 @@ public class Factura {
     private Timestamp fecha;
     private double importe;
     private boolean cobrada;
+    private Timestamp fechaPago; // Nueva fecha de pago
     private String obraSocial;
     private String uidKinesiologo;
     private String descripcion;
@@ -44,6 +45,9 @@ public class Factura {
 
     public boolean isCobrada() { return cobrada; }
     public void setCobrada(boolean cobrada) { this.cobrada = cobrada; }
+
+    public Timestamp getFechaPago() { return fechaPago; }
+    public void setFechaPago(Timestamp fechaPago) { this.fechaPago = fechaPago; }
 
     public String getObraSocial() { return obraSocial; }
     public void setObraSocial(String obraSocial) { this.obraSocial = obraSocial; }
