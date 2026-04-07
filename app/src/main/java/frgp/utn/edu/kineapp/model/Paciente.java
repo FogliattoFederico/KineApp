@@ -105,7 +105,7 @@ public class Paciente {
 
     @Exclude
     public String getNombreCompleto() {
-        return nombre + " " + apellido;
+        return apellido + ", " + nombre;
     }
 
     public int getSesionesSemanales() { return sesionesSemanales; }
