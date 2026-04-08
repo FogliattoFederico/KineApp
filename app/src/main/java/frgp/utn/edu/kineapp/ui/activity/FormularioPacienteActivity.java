@@ -654,11 +654,17 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             }
 
             if (professionalNombre != null && !professionalNombre.isEmpty()) {
-                msj.append("Atiende: ").append(professionalNombre).append("\n");
+                msj.append("Profesional: ").append(professionalNombre).append("\n");
             }
 
-            msj.append("\n⚠️ *Por favor, avisame con anticipación si no podés asistir.*");
-            msj.append("\n\nTe esperamos!");
+            if ("consultorio".equals(modal) && professionalDireccionConsultorio != null && !professionalDireccionConsultorio.isEmpty()) {
+                msj.append("\n⚠️ *Por favor, avisame con anticipación si no podés asistir.*");
+                msj.append("\n\nTe esperamos!");
+            }else{
+                msj.append("\n⚠️ *Por favor, avisame con anticipación si no estaras en el domicilio.*");
+                msj.append("\n\nTe esperamos!");
+            }
+
 
             String tel = paciente.getTelefono().replaceAll("[^0-9]", "");
             if (!tel.startsWith("54")) {
