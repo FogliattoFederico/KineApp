@@ -160,7 +160,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
         findViewById(R.id.label_sesiones).setVisibility(View.GONE);
         findViewById(R.id.tv_sesiones).setVisibility(View.GONE);
         
-        // Ocultar campos de periodo por defecto
         findViewById(R.id.divider_periodo).setVisibility(View.GONE);
         findViewById(R.id.label_periodo).setVisibility(View.GONE);
         findViewById(R.id.tv_periodo_autorizado).setVisibility(View.GONE);
@@ -180,7 +179,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
             ((TextView) findViewById(R.id.label_sesiones)).setText("SESIONES SEMANALES");
             mostrarCampo(R.id.tv_sesiones, String.valueOf(paciente.getSesionesSemanales()));
             
-            // Mostrar Periodo Autorizado para CUD
             if (paciente.getFechaInicioPeriodo() != null && paciente.getFechaFinPeriodo() != null) {
                 setVisible(R.id.divider_periodo, R.id.label_periodo, R.id.tv_periodo_autorizado);
                 mostrarCampo(R.id.tv_periodo_autorizado, paciente.getFechaInicioPeriodo() + " al " + paciente.getFechaFinPeriodo());
@@ -304,7 +302,8 @@ public class DetallePacienteActivity extends AppCompatActivity {
                     paciente.getHorarios().remove(index);
                     batch.update(db.collection("pacientes").document(pacienteId), "horarios", paciente.getHorarios());
                     
-                    if (huboAtencion[0] && !paciente.isCertificadoDiscapacidad()) {
+                    // SEGURIDAD: Solo decrementar si el valor actual es mayor a 0
+                    if (huboAtencion[0] && !paciente.isCertificadoDiscapacidad() && paciente.getSesionesAtendidas() > 0) {
                         batch.update(db.collection("pacientes").document(pacienteId), "sesionesAtendidas", FieldValue.increment(-1));
                     }
 
@@ -376,7 +375,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
                         
                         String info = a.getTipoCobertura() != null ? a.getTipoCobertura().trim() : "";
                         if (a.getSesionNumero() > 0) {
-                            // Usamos el total que se grabó en el momento de la atención para el historial
                             info += " · Sesión " + a.getSesionNumero() + "/" + a.getSesionesTotal();
                         }
                         tvInfo.setText(info);
@@ -422,7 +420,8 @@ public class DetallePacienteActivity extends AppCompatActivity {
                 .setMessage("¿Deseás eliminar la atención del día " + fechaStr + "?\nSe restará una sesión del contador.")
                 .setPositiveButton("Eliminar", (dialog, which) -> {
                     new AtencionRepository().eliminar(a.getId()).addOnSuccessListener(v -> {
-                        if (!paciente.isCertificadoDiscapacidad()) {
+                        // SEGURIDAD: Solo decrementar si el valor actual es mayor a 0
+                        if (!paciente.isCertificadoDiscapacidad() && paciente.getSesionesAtendidas() > 0) {
                             FirebaseFirestore.getInstance().collection("pacientes").document(pacienteId)
                                     .update("sesionesAtendidas", FieldValue.increment(-1))
                                     .addOnSuccessListener(u -> cargarPaciente());

@@ -354,10 +354,13 @@ public class AgendaFragment extends Fragment {
                         for (int i = 0; i < p.getHorarios().size(); i++) {
                             HorarioAtencion h = p.getHorarios().get(i);
                             boolean coincide;
+                            String fechaTurno;
                             if (h.getFecha() != null && !h.getFecha().isEmpty()) {
                                 coincide = h.getFecha().equals(fechaSeleccionada);
+                                fechaTurno = h.getFecha();
                             } else {
                                 coincide = normalizarTexto(nombreDia).equalsIgnoreCase(normalizarTexto(h.getDia()));
+                                fechaTurno = fechaSeleccionada;
                             }
 
                             if (coincide) {
@@ -369,6 +372,7 @@ public class AgendaFragment extends Fragment {
                                 listaTurnos.add(new TurnoAdapter.Turno(
                                         h.getHoraInicio(),
                                         h.getHoraFin(),
+                                        fechaTurno, // ASIGNAMOS LA FECHA REAL DEL TURNO
                                         p.getNombreCompleto(),
                                         p.getDiagnostico(),
                                         p.getObraSocial(),

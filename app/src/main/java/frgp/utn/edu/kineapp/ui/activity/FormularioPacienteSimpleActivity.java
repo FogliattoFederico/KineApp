@@ -237,27 +237,27 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
     }
 
     private void guardarPaciente() {
-        String nombre = etNombre.getText().toString().trim();
-        String apellido = etApellido.getText().toString().trim();
-        String dni = etDni.getText().toString().trim();
-        String telefono = etTelefono.getText().toString().trim();
-        String direccion = etDireccion.getText().toString().trim();
-        String fechaNac = etFechaNacimiento.getText().toString().trim();
-        String emailPaciente = etEmailPaciente.getText().toString().trim();
-        String diagnostico = etDiagnostico.getText().toString().trim();
-        String observaciones = etObservaciones.getText().toString().trim();
-        boolean tieneOS = switchObraSocial.isChecked();
-        boolean tieneCud = switchCud.isChecked();
-        String obraSocial = tieneOS ? etObraSocial.getText().toString().trim() : "";
-        String numeroAfiliado = tieneOS ? etNumeroAfiliado.getText().toString().trim() : "";
-        String edadStr = etEdad.getText().toString().trim();
-        int edad = edadStr.isEmpty() ? 0 : Integer.parseInt(edadStr);
+        final String nombre = etNombre.getText().toString().trim();
+        final String apellido = etApellido.getText().toString().trim();
+        final String dni = etDni.getText().toString().trim();
+        final String telefono = etTelefono.getText().toString().trim();
+        final String direccion = etDireccion.getText().toString().trim();
+        final String fechaNac = etFechaNacimiento.getText().toString().trim();
+        final String emailPaciente = etEmailPaciente.getText().toString().trim();
+        final String diagnostico = etDiagnostico.getText().toString().trim();
+        final String observaciones = etObservaciones.getText().toString().trim();
+        final boolean tieneOS = switchObraSocial.isChecked();
+        final boolean tieneCud = switchCud.isChecked();
+        final String obraSocial = tieneOS ? etObraSocial.getText().toString().trim() : "";
+        final String numeroAfiliado = tieneOS ? etNumeroAfiliado.getText().toString().trim() : "";
+        final String edadStr = etEdad.getText().toString().trim();
+        final int edad = edadStr.isEmpty() ? 0 : Integer.parseInt(edadStr);
 
-        String sesionesSemStr = etSesionesSemanales.getText().toString().trim();
-        String sesionesTotStr = etSesionesOrden.getText().toString().trim();
-        String valorSesionStr = etValorSesion.getText().toString().trim();
-        String fechaInicio = etFechaInicioPeriodo.getText().toString().trim();
-        String fechaFin = etFechaFinPeriodo.getText().toString().trim();
+        final String sesionesSemStr = etSesionesSemanales.getText().toString().trim();
+        final String sesionesTotStr = etSesionesOrden.getText().toString().trim();
+        final String valorSesionStr = etValorSesion.getText().toString().trim();
+        final String fechaInicio = etFechaInicioPeriodo.getText().toString().trim();
+        final String fechaFin = etFechaFinPeriodo.getText().toString().trim();
 
         if (nombre.isEmpty()) { etNombre.setError("Requerido"); etNombre.requestFocus(); return; }
         if (apellido.isEmpty()) { etApellido.setError("Requerido"); etApellido.requestFocus(); return; }
@@ -268,62 +268,46 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         if (emailPaciente.isEmpty()) { etEmailPaciente.setError("Requerido"); etEmailPaciente.requestFocus(); return; }
         
         if (tieneCud && sesionesSemStr.isEmpty()) {
-            etSesionesSemanales.setError("Requerido");
-            etSesionesSemanales.requestFocus();
-            return;
+            etSesionesSemanales.setError("Requerido"); etSesionesSemanales.requestFocus(); return;
         }
         if (!tieneCud && sesionesTotStr.isEmpty()) {
-            etSesionesOrden.setError("Requerido");
-            etSesionesOrden.requestFocus();
-            return;
+            etSesionesOrden.setError("Requerido"); etSesionesOrden.requestFocus(); return;
         }
 
         if (tieneCud) {
             if (fechaInicio.isEmpty()) {
-                etFechaInicioPeriodo.setError("Requerido");
-                etFechaInicioPeriodo.requestFocus();
-                return;
+                etFechaInicioPeriodo.setError("Requerido"); etFechaInicioPeriodo.requestFocus(); return;
             }
             if (fechaFin.isEmpty()) {
-                etFechaFinPeriodo.setError("Requerido");
-                etFechaFinPeriodo.requestFocus();
-                return;
+                etFechaFinPeriodo.setError("Requerido"); etFechaFinPeriodo.requestFocus(); return;
             }
-
             try {
                 SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
                 Date start = sdf.parse(fechaInicio);
                 Date end = sdf.parse(fechaFin);
                 if (start != null && end != null && end.before(start)) {
                     etFechaFinPeriodo.setError("No puede ser anterior al inicio");
-                    etFechaFinPeriodo.requestFocus();
-                    Toast.makeText(this, "La fecha de fin no puede ser anterior a la de inicio", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Fecha de fin inválida", Toast.LENGTH_SHORT).show();
                     return;
                 }
             } catch (Exception ignored) {}
         }
 
         if (!android.util.Patterns.EMAIL_ADDRESS.matcher(emailPaciente).matches()) {
-            etEmailPaciente.setError("Email inválido");
-            etEmailPaciente.requestFocus();
-            return;
+            etEmailPaciente.setError("Email inválido"); return;
         }
         if (tieneOS && obraSocial.isEmpty()) {
-            etObraSocial.setError("Seleccioná una obra social");
-            etObraSocial.requestFocus();
-            return;
+            etObraSocial.setError("Seleccioná una obra social"); return;
         }
         if (tieneOS && numeroAfiliado.isEmpty()) {
-            etNumeroAfiliado.setError("Requerido");
-            etNumeroAfiliado.requestFocus();
-            return;
+            etNumeroAfiliado.setError("Requerido"); return;
         }
 
         final int sesSem = tieneCud ? Integer.parseInt(sesionesSemStr) : 0;
         final int sesTot = !tieneCud ? Integer.parseInt(sesionesTotStr) : 0;
         final double valorSesion = (!tieneOS && !valorSesionStr.isEmpty()) ? Double.parseDouble(valorSesionStr) : 0.0;
 
-        // --- LÓGICA DE RENOVACIÓN AL EDITAR ---
+        // LÓGICA DE RENOVACIÓN AL EDITAR
         if (pacienteExistente != null) {
             boolean cambioSesiones = tieneCud 
                 ? (sesSem != pacienteExistente.getSesionesSemanales())
@@ -332,7 +316,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
             if (cambioSesiones) {
                 new AlertDialog.Builder(this)
                         .setTitle("Renovación de Sesiones")
-                        .setMessage("Detectamos un cambio en la cantidad de sesiones. ¿Deseás resetear el contador de sesiones atendidas a cero?")
+                        .setMessage("Detectamos un cambio en las sesiones totales. ¿Deseás resetear el contador de sesiones atendidas a cero para iniciar un nuevo ciclo?")
                         .setPositiveButton("Sí, renovar", (dialog, which) -> {
                             pacienteExistente.setSesionesAtendidas(0);
                             procederConGuardado(nombre, apellido, dni, telefono, direccion, fechaNac, emailPaciente, diagnostico, observaciones, obraSocial, numeroAfiliado, edad, tieneCud, tieneOS, sesSem, sesTot, valorSesion, fechaInicio, fechaFin);
@@ -340,6 +324,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
                         .setNegativeButton("No, solo corregir", (dialog, which) -> {
                             procederConGuardado(nombre, apellido, dni, telefono, direccion, fechaNac, emailPaciente, diagnostico, observaciones, obraSocial, numeroAfiliado, edad, tieneCud, tieneOS, sesSem, sesTot, valorSesion, fechaInicio, fechaFin);
                         })
+                        .setCancelable(false)
                         .show();
                 return;
             }
@@ -353,7 +338,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
              repository.buscarPorDni(dni)
                     .addOnSuccessListener(query -> {
                         if (!query.isEmpty()) {
-                            Toast.makeText(this, "Ya existe un paciente con ese DNI", Toast.LENGTH_LONG).show();
+                            Toast.makeText(this, "DNI ya registrado", Toast.LENGTH_LONG).show();
                             return;
                         }
                         Paciente nuevo = new Paciente(nombre, apellido, dni, telefono, direccion, diagnostico, obraSocial, numeroAfiliado, tieneCud, null);
