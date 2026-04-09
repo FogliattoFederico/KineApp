@@ -2,6 +2,7 @@ package frgp.utn.edu.kineapp.ui.activity;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
@@ -38,6 +39,7 @@ public class DetallePacienteActivity extends AppCompatActivity {
     private Paciente paciente;
     private String pacienteId;
     private boolean modoTurno = false;
+    private ImageView btnAbrirMaps;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +69,24 @@ public class DetallePacienteActivity extends AppCompatActivity {
         tvBadgeModalidad = findViewById(R.id.tv_badge_modalidad);
         containerHorarios = findViewById(R.id.container_horarios);
         containerHistorial = findViewById(R.id.container_historial);
+        btnAbrirMaps = findViewById(R.id.btn_abrir_maps);
+
+        if (btnAbrirMaps != null) {
+            btnAbrirMaps.setOnClickListener(v -> {
+                if (paciente != null && paciente.getDireccion() != null && !paciente.getDireccion().isEmpty()) {
+                    Uri gmmIntentUri = Uri.parse("geo:0,0?q=" + Uri.encode(paciente.getDireccion()));
+                    Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
+                    mapIntent.setPackage("com.google.android.apps.maps");
+                    if (mapIntent.resolveActivity(getPackageManager()) != null) {
+                        startActivity(mapIntent);
+                    } else {
+                        startActivity(new Intent(Intent.ACTION_VIEW, gmmIntentUri));
+                    }
+                } else {
+                    Toast.makeText(this, "El paciente no tiene una dirección cargada", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
 
         cargarPaciente();
     }
@@ -302,7 +322,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
                     paciente.getHorarios().remove(index);
                     batch.update(db.collection("pacientes").document(pacienteId), "horarios", paciente.getHorarios());
                     
-                    // SEGURIDAD: Solo decrementar si el valor actual es mayor a 0
                     if (huboAtencion[0] && !paciente.isCertificadoDiscapacidad() && paciente.getSesionesAtendidas() > 0) {
                         batch.update(db.collection("pacientes").document(pacienteId), "sesionesAtendidas", FieldValue.increment(-1));
                     }
@@ -420,7 +439,6 @@ public class DetallePacienteActivity extends AppCompatActivity {
                 .setMessage("¿Deseás eliminar la atención del día " + fechaStr + "?\nSe restará una sesión del contador.")
                 .setPositiveButton("Eliminar", (dialog, which) -> {
                     new AtencionRepository().eliminar(a.getId()).addOnSuccessListener(v -> {
-                        // SEGURIDAD: Solo decrementar si el valor actual es mayor a 0
                         if (!paciente.isCertificadoDiscapacidad() && paciente.getSesionesAtendidas() > 0) {
                             FirebaseFirestore.getInstance().collection("pacientes").document(pacienteId)
                                     .update("sesionesAtendidas", FieldValue.increment(-1))
