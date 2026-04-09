@@ -2,16 +2,19 @@ package frgp.utn.edu.kineapp.adapter;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FieldValue;
 import java.util.ArrayList;
@@ -19,6 +22,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import frgp.utn.edu.kineapp.ui.activity.FormularioPacienteActivity;
 import frgp.utn.edu.kineapp.R;
@@ -47,6 +51,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         public String modalidad;
         public String atencionId;
         public int horarioIndice;
+        public String direccion;
 
         public Turno(String hora, String horaFin, String fecha, String nombrePaciente, String diagnostico,
                      String obraSocial, String tipoCobertura,
@@ -69,6 +74,19 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
             this.horarioIndice = horarioIndice;
             this.atencionId = null;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Turno turno = (Turno) o;
+            return Objects.equals(hora, turno.hora) && Objects.equals(fecha, turno.fecha) && Objects.equals(pacienteId, turno.pacienteId);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(hora, fecha, pacienteId);
+        }
     }
 
     public interface OnAtendidoChangeListener {
@@ -81,7 +99,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
     private String userPlan = "free"; 
 
     public TurnoAdapter(List<Turno> turnos, OnAtendidoChangeListener listener) {
-        this.turnos = turnos;
+        this.turnos = new ArrayList<>(turnos != null ? turnos : new ArrayList<>());
         this.listener = listener;
         this.fechaAgenda = Calendar.getInstance();
     }
@@ -138,6 +156,26 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         }
         holder.tvTipoCobertura.setText(turno.tipoCobertura);
 
+        // MAPS ICON: Solo si es domicilio
+        if ("domicilio".equals(turno.modalidad)) {
+            holder.ivMaps.setVisibility(View.VISIBLE);
+            holder.ivMaps.setOnClickListener(v -> {
+                FirebaseFirestore.getInstance().collection("pacientes").document(turno.pacienteId).get().addOnSuccessListener(doc -> {
+                    String dir = doc.getString("direccion");
+                    if (dir != null && !dir.isEmpty()) {
+                        Uri gmmIntentUri = Uri.parse("geo:0,0?q=" + Uri.encode(dir));
+                        Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
+                        mapIntent.setPackage("com.google.android.apps.maps");
+                        v.getContext().startActivity(mapIntent);
+                    } else {
+                        Toast.makeText(v.getContext(), "Sin dirección cargada", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            });
+        } else {
+            holder.ivMaps.setVisibility(View.GONE);
+        }
+
         if (turno.modalidad != null && !turno.modalidad.isEmpty()) {
             holder.tvModalidad.setVisibility(View.VISIBLE);
             holder.tvModalidad.setText("domicilio".equals(turno.modalidad) ? "Domicilio" : "Consultorio");
@@ -153,8 +191,10 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
             turno.sesionesTotales = cached[1];
         }
 
-        boolean mostrarSesiones = ("Orden".equals(turno.tipoCobertura) || "Particular".equals(turno.tipoCobertura)) 
-                                    && turno.sesionesTotales > 0;
+        // PROTECCIÓN VISUAL CUD: No mostrar sesiones
+        boolean mostrarSesiones = !"CUD".equals(turno.tipoCobertura) && 
+                                 ("Orden".equals(turno.tipoCobertura) || "Particular".equals(turno.tipoCobertura)) 
+                                 && turno.sesionesTotales > 0;
         
         if (mostrarSesiones) {
             holder.tvSesiones.setVisibility(View.VISIBLE);
@@ -204,15 +244,17 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         });
 
         holder.layoutTurno.setOnLongClickListener(v -> {
-            new AlertDialog.Builder(v.getContext(), R.style.CustomDialogTheme)
-                    .setTitle("Eliminar turno")
-                    .setMessage("¿Estás seguro que deseás eliminar este turno de la agenda?")
-                    .setPositiveButton("Eliminar", (d, w) -> eliminarTurno(v.getContext(), turno))
-                    .setNegativeButton("Cancelar", null).show();
+            new AlertDialog.Builder(v.getContext(), R.style.CustomDialogTheme).setTitle("Eliminar turno").setMessage("¿Deseás eliminar este turno?")
+                    .setPositiveButton("Eliminar", (d, w) -> eliminarTurno(v.getContext(), turno)).setNegativeButton("Cancelar", null).show();
             return true;
         });
 
         holder.ivMenu.setVisibility(View.GONE);
+    }
+
+    private void notifyItemSafe(Turno turno) {
+        int index = turnos.indexOf(turno);
+        if (index != -1) notifyItemChanged(index);
     }
 
     private void eliminarTurno(android.content.Context context, Turno turno) {
@@ -242,7 +284,6 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         db.collection("pacientes").document(pacienteId).get().addOnSuccessListener(doc -> {
             Paciente p = doc.toObject(Paciente.class);
-            // PROTECCIÓN CUD: Solo restamos si NO es CUD y es el mismo ciclo
             if (p != null && !p.isCertificadoDiscapacidad() && p.getSesionesAtendidas() > 0 && p.getSesionesOrden() == totalDeLaAtencion) {
                 db.collection("pacientes").document(pacienteId).update("sesionesAtendidas", FieldValue.increment(-1));
             }
@@ -252,27 +293,22 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
     private void desmarcarAtencion(ViewHolder holder, Turno turno) {
         if (turno.atencionId == null) return;
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        
         db.collection("atenciones").document(turno.atencionId).get().addOnSuccessListener(doc -> {
             Atencion a = doc.toObject(Atencion.class);
             if (a == null) { finalizarDesmarcado(holder, turno); return; }
-            
-            int nroSesion = a.getSesionNumero();
-            int totalSesion = a.getSesionesTotal();
-
-            cacheSesionesHistoricas.put(generarClaveTurno(turno), new int[]{nroSesion - 1, totalSesion});
-
-            db.collection("atenciones").document(turno.atencionId).delete().addOnSuccessListener(unused -> {
-                db.collection("pacientes").document(turno.pacienteId).get().addOnSuccessListener(docP -> {
-                    Paciente p = docP.toObject(Paciente.class);
-                    // PROTECCIÓN CUD: Restar solo si NO es CUD y es el mismo ciclo
-                    if (p != null && !p.isCertificadoDiscapacidad() && p.getSesionesAtendidas() > 0 && p.getSesionesOrden() == totalSesion) {
-                        db.collection("pacientes").document(turno.pacienteId).update("sesionesAtendidas", FieldValue.increment(-1))
-                            .addOnSuccessListener(u -> finalizarDesmarcado(holder, turno));
-                    } else {
-                        finalizarDesmarcado(holder, turno);
-                    }
-                });
+            final int nro = a.getSesionNumero();
+            final int tot = a.getSesionesTotal();
+            cacheSesionesHistoricas.put(generarClaveTurno(turno), new int[]{Math.max(0, nro - 1), tot});
+            db.collection("atenciones").document(turno.atencionId).delete().addOnSuccessListener(u -> {
+                if (!"CUD".equals(a.getTipoCobertura())) {
+                    db.collection("pacientes").document(turno.pacienteId).get().addOnSuccessListener(docP -> {
+                        Paciente p = docP.toObject(Paciente.class);
+                        if (p != null && p.getSesionesAtendidas() > 0 && p.getSesionesOrden() == tot) {
+                            db.collection("pacientes").document(turno.pacienteId).update("sesionesAtendidas", FieldValue.increment(-1))
+                                .addOnSuccessListener(finish -> finalizarDesmarcado(holder, turno));
+                        } else { finalizarDesmarcado(holder, turno); }
+                    });
+                } else { finalizarDesmarcado(holder, turno); }
             });
         });
     }
@@ -280,6 +316,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
     private void finalizarDesmarcado(ViewHolder holder, Turno turno) {
         turno.atendido = false;
         actualizarEstado(holder, false);
+        notifyItemSafe(turno);
         if (listener != null) listener.onChange(turno, false);
     }
 
@@ -291,29 +328,25 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         btnGuardar.setOnClickListener(v -> {
             btnGuardar.setEnabled(false);
             FirebaseFirestore db = FirebaseFirestore.getInstance();
+            final String uid = FirebaseAuth.getInstance().getUid();
+            if (uid == null) return;
+
             db.collection("pacientes").document(turno.pacienteId).get().addOnSuccessListener(doc -> {
                 Paciente p = doc.toObject(Paciente.class);
-                if (p == null) { btnGuardar.setEnabled(true); return; }
+                if (p == null) return;
 
                 final int sesionNum;
                 final int totalSes;
-                final boolean esRestauracionFinal;
+                final boolean esRestauracion;
 
-                // PROTECCIÓN CUD: Si tiene CUD, siempre es 0/0
                 if (p.isCertificadoDiscapacidad()) {
-                    sesionNum = 0;
-                    totalSes = 0;
-                    esRestauracionFinal = false;
+                    sesionNum = 0; totalSes = 0; esRestauracion = false;
                 } else {
                     int[] cached = cacheSesionesHistoricas.get(generarClaveTurno(turno));
                     if (cached != null) {
-                        sesionNum = cached[0] + 1;
-                        totalSes = cached[1];
-                        esRestauracionFinal = true;
+                        sesionNum = cached[0] + 1; totalSes = cached[1]; esRestauracion = true;
                     } else {
-                        sesionNum = p.getSesionesAtendidas() + 1;
-                        totalSes = p.getSesionesOrden();
-                        esRestauracionFinal = false;
+                        sesionNum = p.getSesionesAtendidas() + 1; totalSes = p.getSesionesOrden(); esRestauracion = false;
                     }
                 }
 
@@ -323,17 +356,14 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
                 cal.set(Calendar.MINUTE, Integer.parseInt(partes[1]));
 
                 Atencion atencion = new Atencion(turno.pacienteId, turno.nombrePaciente, turno.modalidad,
-                        turno.tipoCobertura, turno.valorSesion, sesionNum, totalSes, "", new com.google.firebase.Timestamp(cal.getTime()));
+                        turno.tipoCobertura, turno.valorSesion, sesionNum, totalSes, uid, new com.google.firebase.Timestamp(cal.getTime()));
 
-                new AtencionRepository().guardar(atencion).addOnSuccessListener(a -> {
+                new AtencionRepository().guardar(atencion).addOnSuccessListener(atDoc -> {
                     turno.atencionId = atencion.getId();
-                    // PROTECCIÓN CUD: Solo sumamos al contador global si NO es CUD y es el mismo ciclo
-                    if (!p.isCertificadoDiscapacidad() && !esRestauracionFinal && totalSes == p.getSesionesOrden()) {
+                    if (!p.isCertificadoDiscapacidad() && !esRestauracion && totalSes == p.getSesionesOrden()) {
                         db.collection("pacientes").document(turno.pacienteId).update("sesionesAtendidas", FieldValue.increment(1))
-                            .addOnSuccessListener(u -> finalizarMarcado(holder, turno, dialog));
-                    } else {
-                        finalizarMarcado(holder, turno, dialog);
-                    }
+                            .addOnSuccessListener(finish -> finalizarMarcado(holder, turno, dialog));
+                    } else { finalizarMarcado(holder, turno, dialog); }
                 });
             });
         });
@@ -343,6 +373,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
     private void finalizarMarcado(ViewHolder holder, Turno turno, AlertDialog dialog) {
         turno.atendido = true;
         actualizarEstado(holder, true);
+        notifyItemSafe(turno);
         if (listener != null) listener.onChange(turno, true);
         dialog.dismiss();
     }
@@ -354,18 +385,18 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
 
     @Override
     public int getItemCount() { return turnos != null ? turnos.size() : 0; }
-    public void actualizar(List<Turno> nuevos) { this.turnos = nuevos; notifyDataSetChanged(); }
+    public void actualizar(List<Turno> nuevos) { this.turnos = new ArrayList<>(nuevos != null ? nuevos : new ArrayList<>()); notifyDataSetChanged(); }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvHora, tvNombre, tvDiagnostico, tvObraSocial, tvTipoCobertura, tvSesiones, tvModalidad;
-        ImageView ivAtendido, ivMenu;
+        ImageView ivAtendido, ivMaps;
         LinearLayout layoutTurno;
         ViewHolder(View v) {
             super(v);
             tvHora = v.findViewById(R.id.tv_hora); tvNombre = v.findViewById(R.id.tv_nombre_paciente);
             tvDiagnostico = v.findViewById(R.id.tv_diagnostico_turno); tvObraSocial = v.findViewById(R.id.tv_obra_social_turno);
             tvTipoCobertura = v.findViewById(R.id.tv_tipo_cobertura); tvSesiones = v.findViewById(R.id.tv_sesiones);
-            ivAtendido = v.findViewById(R.id.cb_atendido); ivMenu = v.findViewById(R.id.iv_menu_turno);
+            ivAtendido = v.findViewById(R.id.cb_atendido); ivMaps = v.findViewById(R.id.iv_menu_turno);
             layoutTurno = v.findViewById(R.id.layout_turno); tvModalidad = v.findViewById(R.id.tv_modalidad_turno);
         }
     }
