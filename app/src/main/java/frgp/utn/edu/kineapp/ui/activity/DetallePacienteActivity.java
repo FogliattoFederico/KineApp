@@ -129,15 +129,26 @@ public class DetallePacienteActivity extends AppCompatActivity {
 
         if (paciente.getModalidad() != null) {
             tvBadgeModalidad.setVisibility(View.VISIBLE);
+            boolean incluyeDomicilio = "domicilio".equals(paciente.getModalidad()) || "ambos".equals(paciente.getModalidad());
+            
             if ("domicilio".equals(paciente.getModalidad())) {
                 tvBadgeModalidad.setText("Domicilio");
                 tvBadgeModalidad.setTextColor(Color.parseColor("#27500A"));
-            } else {
+            } else if ("consultorio".equals(paciente.getModalidad())) {
                 tvBadgeModalidad.setText("Consultorio");
                 tvBadgeModalidad.setTextColor(Color.parseColor("#5F5E5A"));
+            } else {
+                tvBadgeModalidad.setText("Ambas");
+                tvBadgeModalidad.setTextColor(Color.parseColor("#1565C0"));
+            }
+
+            // SOLO MOSTRAR MAPAS SI LA ATENCIÓN ES A DOMICILIO O AMBAS
+            if (btnAbrirMaps != null) {
+                btnAbrirMaps.setVisibility(incluyeDomicilio ? View.VISIBLE : View.GONE);
             }
         } else {
             tvBadgeModalidad.setVisibility(View.GONE);
+            if (btnAbrirMaps != null) btnAbrirMaps.setVisibility(View.GONE);
         }
 
         mostrarCampo(R.id.tv_telefono, paciente.getTelefono());
