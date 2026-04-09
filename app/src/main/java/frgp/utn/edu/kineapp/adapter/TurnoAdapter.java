@@ -48,10 +48,10 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         public double valorSesion;
         public int sesionesAtendidas;
         public int sesionesTotales;
+        public String modality;
         public String modalidad;
         public String atencionId;
         public int horarioIndice;
-        public String direccion;
 
         public Turno(String hora, String horaFin, String fecha, String nombrePaciente, String diagnostico,
                      String obraSocial, String tipoCobertura,
@@ -94,9 +94,9 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
     }
 
     private List<Turno> turnos;
-    private OnAtendidoChangeListener listener;
+    private final OnAtendidoChangeListener listener;
     private Calendar fechaAgenda;
-    private String userPlan = "free"; 
+    private String userPlan;
 
     public TurnoAdapter(List<Turno> turnos, OnAtendidoChangeListener listener) {
         this.turnos = new ArrayList<>(turnos != null ? turnos : new ArrayList<>());
@@ -109,7 +109,8 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
     }
 
     public void setUserPlan(String plan) {
-        this.userPlan = plan != null ? plan : "free";
+        this.userPlan = plan;
+        notifyDataSetChanged();
     }
 
     private String generarClaveTurno(Turno t) {
@@ -156,10 +157,10 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         }
         holder.tvTipoCobertura.setText(turno.tipoCobertura);
 
-        // MAPS ICON: Solo si es domicilio
+        // MAPS ICON: Se usa ivMenu que corresponde a R.id.iv_menu_turno
         if ("domicilio".equals(turno.modalidad)) {
-            holder.ivMaps.setVisibility(View.VISIBLE);
-            holder.ivMaps.setOnClickListener(v -> {
+            holder.ivMenu.setVisibility(View.VISIBLE);
+            holder.ivMenu.setOnClickListener(v -> {
                 FirebaseFirestore.getInstance().collection("pacientes").document(turno.pacienteId).get().addOnSuccessListener(doc -> {
                     String dir = doc.getString("direccion");
                     if (dir != null && !dir.isEmpty()) {
@@ -173,7 +174,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
                 });
             });
         } else {
-            holder.ivMaps.setVisibility(View.GONE);
+            holder.ivMenu.setVisibility(View.GONE);
         }
 
         if (turno.modalidad != null && !turno.modalidad.isEmpty()) {
@@ -191,14 +192,13 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
             turno.sesionesTotales = cached[1];
         }
 
-        // PROTECCIÓN VISUAL CUD: No mostrar sesiones
         boolean mostrarSesiones = !"CUD".equals(turno.tipoCobertura) && 
                                  ("Orden".equals(turno.tipoCobertura) || "Particular".equals(turno.tipoCobertura)) 
                                  && turno.sesionesTotales > 0;
         
         if (mostrarSesiones) {
             holder.tvSesiones.setVisibility(View.VISIBLE);
-            holder.tvSesiones.setText(turno.sesionesAtendidas + "/" + turno.sesionesTotales);
+            holder.tvSesiones.setText(String.format("%d/%d", turno.sesionesAtendidas, turno.sesionesTotales));
             int restantes = turno.sesionesTotales - turno.sesionesAtendidas;
             if (restantes <= 0) {
                 holder.tvSesiones.setTextColor(Color.parseColor("#E53935"));
@@ -220,7 +220,6 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
             if (turno.atendido) {
                 desmarcarAtencion(holder, turno);
             } else {
-                // Validación de sesiones para Particulares también
                 boolean haySesionesExcedidas = ("Orden".equals(turno.tipoCobertura) || "Particular".equals(turno.tipoCobertura)) 
                                                 && (turno.sesionesTotales - turno.sesionesAtendidas) <= 0;
                                                 
@@ -245,11 +244,9 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
 
         holder.layoutTurno.setOnLongClickListener(v -> {
             new AlertDialog.Builder(v.getContext(), R.style.CustomDialogTheme).setTitle("Eliminar turno").setMessage("¿Deseás eliminar este turno?")
-                    .setPositiveButton("Eliminar", (d, w) -> eliminarTurno(v.getContext(), turno)).setNegativeButton("Cancelar", null).show();
+                    .setPositiveButton("Eliminar", (d, w) -> eliminarTurno(turno)).setNegativeButton("Cancelar", null).show();
             return true;
         });
-
-        holder.ivMenu.setVisibility(View.GONE);
     }
 
     private void notifyItemSafe(Turno turno) {
@@ -257,7 +254,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         if (index != -1) notifyItemChanged(index);
     }
 
-    private void eliminarTurno(android.content.Context context, Turno turno) {
+    private void eliminarTurno(Turno turno) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         if (turno.atencionId != null) {
             db.collection("atenciones").document(turno.atencionId).get().addOnSuccessListener(doc -> {
@@ -385,19 +382,29 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
 
     @Override
     public int getItemCount() { return turnos != null ? turnos.size() : 0; }
-    public void actualizar(List<Turno> nuevos) { this.turnos = new ArrayList<>(nuevos != null ? nuevos : new ArrayList<>()); notifyDataSetChanged(); }
+    
+    public void actualizar(List<Turno> nuevos) { 
+        this.turnos = new ArrayList<>(nuevos != null ? nuevos : new ArrayList<>()); 
+        notifyDataSetChanged(); 
+    }
 
-    static class ViewHolder extends RecyclerView.ViewHolder {
+    public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvHora, tvNombre, tvDiagnostico, tvObraSocial, tvTipoCobertura, tvSesiones, tvModalidad;
-        ImageView ivAtendido, ivMaps;
+        ImageView ivAtendido, ivMenu;
         LinearLayout layoutTurno;
+        
         ViewHolder(View v) {
             super(v);
-            tvHora = v.findViewById(R.id.tv_hora); tvNombre = v.findViewById(R.id.tv_nombre_paciente);
-            tvDiagnostico = v.findViewById(R.id.tv_diagnostico_turno); tvObraSocial = v.findViewById(R.id.tv_obra_social_turno);
-            tvTipoCobertura = v.findViewById(R.id.tv_tipo_cobertura); tvSesiones = v.findViewById(R.id.tv_sesiones);
-            ivAtendido = v.findViewById(R.id.cb_atendido); ivMaps = v.findViewById(R.id.iv_menu_turno);
-            layoutTurno = v.findViewById(R.id.layout_turno); tvModalidad = v.findViewById(R.id.tv_modalidad_turno);
+            tvHora = v.findViewById(R.id.tv_hora); 
+            tvNombre = v.findViewById(R.id.tv_nombre_paciente);
+            tvDiagnostico = v.findViewById(R.id.tv_diagnostico_turno); 
+            tvObraSocial = v.findViewById(R.id.tv_obra_social_turno);
+            tvTipoCobertura = v.findViewById(R.id.tv_tipo_cobertura); 
+            tvSesiones = v.findViewById(R.id.tv_sesiones);
+            ivAtendido = v.findViewById(R.id.cb_atendido); 
+            ivMenu = v.findViewById(R.id.iv_menu_turno);
+            layoutTurno = v.findViewById(R.id.layout_turno); 
+            tvModalidad = v.findViewById(R.id.tv_modalidad_turno);
         }
     }
 }
