@@ -29,7 +29,6 @@ import frgp.utn.edu.kineapp.repository.AtencionRepository;
 
 public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> {
 
-    // Caché estático para preservar la identidad de la sesión entre refrescos de pantalla
     private static final Map<String, int[]> cacheSesionesHistoricas = new HashMap<>();
 
     public static class Turno {
@@ -148,7 +147,6 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
             holder.tvModalidad.setVisibility(View.GONE);
         }
 
-        // --- LÓGICA DE RECUPERACIÓN DE HISTORIAL DESDE CACHÉ ---
         int[] cached = cacheSesionesHistoricas.get(generarClaveTurno(turno));
         if (cached != null && !turno.atendido) {
             turno.sesionesAtendidas = cached[0];
@@ -244,7 +242,8 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         db.collection("pacientes").document(pacienteId).get().addOnSuccessListener(doc -> {
             Paciente p = doc.toObject(Paciente.class);
-            if (p != null && p.getSesionesAtendidas() > 0 && p.getSesionesOrden() == totalDeLaAtencion) {
+            // PROTECCIÓN CUD: Solo restamos si NO es CUD y es el mismo ciclo
+            if (p != null && !p.isCertificadoDiscapacidad() && p.getSesionesAtendidas() > 0 && p.getSesionesOrden() == totalDeLaAtencion) {
                 db.collection("pacientes").document(pacienteId).update("sesionesAtendidas", FieldValue.increment(-1));
             }
         });
@@ -256,22 +255,18 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         
         db.collection("atenciones").document(turno.atencionId).get().addOnSuccessListener(doc -> {
             Atencion a = doc.toObject(Atencion.class);
-            if (a == null) {
-                finalizarDesmarcado(holder, turno);
-                return;
-            }
+            if (a == null) { finalizarDesmarcado(holder, turno); return; }
             
             int nroSesion = a.getSesionNumero();
             int totalSesion = a.getSesionesTotal();
 
-            // GUARDAR EN CACHÉ PARA RE-TILDE: Restamos 1 para que visualmente baje
             cacheSesionesHistoricas.put(generarClaveTurno(turno), new int[]{nroSesion - 1, totalSesion});
 
             db.collection("atenciones").document(turno.atencionId).delete().addOnSuccessListener(unused -> {
                 db.collection("pacientes").document(turno.pacienteId).get().addOnSuccessListener(docP -> {
                     Paciente p = docP.toObject(Paciente.class);
-                    // RESTAR SOLO SI ES EL MISMO CICLO
-                    if (p != null && p.getSesionesAtendidas() > 0 && p.getSesionesOrden() == totalSesion) {
+                    // PROTECCIÓN CUD: Restar solo si NO es CUD y es el mismo ciclo
+                    if (p != null && !p.isCertificadoDiscapacidad() && p.getSesionesAtendidas() > 0 && p.getSesionesOrden() == totalSesion) {
                         db.collection("pacientes").document(turno.pacienteId).update("sesionesAtendidas", FieldValue.increment(-1))
                             .addOnSuccessListener(u -> finalizarDesmarcado(holder, turno));
                     } else {
@@ -300,15 +295,26 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
                 Paciente p = doc.toObject(Paciente.class);
                 if (p == null) { btnGuardar.setEnabled(true); return; }
 
-                int sesionNum, totalSes;
-                int[] cached = cacheSesionesHistoricas.get(generarClaveTurno(turno));
-                
-                if (cached != null) {
-                    sesionNum = cached[0] + 1; // Restauramos el número que guardamos al destildar
-                    totalSes = cached[1];
+                final int sesionNum;
+                final int totalSes;
+                final boolean esRestauracionFinal;
+
+                // PROTECCIÓN CUD: Si tiene CUD, siempre es 0/0
+                if (p.isCertificadoDiscapacidad()) {
+                    sesionNum = 0;
+                    totalSes = 0;
+                    esRestauracionFinal = false;
                 } else {
-                    sesionNum = p.getSesionesAtendidas() + 1;
-                    totalSes = p.getSesionesOrden();
+                    int[] cached = cacheSesionesHistoricas.get(generarClaveTurno(turno));
+                    if (cached != null) {
+                        sesionNum = cached[0] + 1;
+                        totalSes = cached[1];
+                        esRestauracionFinal = true;
+                    } else {
+                        sesionNum = p.getSesionesAtendidas() + 1;
+                        totalSes = p.getSesionesOrden();
+                        esRestauracionFinal = false;
+                    }
                 }
 
                 Calendar cal = (Calendar) fechaAgenda.clone();
@@ -321,8 +327,8 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
 
                 new AtencionRepository().guardar(atencion).addOnSuccessListener(a -> {
                     turno.atencionId = atencion.getId();
-                    // SUMAR SI ES EL MISMO CICLO (Independientemente de si es restauración o no)
-                    if (totalSes == p.getSesionesOrden()) {
+                    // PROTECCIÓN CUD: Solo sumamos al contador global si NO es CUD y es el mismo ciclo
+                    if (!p.isCertificadoDiscapacidad() && !esRestauracionFinal && totalSes == p.getSesionesOrden()) {
                         db.collection("pacientes").document(turno.pacienteId).update("sesionesAtendidas", FieldValue.increment(1))
                             .addOnSuccessListener(u -> finalizarMarcado(holder, turno, dialog));
                     } else {
