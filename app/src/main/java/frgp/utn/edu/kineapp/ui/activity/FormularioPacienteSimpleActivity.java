@@ -7,6 +7,7 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
@@ -318,27 +319,47 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
             return;
         }
 
-        final int edadFinal = edad;
-        final String fechaNacFinal = fechaNac;
-        final String emailFinal = emailPaciente;
         final int sesSem = tieneCud ? Integer.parseInt(sesionesSemStr) : 0;
         final int sesTot = !tieneCud ? Integer.parseInt(sesionesTotStr) : 0;
         final double valorSesion = (!tieneOS && !valorSesionStr.isEmpty()) ? Double.parseDouble(valorSesionStr) : 0.0;
 
+        // --- LÓGICA DE RENOVACIÓN AL EDITAR ---
+        if (pacienteExistente != null) {
+            boolean cambioSesiones = tieneCud 
+                ? (sesSem != pacienteExistente.getSesionesSemanales())
+                : (sesTot != pacienteExistente.getSesionesOrden());
+
+            if (cambioSesiones) {
+                new AlertDialog.Builder(this)
+                        .setTitle("Renovación de Sesiones")
+                        .setMessage("Detectamos un cambio en la cantidad de sesiones. ¿Deseás resetear el contador de sesiones atendidas a cero?")
+                        .setPositiveButton("Sí, renovar", (dialog, which) -> {
+                            pacienteExistente.setSesionesAtendidas(0);
+                            procederConGuardado(nombre, apellido, dni, telefono, direccion, fechaNac, emailPaciente, diagnostico, observaciones, obraSocial, numeroAfiliado, edad, tieneCud, tieneOS, sesSem, sesTot, valorSesion, fechaInicio, fechaFin);
+                        })
+                        .setNegativeButton("No, solo corregir", (dialog, which) -> {
+                            procederConGuardado(nombre, apellido, dni, telefono, direccion, fechaNac, emailPaciente, diagnostico, observaciones, obraSocial, numeroAfiliado, edad, tieneCud, tieneOS, sesSem, sesTot, valorSesion, fechaInicio, fechaFin);
+                        })
+                        .show();
+                return;
+            }
+        }
+        
+        procederConGuardado(nombre, apellido, dni, telefono, direccion, fechaNac, emailPaciente, diagnostico, observaciones, obraSocial, numeroAfiliado, edad, tieneCud, tieneOS, sesSem, sesTot, valorSesion, fechaInicio, fechaFin);
+    }
+
+    private void procederConGuardado(String nombre, String apellido, String dni, String telefono, String direccion, String fechaNac, String email, String diagnostico, String observaciones, String obraSocial, String numeroAfiliado, int edad, boolean tieneCud, boolean tieneOS, int sesSem, int sesTot, double valorSesion, String fechaInicio, String fechaFin) {
         if (pacienteExistente == null) {
-            repository.buscarPorDni(dni)
+             repository.buscarPorDni(dni)
                     .addOnSuccessListener(query -> {
                         if (!query.isEmpty()) {
-                            Toast.makeText(this, "Ya existe un paciente con ese DNI",
-                                    Toast.LENGTH_LONG).show();
+                            Toast.makeText(this, "Ya existe un paciente con ese DNI", Toast.LENGTH_LONG).show();
                             return;
                         }
-                        Paciente nuevo = new Paciente(nombre, apellido, dni,
-                                telefono, direccion, diagnostico, obraSocial,
-                                numeroAfiliado, tieneCud, null);
-                        nuevo.setFechaNacimiento(fechaNacFinal);
-                        nuevo.setEdad(edadFinal);
-                        nuevo.setEmail(emailFinal);
+                        Paciente nuevo = new Paciente(nombre, apellido, dni, telefono, direccion, diagnostico, obraSocial, numeroAfiliado, tieneCud, null);
+                        nuevo.setFechaNacimiento(fechaNac);
+                        nuevo.setEdad(edad);
+                        nuevo.setEmail(email);
                         nuevo.setParticular(!tieneOS);
                         nuevo.setSesionesSemanales(sesSem);
                         nuevo.setSesionesOrden(sesTot);
@@ -348,15 +369,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
                             nuevo.setFechaInicioPeriodo(fechaInicio);
                             nuevo.setFechaFinPeriodo(fechaFin);
                         }
-                        repository.guardar(nuevo)
-                                .addOnSuccessListener(unused -> {
-                                    Toast.makeText(this, "Paciente guardado",
-                                            Toast.LENGTH_SHORT).show();
-                                    finish();
-                                })
-                                .addOnFailureListener(e ->
-                                        Toast.makeText(this, "Error: " + e.getMessage(),
-                                                Toast.LENGTH_LONG).show());
+                        ejecutarFirebaseGuardado(nuevo);
                     });
         } else {
             pacienteExistente.setNombre(nombre);
@@ -367,9 +380,9 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
             pacienteExistente.setObraSocial(obraSocial);
             pacienteExistente.setNumeroAfiliado(numeroAfiliado);
             pacienteExistente.setCertificadoDiscapacidad(tieneCud);
-            pacienteExistente.setFechaNacimiento(fechaNacFinal);
-            pacienteExistente.setEdad(edadFinal);
-            pacienteExistente.setEmail(emailFinal);
+            pacienteExistente.setFechaNacimiento(fechaNac);
+            pacienteExistente.setEdad(edad);
+            pacienteExistente.setEmail(email);
             pacienteExistente.setParticular(!tieneOS);
             pacienteExistente.setSesionesSemanales(sesSem);
             pacienteExistente.setSesionesOrden(sesTot);
@@ -383,15 +396,16 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
                 pacienteExistente.setFechaInicioPeriodo(null);
                 pacienteExistente.setFechaFinPeriodo(null);
             }
-            repository.guardar(pacienteExistente)
-                    .addOnSuccessListener(unused -> {
-                        Toast.makeText(this, "Paciente guardado",
-                                Toast.LENGTH_SHORT).show();
-                        finish();
-                    })
-                    .addOnFailureListener(e ->
-                            Toast.makeText(this, "Error: " + e.getMessage(),
-                                    Toast.LENGTH_LONG).show());
+            ejecutarFirebaseGuardado(pacienteExistente);
         }
+    }
+
+    private void ejecutarFirebaseGuardado(Paciente p) {
+        repository.guardar(p)
+                .addOnSuccessListener(unused -> {
+                    Toast.makeText(this, "Paciente guardado", Toast.LENGTH_SHORT).show();
+                    finish();
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
     }
 }
