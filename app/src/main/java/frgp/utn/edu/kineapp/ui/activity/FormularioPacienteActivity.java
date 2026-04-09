@@ -559,6 +559,61 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             }
         }
 
+        // --- DETECCIÓN DE RENOVACIÓN DE SESIONES ---
+        int nuevasSesionesTotal = 0;
+        try {
+            if (pacienteExistente.isCertificadoDiscapacidad()) {
+                nuevasSesionesTotal = Integer.parseInt(etSesionesSemanales.getText().toString());
+            } else {
+                nuevasSesionesTotal = Integer.parseInt(etSesionesOrden.getText().toString());
+            }
+        } catch (Exception ignored) {}
+
+        boolean cambioSesiones = false;
+        if (pacienteExistente.isCertificadoDiscapacidad()) {
+            cambioSesiones = nuevasSesionesTotal != pacienteExistente.getSesionesSemanales();
+        } else {
+            cambioSesiones = nuevasSesionesTotal != pacienteExistente.getSesionesOrden();
+        }
+
+        if (modoEdicion && cambioSesiones) {
+            final int sesionesFinal = nuevasSesionesTotal;
+            final String modalidadFinal = modalidad;
+            final List<HorarioAtencion> horariosFinal = horariosFinales;
+            final List<HorarioAtencion> horariosNuevos = horariosEnPantalla;
+
+            new AlertDialog.Builder(this)
+                    .setTitle("Renovación de Sesiones")
+                    .setMessage("¿Deseás resetear el contador de sesiones atendidas a cero para iniciar un nuevo ciclo?")
+                    .setPositiveButton("Sí, renovar", (dialog, which) -> {
+                        pacienteExistente.setSesionesAtendidas(0);
+                        if (pacienteExistente.isCertificadoDiscapacidad()) {
+                            pacienteExistente.setSesionesSemanales(sesionesFinal);
+                        } else {
+                            pacienteExistente.setSesionesOrden(sesionesFinal);
+                        }
+                        aplicarCambiosYGuardar(modalidadFinal, horariosFinal, horariosNuevos);
+                    })
+                    .setNegativeButton("No, solo corregir", (dialog, which) -> {
+                        if (pacienteExistente.isCertificadoDiscapacidad()) {
+                            pacienteExistente.setSesionesSemanales(sesionesFinal);
+                        } else {
+                            pacienteExistente.setSesionesOrden(sesionesFinal);
+                        }
+                        aplicarCambiosYGuardar(modalidadFinal, horariosFinal, horariosNuevos);
+                    })
+                    .show();
+        } else {
+            if (pacienteExistente.isCertificadoDiscapacidad()) {
+                pacienteExistente.setSesionesSemanales(nuevasSesionesTotal);
+            } else {
+                pacienteExistente.setSesionesOrden(nuevasSesionesTotal);
+            }
+            aplicarCambiosYGuardar(modalidad, horariosFinales, horariosEnPantalla);
+        }
+    }
+
+    private void aplicarCambiosYGuardar(String modalidad, List<HorarioAtencion> horariosFinales, List<HorarioAtencion> horariosNuevos) {
         pacienteExistente.setModalidad(modalidad);
         pacienteExistente.setHorarios(horariosFinales);
         pacienteExistente.setUltimaActualizacion(com.google.firebase.Timestamp.now());
@@ -566,7 +621,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         if (!etValorSesion.getText().toString().isEmpty())
             pacienteExistente.setValorSesion(Double.parseDouble(etValorSesion.getText().toString()));
 
-        guardarEnFirestore(pacienteExistente, horariosEnPantalla);
+        guardarEnFirestore(pacienteExistente, horariosNuevos);
     }
 
     private String getSemanaAnio(String fechaStr) {

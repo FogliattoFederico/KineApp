@@ -376,11 +376,8 @@ public class DetallePacienteActivity extends AppCompatActivity {
                         
                         String info = a.getTipoCobertura() != null ? a.getTipoCobertura().trim() : "";
                         if (a.getSesionNumero() > 0) {
-                            int totalSesiones = a.getSesionesTotal();
-                            if (!paciente.isCertificadoDiscapacidad() && paciente.getSesionesOrden() > 0) {
-                                totalSesiones = paciente.getSesionesOrden();
-                            }
-                            info += " · Sesión " + a.getSesionNumero() + "/" + totalSesiones;
+                            // Usamos el total que se grabó en el momento de la atención para el historial
+                            info += " · Sesión " + a.getSesionNumero() + "/" + a.getSesionesTotal();
                         }
                         tvInfo.setText(info);
                         

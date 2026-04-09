@@ -65,45 +65,32 @@ public class AgendaFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        //calcula la altura del status bar del dispositivo
         View spacer = view.findViewById(R.id.status_bar_spacer);
         if (spacer != null) {
             int resourceId = getResources().getIdentifier(
                     "status_bar_height", "dimen", "android");
             if (resourceId > 0) {
                 int height = getResources().getDimensionPixelSize(resourceId);
-                //verifica que el spacer este configurado en el xml
                 if (spacer.getLayoutParams() != null) {
-                    //reemplaza la altura del spacer con la altura del status bar
                     spacer.getLayoutParams().height = height;
-                    //actualiza el spacer
                     spacer.requestLayout();
                 }
             }
         }
 
-        // Configura la toolbar
         MaterialToolbar toolbar = view.findViewById(R.id.toolbar);
-        // Configuramos el menú de opciones
         toolbar.inflateMenu(R.menu.menu_agenda);
-        // Configuramos el listener del menú de opciones
         toolbar.setOnMenuItemClickListener(item -> {
             int id = item.getItemId();
             if (id == R.id.action_perfil) {
-                // Si se selecciona la opción de perfil
                 getParentFragmentManager().beginTransaction()
-                        // Reemplaza el fragmento actual con el fragmento de perfil
                         .replace(R.id.fragment_container, new PerfilFragment())
-                        // Evita el cierre de la actividad al presionar el botón de retroceso
                         .addToBackStack(null)
                         .commit();
                 return true;
             } else if (id == R.id.action_logout) {
-                // Aviso a firebase de que el usuario ha cerrado sesión
                 FirebaseAuth.getInstance().signOut();
-                //redirecciona al login
                 Intent intent = new Intent(getContext(), LoginActivity.class);
-                //elimina la actividad actual y todas las anteriores
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                 startActivity(intent);
                 return true;
@@ -120,30 +107,21 @@ public class AgendaFragment extends Fragment {
         rvPacientes = view.findViewById(R.id.rv_turnos);
         layoutEmpty = view.findViewById(R.id.layout_empty);
 
-        // Verifica si es la primera vez que se carga el fragmento
         if (fechaActual == null) {
-            // Si es la primera vez, inicializa la fecha actual
             fechaActual = Calendar.getInstance();
         }
 
-        // Convierte la lista de turnos en filas visuales
         adapter = new TurnoAdapter(listaTurnos, (turno, atendido) -> {
-            // Actualiza el estado del turno
                 cargarRecaudacionMes();
                 actualizarVista();
         });
-        // Entrega al adapter la fecha que el usuario selecciono
         adapter.setFechaAgenda(fechaActual);
 
-        // Configura el RecyclerView
         rvPacientes.setLayoutManager(new LinearLayoutManager(getContext()));
-        //agrega un separador entre los items
         rvPacientes.addItemDecoration(
                         new DividerItemDecoration(getContext(), DividerItemDecoration.VERTICAL));
-        //Asignacion del adapter
         rvPacientes.setAdapter(adapter);
 
-        //CHIPS DE MODIALIDAD DE ATENCION
         btnToggleDomicilio.setOnClickListener(v -> {
             modalidadActual = "domicilio";
             actualizarToggle();
@@ -156,7 +134,6 @@ public class AgendaFragment extends Fragment {
             actualizarVista();
         });
 
-        //BOTONES DE DIA ANTERIOR Y SIGUIENTE
         view.findViewById(R.id.btn_semana_anterior).setOnClickListener(v -> {
             fechaActual.add(Calendar.DAY_OF_MONTH, -7);
             actualizarVista();
@@ -167,7 +144,6 @@ public class AgendaFragment extends Fragment {
             actualizarVista();
         });
 
-        //BOTON AGREGAR TURNO
         FloatingActionButton fab = view.findViewById(R.id.fab_nuevo_paciente);
         fab.setOnClickListener(v ->
                 startActivity(new Intent(getContext(), FormularioPacienteActivity.class))
@@ -177,19 +153,13 @@ public class AgendaFragment extends Fragment {
     }
 
     private void configurarModalidadesSegunPerfil() {
-        //Validacion de usuario logueado
         if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
-        //Se trae los datos del usuario
         FirebaseFirestore.getInstance().collection("usuarios").document(uid)
                 .get()
                 .addOnSuccessListener(doc -> {
                     Context context = getContext();
-                    //Si el usuario cerró la app o cambió de pantalla mientras
-                    // los datos cargaban, el código se detiene para evitar un "crash"
-                    //IsAdded verifica si el fragmento está cargado y context devuelve null si
-                    // el fragmento no está cargado
                     if (!isAdded() || context == null) return;
                     
                     String plan = doc.getString("plan");
@@ -463,6 +433,12 @@ public class AgendaFragment extends Fragment {
                             if (turno.pacienteId.equals(a.getPacienteId()) && turno.hora.equals(horaAtencion)) {
                                 turno.atendido = true;
                                 turno.atencionId = doc.getId();
+                                
+                                // REFLEJAR DATOS HISTÓRICOS DE ESA SESIÓN ESPECÍFICA
+                                if (a.getSesionNumero() > 0) {
+                                    turno.sesionesAtendidas = a.getSesionNumero();
+                                    turno.sesionesTotales = a.getSesionesTotal();
+                                }
                                 break;
                             }
                         }
