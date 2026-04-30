@@ -89,7 +89,17 @@
             android:padding="4dp"
             android:layout_marginBottom="24dp" />
 
-        <!-- Botón Biométrico: Ajustado a icono circular -->
+        <!-- Botón ingresar -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_login"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="Ingresar"
+            android:textSize="16sp"
+            app:cornerRadius="12dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Botón Biométrico: Debajo del botón principal -->
         <ImageButton
             android:id="@+id/btn_biometric"
             android:layout_width="64dp"
@@ -102,15 +112,6 @@
             android:contentDescription="Ingresar con huella"
             android:visibility="gone"
             app:tint="@color/primary" />
-        <!-- Botón ingresar -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_login"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="Ingresar"
-            android:textSize="16sp"
-            app:cornerRadius="12dp"
-            android:layout_marginBottom="16dp" />
 
         <!-- Separador -->
         <LinearLayout

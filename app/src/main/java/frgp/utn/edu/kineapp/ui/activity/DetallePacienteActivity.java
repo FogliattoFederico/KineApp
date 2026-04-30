@@ -20,8 +20,11 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.WriteBatch;
 import com.google.firebase.firestore.DocumentSnapshot;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 import frgp.utn.edu.kineapp.R;
@@ -225,9 +228,24 @@ public class DetallePacienteActivity extends AppCompatActivity {
         containerHorarios.removeAllViews();
         
         if (paciente.getHorarios() != null && !paciente.getHorarios().isEmpty()) {
-            for (int i = 0; i < paciente.getHorarios().size(); i++) {
-                final int index = i;
-                HorarioAtencion h = paciente.getHorarios().get(i);
+            List<HorarioAtencion> turnosOrdenados = new ArrayList<>(paciente.getHorarios());
+            Collections.sort(turnosOrdenados, (h1, h2) -> {
+                try {
+                    SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+                    if (h1.getFecha() == null || h1.getFecha().isEmpty()) return 1;
+                    if (h2.getFecha() == null || h2.getFecha().isEmpty()) return -1;
+                    Date d1 = sdf.parse(h1.getFecha());
+                    Date d2 = sdf.parse(h2.getFecha());
+                    return d2.compareTo(d1); // De más reciente a más antiguo
+                } catch (Exception e) {
+                    return 0;
+                }
+            });
+
+            for (int i = 0; i < turnosOrdenados.size(); i++) {
+                HorarioAtencion h = turnosOrdenados.get(i);
+                final int originalIndex = paciente.getHorarios().indexOf(h);
+                
                 View fila = getLayoutInflater().inflate(R.layout.item_horario_detalle, containerHorarios, false);
                 TextView tvDia = fila.findViewById(R.id.tv_dia);
                 TextView tvHorario = fila.findViewById(R.id.tv_horario);
@@ -240,7 +258,7 @@ public class DetallePacienteActivity extends AppCompatActivity {
                 tvHorario.setText(h.getHoraInicio() + " - " + h.getHoraFin());
                 
                 fila.setOnLongClickListener(v -> {
-                    confirmarEliminarHorario(index);
+                    confirmarEliminarHorario(originalIndex);
                     return true;
                 });
 
@@ -255,7 +273,7 @@ public class DetallePacienteActivity extends AppCompatActivity {
                     ivEdit.setOnClickListener(v -> {
                         Intent intent = new Intent(this, FormularioPacienteActivity.class);
                         intent.putExtra("pacienteId", pacienteId);
-                        intent.putExtra("horarioIndice", index);
+                        intent.putExtra("horarioIndice", originalIndex);
                         startActivity(intent);
                     });
                 }
@@ -271,7 +289,7 @@ public class DetallePacienteActivity extends AppCompatActivity {
     }
 
     private void confirmarEliminarHorario(int index) {
-        if (paciente.getHorarios() == null || index >= paciente.getHorarios().size()) return;
+        if (paciente.getHorarios() == null || index < 0 || index >= paciente.getHorarios().size()) return;
         
         HorarioAtencion h = paciente.getHorarios().get(index);
         String fechaDisplay = (h.getFecha() != null && !h.getFecha().isEmpty()) ? h.getFecha() : h.getDia();
@@ -285,7 +303,7 @@ public class DetallePacienteActivity extends AppCompatActivity {
     }
 
     private void eliminarTurnoYAtencion(int index) {
-        if (paciente == null || paciente.getHorarios() == null || index >= paciente.getHorarios().size()) {
+        if (paciente == null || paciente.getHorarios() == null || index < 0 || index >= paciente.getHorarios().size()) {
             Toast.makeText(this, "Error al identificar el turno", Toast.LENGTH_SHORT).show();
             return;
         }

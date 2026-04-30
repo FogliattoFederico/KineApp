@@ -60,6 +60,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
     private int indiceEdicionIndividual = -1;
     private String professionalNombre = "";
     private String professionalDireccionConsultorio = "";
+    private String professionalModalidad = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -156,9 +157,32 @@ public class FormularioPacienteActivity extends AppCompatActivity {
                 .addOnSuccessListener(doc -> {
                     professionalNombre = (doc.getString("nombre") != null ? doc.getString("nombre") : "") + " " + (doc.getString("apellido") != null ? doc.getString("apellido") : "");
                     professionalDireccionConsultorio = doc.getString("direccionConsultorio");
+                    professionalModalidad = doc.getString("modalidadTrabajo");
                     Long boxes = doc.getLong("cantidadBoxes");
                     if (boxes != null) cantidadBoxes = boxes.intValue();
+                    
+                    configurarChipsModalidad();
+                    
+                    if (pacienteExistente != null && !modoEdicion) {
+                        aplicarModalidadPorDefecto();
+                    }
                 });
+    }
+
+    private void configurarChipsModalidad() {
+        if (professionalModalidad == null || professionalModalidad.isEmpty() || professionalModalidad.equals("ambos")) {
+            findViewById(R.id.chip_domicilio).setVisibility(View.VISIBLE);
+            findViewById(R.id.chip_consultorio).setVisibility(View.VISIBLE);
+            return;
+        }
+
+        if ("domicilio".equals(professionalModalidad)) {
+            findViewById(R.id.chip_domicilio).setVisibility(View.VISIBLE);
+            findViewById(R.id.chip_consultorio).setVisibility(View.GONE);
+        } else if ("consultorio".equals(professionalModalidad)) {
+            findViewById(R.id.chip_domicilio).setVisibility(View.GONE);
+            findViewById(R.id.chip_consultorio).setVisibility(View.VISIBLE);
+        }
     }
 
     private void buscarPacientes() {
@@ -343,10 +367,23 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             }
         } else {
             if (chipGroupModalidad != null) chipGroupModalidad.clearCheck();
+            aplicarModalidadPorDefecto();
         }
 
         containerHorarios.removeAllViews();
         actualizarBotonHorario();
+    }
+
+    private void aplicarModalidadPorDefecto() {
+        if (professionalModalidad == null || professionalModalidad.isEmpty() || professionalModalidad.equals("ambos")) return;
+        
+        if ("domicilio".equals(professionalModalidad)) {
+            Chip chip = findViewById(R.id.chip_domicilio);
+            if (chip != null) chip.setChecked(true);
+        } else if ("consultorio".equals(professionalModalidad)) {
+            Chip chip = findViewById(R.id.chip_consultorio);
+            if (chip != null) chip.setChecked(true);
+        }
     }
 
     private String getModalidadSeleccionada() {
