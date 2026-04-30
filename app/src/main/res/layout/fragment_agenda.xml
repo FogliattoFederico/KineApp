@@ -159,18 +159,18 @@
 
     </LinearLayout>
 
-    <!-- Header columnas -->
+    <!-- Header columnas (Ajustado para alinear con item_turno) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="36dp"
         android:orientation="horizontal"
         android:background="@color/surface"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
         android:gravity="center_vertical">
 
         <TextView
-            android:layout_width="60dp"
+            android:layout_width="65dp"
             android:layout_height="wrap_content"
             android:text="Horario"
             android:textSize="10sp"
@@ -188,7 +188,7 @@
             android:textColor="@color/text_secondary" />
 
         <TextView
-            android:layout_width="60dp"
+            android:layout_width="50dp"
             android:layout_height="wrap_content"
             android:text="Estado"
             android:textSize="10sp"

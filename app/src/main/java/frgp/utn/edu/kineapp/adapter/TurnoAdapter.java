@@ -14,6 +14,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FieldValue;
@@ -156,26 +157,6 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
                 break;
         }
         holder.tvTipoCobertura.setText(turno.tipoCobertura);
-
-        // MAPS ICON: Se usa ivMenu que corresponde a R.id.iv_menu_turno
-        if ("domicilio".equals(turno.modalidad)) {
-            holder.ivMenu.setVisibility(View.VISIBLE);
-            holder.ivMenu.setOnClickListener(v -> {
-                FirebaseFirestore.getInstance().collection("pacientes").document(turno.pacienteId).get().addOnSuccessListener(doc -> {
-                    String dir = doc.getString("direccion");
-                    if (dir != null && !dir.isEmpty()) {
-                        Uri gmmIntentUri = Uri.parse("geo:0,0?q=" + Uri.encode(dir));
-                        Intent mapIntent = new Intent(Intent.ACTION_VIEW, gmmIntentUri);
-                        mapIntent.setPackage("com.google.android.apps.maps");
-                        v.getContext().startActivity(mapIntent);
-                    } else {
-                        Toast.makeText(v.getContext(), "Sin dirección cargada", Toast.LENGTH_SHORT).show();
-                    }
-                });
-            });
-        } else {
-            holder.ivMenu.setVisibility(View.GONE);
-        }
 
         if (turno.modalidad != null && !turno.modalidad.isEmpty()) {
             holder.tvModalidad.setVisibility(View.VISIBLE);
@@ -320,10 +301,17 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
     private void mostrarDialogoRegistroSesion(ViewHolder holder, Turno turno) {
         View dialogView = LayoutInflater.from(holder.itemView.getContext()).inflate(R.layout.dialog_registro_sesion, null);
         AlertDialog dialog = new AlertDialog.Builder(holder.itemView.getContext(), R.style.CustomDialogTheme).setView(dialogView).create();
+        
+        TextInputEditText etObjetivos = dialogView.findViewById(R.id.et_objetivos);
+        TextInputEditText etObservaciones = dialogView.findViewById(R.id.et_observaciones);
         com.google.android.material.button.MaterialButton btnGuardar = dialogView.findViewById(R.id.btn_guardar_sesion);
 
         btnGuardar.setOnClickListener(v -> {
             btnGuardar.setEnabled(false);
+            
+            String objetivo = etObjetivos.getText().toString().trim();
+            String observacion = etObservaciones.getText().toString().trim();
+
             FirebaseFirestore db = FirebaseFirestore.getInstance();
             final String uid = FirebaseAuth.getInstance().getUid();
             if (uid == null) return;
@@ -351,16 +339,24 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
                 String[] partes = turno.hora.split(":");
                 cal.set(Calendar.HOUR_OF_DAY, Integer.parseInt(partes[0]));
                 cal.set(Calendar.MINUTE, Integer.parseInt(partes[1]));
+                cal.set(Calendar.SECOND, 0);
+                cal.set(Calendar.MILLISECOND, 0);
 
                 Atencion atencion = new Atencion(turno.pacienteId, turno.nombrePaciente, turno.modalidad,
                         turno.tipoCobertura, turno.valorSesion, sesionNum, totalSes, uid, new com.google.firebase.Timestamp(cal.getTime()));
+                
+                atencion.setObjetivos(objetivo);
+                atencion.setObservaciones(observacion);
 
-                new AtencionRepository().guardar(atencion).addOnSuccessListener(atDoc -> {
+                new AtencionRepository().guardar(atencion).addOnSuccessListener(unused -> {
                     turno.atencionId = atencion.getId();
                     if (!p.isCertificadoDiscapacidad() && !esRestauracion && totalSes == p.getSesionesOrden()) {
                         db.collection("pacientes").document(turno.pacienteId).update("sesionesAtendidas", FieldValue.increment(1))
                             .addOnSuccessListener(finish -> finalizarMarcado(holder, turno, dialog));
                     } else { finalizarMarcado(holder, turno, dialog); }
+                }).addOnFailureListener(e -> {
+                    btnGuardar.setEnabled(true);
+                    Toast.makeText(holder.itemView.getContext(), "Error al guardar sesión", Toast.LENGTH_SHORT).show();
                 });
             });
         });
@@ -390,7 +386,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvHora, tvNombre, tvDiagnostico, tvObraSocial, tvTipoCobertura, tvSesiones, tvModalidad;
-        ImageView ivAtendido, ivMenu;
+        ImageView ivAtendido;
         LinearLayout layoutTurno;
         
         ViewHolder(View v) {
@@ -401,8 +397,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
             tvObraSocial = v.findViewById(R.id.tv_obra_social_turno);
             tvTipoCobertura = v.findViewById(R.id.tv_tipo_cobertura); 
             tvSesiones = v.findViewById(R.id.tv_sesiones);
-            ivAtendido = v.findViewById(R.id.cb_atendido); 
-            ivMenu = v.findViewById(R.id.iv_menu_turno);
+            ivAtendido = v.findViewById(R.id.cb_atendido);
             layoutTurno = v.findViewById(R.id.layout_turno); 
             tvModalidad = v.findViewById(R.id.tv_modalidad_turno);
         }

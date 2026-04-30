@@ -349,7 +349,8 @@ public class AgendaFragment extends Fragment {
                         if (p == null || p.getHorarios() == null) continue;
                         p.setId(doc.getId());
 
-                        if (!modalidadActual.equals(p.getModalidad())) continue;
+                        // MODIFICADO: Ahora muestra si la modalidad coincide O si el paciente atiende en "ambos"
+                        if (!modalidadActual.equals(p.getModalidad()) && !"ambos".equals(p.getModalidad())) continue;
 
                         for (int i = 0; i < p.getHorarios().size(); i++) {
                             HorarioAtencion h = p.getHorarios().get(i);
@@ -372,7 +373,7 @@ public class AgendaFragment extends Fragment {
                                 listaTurnos.add(new TurnoAdapter.Turno(
                                         h.getHoraInicio(),
                                         h.getHoraFin(),
-                                        fechaTurno, // ASIGNAMOS LA FECHA REAL DEL TURNO
+                                        fechaTurno,
                                         p.getNombreCompleto(),
                                         p.getDiagnostico(),
                                         p.getObraSocial(),
@@ -405,11 +406,13 @@ public class AgendaFragment extends Fragment {
         inicioDia.set(Calendar.HOUR_OF_DAY, 0);
         inicioDia.set(Calendar.MINUTE, 0);
         inicioDia.set(Calendar.SECOND, 0);
+        inicioDia.set(Calendar.MILLISECOND, 0);
 
         Calendar finDia = (Calendar) fechaActual.clone();
         finDia.set(Calendar.HOUR_OF_DAY, 23);
         finDia.set(Calendar.MINUTE, 59);
         finDia.set(Calendar.SECOND, 59);
+        finDia.set(Calendar.MILLISECOND, 999);
 
         if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
@@ -438,7 +441,6 @@ public class AgendaFragment extends Fragment {
                                 turno.atendido = true;
                                 turno.atencionId = doc.getId();
                                 
-                                // REFLEJAR DATOS HISTÓRICOS DE ESA SESIÓN ESPECÍFICA
                                 if (a.getSesionNumero() > 0) {
                                     turno.sesionesAtendidas = a.getSesionNumero();
                                     turno.sesionesTotales = a.getSesionesTotal();

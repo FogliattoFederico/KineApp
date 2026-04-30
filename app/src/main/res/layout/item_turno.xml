@@ -13,7 +13,7 @@
     android:paddingBottom="10dp"
     android:background="?attr/selectableItemBackground">
 
-    <!-- Columna Horario -->
+    <!-- Columna Horario: Alineado con el header -->
     <TextView
         android:id="@+id/tv_hora"
         android:layout_width="65dp"
@@ -23,7 +23,7 @@
         android:gravity="center_vertical"
         android:lineSpacingExtra="2dp" />
 
-    <!-- Contenedor Central -->
+    <!-- Contenedor Central (Paciente) -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -43,7 +43,6 @@
             android:maxLines="1"
             android:ellipsize="end" />
 
-        <!-- Fila de Badges: Letra más grande y padding corregido -->
         <com.google.android.material.chip.ChipGroup
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -117,25 +116,22 @@
 
     </LinearLayout>
 
-    <!-- Columna Acción -->
-    <ImageView
-        android:id="@+id/cb_atendido"
-        android:layout_width="26dp"
-        android:layout_height="26dp"
-        android:layout_gravity="center_vertical"
-        android:src="@drawable/ic_checkbox_unchecked"
-        android:clickable="true"
-        android:focusable="true"
-        android:contentDescription="Atendido" />
+    <!-- Columna Acción (Estado): Contenedor de 50dp para alinear con el header -->
+    <FrameLayout
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical">
 
-    <ImageView
-        android:id="@+id/iv_menu_turno"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:layout_gravity="center_vertical"
-        android:src="@drawable/ic_more_vert_white"
-        android:tint="@color/text_secondary"
-        android:visibility="gone"
-        android:contentDescription="Opciones" />
+        <ImageView
+            android:id="@+id/cb_atendido"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_checkbox_unchecked"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="Atendido" />
+
+    </FrameLayout>
 
 </LinearLayout>
