@@ -307,29 +307,6 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         final int sesTot = !tieneCud ? Integer.parseInt(sesionesTotStr) : 0;
         final double valorSesion = (!tieneOS && !valorSesionStr.isEmpty()) ? Double.parseDouble(valorSesionStr) : 0.0;
 
-        // LÓGICA DE RENOVACIÓN AL EDITAR
-        if (pacienteExistente != null) {
-            boolean cambioSesiones = tieneCud 
-                ? (sesSem != pacienteExistente.getSesionesSemanales())
-                : (sesTot != pacienteExistente.getSesionesOrden());
-
-            if (cambioSesiones) {
-                new AlertDialog.Builder(this)
-                        .setTitle("Renovación de Sesiones")
-                        .setMessage("Detectamos un cambio en las sesiones totales. ¿Deseás resetear el contador de sesiones atendidas a cero para iniciar un nuevo ciclo?")
-                        .setPositiveButton("Sí, renovar", (dialog, which) -> {
-                            pacienteExistente.setSesionesAtendidas(0);
-                            procederConGuardado(nombre, apellido, dni, telefono, direccion, fechaNac, emailPaciente, diagnostico, observaciones, obraSocial, numeroAfiliado, edad, tieneCud, tieneOS, sesSem, sesTot, valorSesion, fechaInicio, fechaFin);
-                        })
-                        .setNegativeButton("No, solo corregir", (dialog, which) -> {
-                            procederConGuardado(nombre, apellido, dni, telefono, direccion, fechaNac, emailPaciente, diagnostico, observaciones, obraSocial, numeroAfiliado, edad, tieneCud, tieneOS, sesSem, sesTot, valorSesion, fechaInicio, fechaFin);
-                        })
-                        .setCancelable(false)
-                        .show();
-                return;
-            }
-        }
-        
         procederConGuardado(nombre, apellido, dni, telefono, direccion, fechaNac, emailPaciente, diagnostico, observaciones, obraSocial, numeroAfiliado, edad, tieneCud, tieneOS, sesSem, sesTot, valorSesion, fechaInicio, fechaFin);
     }
 

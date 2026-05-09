@@ -262,7 +262,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
         FirebaseFirestore db = FirebaseFirestore.getInstance();
         db.collection("pacientes").document(pacienteId).get().addOnSuccessListener(doc -> {
             Paciente p = doc.toObject(Paciente.class);
-            if (p != null && !p.isCertificadoDiscapacidad() && p.getSesionesAtendidas() > 0 && p.getSesionesOrden() == totalDeLaAtencion) {
+            if (p != null && !p.isCertificadoDiscapacidad() && p.getSesionesAtendidas() > 0) {
                 db.collection("pacientes").document(pacienteId).update("sesionesAtendidas", FieldValue.increment(-1));
             }
         });
@@ -281,7 +281,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
                 if (!"CUD".equals(a.getTipoCobertura())) {
                     db.collection("pacientes").document(turno.pacienteId).get().addOnSuccessListener(docP -> {
                         Paciente p = docP.toObject(Paciente.class);
-                        if (p != null && p.getSesionesAtendidas() > 0 && p.getSesionesOrden() == tot) {
+                        if (p != null && p.getSesionesAtendidas() > 0) {
                             db.collection("pacientes").document(turno.pacienteId).update("sesionesAtendidas", FieldValue.increment(-1))
                                 .addOnSuccessListener(finish -> finalizarDesmarcado(holder, turno));
                         } else { finalizarDesmarcado(holder, turno); }
@@ -350,7 +350,7 @@ public class TurnoAdapter extends RecyclerView.Adapter<TurnoAdapter.ViewHolder> 
 
                 new AtencionRepository().guardar(atencion).addOnSuccessListener(unused -> {
                     turno.atencionId = atencion.getId();
-                    if (!p.isCertificadoDiscapacidad() && !esRestauracion && totalSes == p.getSesionesOrden()) {
+                    if (!p.isCertificadoDiscapacidad() && !esRestauracion) {
                         db.collection("pacientes").document(turno.pacienteId).update("sesionesAtendidas", FieldValue.increment(1))
                             .addOnSuccessListener(finish -> finalizarMarcado(holder, turno, dialog));
                     } else { finalizarMarcado(holder, turno, dialog); }

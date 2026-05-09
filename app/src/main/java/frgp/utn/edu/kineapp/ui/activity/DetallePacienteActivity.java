@@ -383,6 +383,12 @@ public class DetallePacienteActivity extends AppCompatActivity {
                     containerHistorial.removeAllViews();
 
                     if (query.isEmpty()) {
+                        // Sincronización automática si el historial está vacío
+                        if (!paciente.isCertificadoDiscapacidad() && paciente.getSesionesAtendidas() != 0) {
+                            FirebaseFirestore.getInstance().collection("pacientes").document(pacienteId)
+                                    .update("sesionesAtendidas", 0);
+                        }
+                        
                         TextView tvVacio = new TextView(this);
                         tvVacio.setText("Sin atenciones registradas");
                         tvVacio.setTextColor(Color.parseColor("#9E9E9E"));
@@ -400,6 +406,19 @@ public class DetallePacienteActivity extends AppCompatActivity {
                             atenciones.add(a);
                         }
                     }
+                    
+                    // Sincronización automática del contador de sesiones
+                    if (!paciente.isCertificadoDiscapacidad() && paciente.getSesionesAtendidas() != atenciones.size()) {
+                        final int realSize = atenciones.size();
+                        FirebaseFirestore.getInstance().collection("pacientes").document(pacienteId)
+                                .update("sesionesAtendidas", realSize)
+                                .addOnSuccessListener(v -> {
+                                    paciente.setSesionesAtendidas(realSize);
+                                    TextView tvSes = findViewById(R.id.tv_sesiones);
+                                    if (tvSes != null) tvSes.setText(realSize + " / " + paciente.getSesionesOrden());
+                                });
+                    }
+
                     atenciones.sort((a, b) -> {
                         if (a.getFecha() == null) return 1;
                         if (b.getFecha() == null) return -1;
