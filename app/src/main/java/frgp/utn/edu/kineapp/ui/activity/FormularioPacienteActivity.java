@@ -394,28 +394,46 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         return "";
     }
 
+    private int contarTurnosFuturos(List<HorarioAtencion> lista) {
+        if (lista == null) return 0;
+        int count = 0;
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        try {
+            Calendar calHoy = Calendar.getInstance();
+            // Lo ponemos al final del día para que los turnos de hoy NO cuenten como futuros
+            // (Ya que si pasaron se cuentan en atendidas, y si no pasaron se cuentan aparte)
+            calHoy.set(Calendar.HOUR_OF_DAY, 23);
+            calHoy.set(Calendar.MINUTE, 59);
+            calHoy.set(Calendar.SECOND, 59);
+            java.util.Date hoy = calHoy.getTime();
+
+            for (HorarioAtencion h : lista) {
+                if (h.getFecha() != null && !h.getFecha().isEmpty()) {
+                    java.util.Date f = sdf.parse(h.getFecha());
+                    if (f != null && f.after(hoy)) count++;
+                }
+            }
+        } catch (Exception ignored) {}
+        return count;
+    }
+
     private boolean puedeAgregarHorario() {
         if (pacienteExistente == null) return false;
-        if (indiceEdicionIndividual != -1) return false; // No agregar más si edito uno solo
+        if (indiceEdicionIndividual != -1) return false; 
         
         int turnosEnUI = containerHorarios.getChildCount();
         
         if (pacienteExistente.isCertificadoDiscapacidad()) {
-            // Permitir cargar turnos para varias semanas (ej: hasta 12 turnos en total si son 3 por semana)
-            // Se valida el límite semanal real al momento de Guardar.
             return turnosEnUI < (pacienteExistente.getSesionesSemanales() * 12);
         } else {
-            // Para Orden/Particular, restamos los ya atendidos Y los que ya están agendados
-            int yaConsumido = pacienteExistente.getSesionesAtendidas();
-            int yaAgendado = (horariosOriginales != null) ? horariosOriginales.size() : 0;
             int limiteTotal = pacienteExistente.getSesionesOrden();
+            int atendidas = pacienteExistente.getSesionesAtendidas();
+            int agendadosFuturos = contarTurnosFuturos(horariosOriginales);
             
             if (modoEdicion) {
-                // En edición masiva, turnosEnUI ya incluye los existentes cargados en pantalla
-                return turnosEnUI < (limiteTotal - yaConsumido);
+                return (turnosEnUI + atendidas) < limiteTotal;
             } else {
-                // En alta, turnosEnUI son solo los nuevos que se van a agregar
-                return turnosEnUI < (limiteTotal - yaConsumido - yaAgendado);
+                return (turnosEnUI + atendidas + agendadosFuturos) < limiteTotal;
             }
         }
     }
@@ -431,7 +449,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         if (pacienteExistente == null) {
              btnAgregarHorario.setText("Buscá al paciente primero");
         } else if (!puede) {
-            btnAgregarHorario.setText("Límite de turnos alcanzado");
+            btnAgregarHorario.setText("LÍMITE DE TURNOS ALCANZADO");
         } else {
             btnAgregarHorario.setText("+ Agregar horario");
         }
@@ -610,9 +628,11 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         // --- VALIDACIÓN TOTAL PARA PACIENTES SIN CUD (ORDEN/PARTICULAR) ---
         if (!pacienteExistente.isCertificadoDiscapacidad()) {
             int limiteTotal = pacienteExistente.getSesionesOrden();
-            int atendidos = pacienteExistente.getSesionesAtendidas();
-            if (limiteTotal > 0 && (horariosFinales.size() + atendidos) > limiteTotal) {
-                Toast.makeText(this, "Error: El paciente tiene un límite de " + limiteTotal + " sesiones totales. Entre atendidas (" + atendidos + ") y agendadas (" + horariosFinales.size() + ") superás el límite.", Toast.LENGTH_LONG).show();
+            int atendidas = pacienteExistente.getSesionesAtendidas();
+            int futuros = contarTurnosFuturos(horariosFinales);
+
+            if (limiteTotal > 0 && (atendidas + futuros) > limiteTotal) {
+                Toast.makeText(this, "Error: El paciente tiene un límite de " + limiteTotal + " sesiones. Ya atendió " + atendidas + " y tiene " + futuros + " turnos programados (total " + (atendidas + futuros) + ").", Toast.LENGTH_LONG).show();
                 return;
             }
         }
