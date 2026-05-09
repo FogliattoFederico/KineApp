@@ -534,17 +534,35 @@
                 android:visibility="gone" />
 
             <!-- Sección Historial -->
-            <TextView
-                android:id="@+id/label_historial_seccion"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:id="@+id/layout_historial_header"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="HISTORIAL DE ATENCIONES"
-                android:textColor="@color/primary"
-                android:textSize="12sp"
-                android:textStyle="bold"
+                android:orientation="horizontal"
                 android:layout_marginStart="4dp"
                 android:layout_marginBottom="8dp"
-                android:visibility="gone" />
+                android:gravity="center_vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/label_historial_seccion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="HISTORIAL DE ATENCIONES"
+                    android:textColor="@color/primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_cantidad_atenciones"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="(0)"
+                    android:textColor="@color/primary"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:layout_marginStart="8dp" />
+            </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/container_historial"

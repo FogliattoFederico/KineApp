@@ -375,7 +375,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
     }
 
     private void aplicarModalidadPorDefecto() {
-        if (professionalModalidad == null || professionalModalidad.isEmpty() || professionalModalidad.equals("ambos")) return;
+        if (professionalNombre == null || professionalNombre.isEmpty() || professionalModalidad == null) return;
         
         if ("domicilio".equals(professionalModalidad)) {
             Chip chip = findViewById(R.id.chip_domicilio);
@@ -398,14 +398,25 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         if (pacienteExistente == null) return false;
         if (indiceEdicionIndividual != -1) return false; // No agregar más si edito uno solo
         
-        int turnosActuales = containerHorarios.getChildCount();
+        int turnosEnUI = containerHorarios.getChildCount();
         
         if (pacienteExistente.isCertificadoDiscapacidad()) {
             // Permitir cargar turnos para varias semanas (ej: hasta 12 turnos en total si son 3 por semana)
-            return turnosActuales < (pacienteExistente.getSesionesSemanales() * 4);
+            // Se valida el límite semanal real al momento de Guardar.
+            return turnosEnUI < (pacienteExistente.getSesionesSemanales() * 12);
         } else {
-            int restantes = pacienteExistente.getSesionesOrden() - pacienteExistente.getSesionesAtendidas();
-            return turnosActuales < restantes;
+            // Para Orden/Particular, restamos los ya atendidos Y los que ya están agendados
+            int yaConsumido = pacienteExistente.getSesionesAtendidas();
+            int yaAgendado = (horariosOriginales != null) ? horariosOriginales.size() : 0;
+            int limiteTotal = pacienteExistente.getSesionesOrden();
+            
+            if (modoEdicion) {
+                // En edición masiva, turnosEnUI ya incluye los existentes cargados en pantalla
+                return turnosEnUI < (limiteTotal - yaConsumido);
+            } else {
+                // En alta, turnosEnUI son solo los nuevos que se van a agregar
+                return turnosEnUI < (limiteTotal - yaConsumido - yaAgendado);
+            }
         }
     }
 
@@ -593,6 +604,16 @@ public class FormularioPacienteActivity extends AppCompatActivity {
                     }
                     conteoSemanas.put(semanaKey, count);
                 }
+            }
+        }
+
+        // --- VALIDACIÓN TOTAL PARA PACIENTES SIN CUD (ORDEN/PARTICULAR) ---
+        if (!pacienteExistente.isCertificadoDiscapacidad()) {
+            int limiteTotal = pacienteExistente.getSesionesOrden();
+            int atendidos = pacienteExistente.getSesionesAtendidas();
+            if (limiteTotal > 0 && (horariosFinales.size() + atendidos) > limiteTotal) {
+                Toast.makeText(this, "Error: El paciente tiene un límite de " + limiteTotal + " sesiones totales. Entre atendidas (" + atendidos + ") y agendadas (" + horariosFinales.size() + ") superás el límite.", Toast.LENGTH_LONG).show();
+                return;
             }
         }
 

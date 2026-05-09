@@ -37,8 +37,8 @@ import frgp.utn.edu.kineapp.repository.PacienteRepository;
 public class DetallePacienteActivity extends AppCompatActivity {
 
     private TextView tvAvatarGrande, tvNombreCompleto, tvDniHeader,
-            tvBadgeCud, tvBadgeModalidad;
-    private LinearLayout containerHorarios, containerHistorial;
+            tvBadgeCud, tvBadgeModalidad, tvCantidadAtenciones;
+    private LinearLayout containerHorarios, containerHistorial, layoutHistorialHeader;
     private Paciente paciente;
     private String pacienteId;
     private boolean modoTurno = false;
@@ -70,6 +70,8 @@ public class DetallePacienteActivity extends AppCompatActivity {
         tvDniHeader = findViewById(R.id.tv_dni_header);
         tvBadgeCud = findViewById(R.id.tv_badge_cud);
         tvBadgeModalidad = findViewById(R.id.tv_badge_modalidad);
+        tvCantidadAtenciones = findViewById(R.id.tv_cantidad_atenciones);
+        layoutHistorialHeader = findViewById(R.id.layout_historial_header);
         containerHorarios = findViewById(R.id.container_horarios);
         containerHistorial = findViewById(R.id.container_historial);
         btnAbrirMaps = findViewById(R.id.btn_abrir_maps);
@@ -379,10 +381,12 @@ public class DetallePacienteActivity extends AppCompatActivity {
         new AtencionRepository().obtenerPorPaciente(pacienteId)
                 .addOnSuccessListener(query -> {
                     containerHistorial.setVisibility(View.VISIBLE);
-                    findViewById(R.id.label_historial_seccion).setVisibility(View.VISIBLE);
+                    if (layoutHistorialHeader != null) layoutHistorialHeader.setVisibility(View.VISIBLE);
                     containerHistorial.removeAllViews();
 
                     if (query.isEmpty()) {
+                        if (tvCantidadAtenciones != null) tvCantidadAtenciones.setText("(0)");
+                        
                         // Sincronización automática si el historial está vacío
                         if (!paciente.isCertificadoDiscapacidad() && paciente.getSesionesAtendidas() != 0) {
                             FirebaseFirestore.getInstance().collection("pacientes").document(pacienteId)
@@ -406,6 +410,8 @@ public class DetallePacienteActivity extends AppCompatActivity {
                             atenciones.add(a);
                         }
                     }
+                    
+                    if (tvCantidadAtenciones != null) tvCantidadAtenciones.setText("(" + atenciones.size() + ")");
                     
                     // Sincronización automática del contador de sesiones
                     if (!paciente.isCertificadoDiscapacidad() && paciente.getSesionesAtendidas() != atenciones.size()) {
