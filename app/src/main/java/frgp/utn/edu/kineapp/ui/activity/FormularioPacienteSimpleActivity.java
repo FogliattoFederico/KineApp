@@ -2,6 +2,7 @@ package frgp.utn.edu.kineapp.ui.activity;
 
 import android.app.DatePickerDialog;
 import android.os.Bundle;
+import android.util.Patterns;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -265,7 +266,8 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         if (telefono.isEmpty()) { etTelefono.setError("Requerido"); etTelefono.requestFocus(); return; }
         if (direccion.isEmpty()) { etDireccion.setError("Requerido"); etDireccion.requestFocus(); return; }
         if (fechaNac.isEmpty()) { etFechaNacimiento.setError("Requerido"); etFechaNacimiento.requestFocus(); return; }
-        if (emailPaciente.isEmpty()) { etEmailPaciente.setError("Requerido"); etEmailPaciente.requestFocus(); return; }
+        if (diagnostico.isEmpty()) { etDiagnostico.setError("Requerido"); etDiagnostico.requestFocus(); return; }
+        if (!tieneOS && valorSesionStr.isEmpty()) { etValorSesion.setError("Requerido"); etValorSesion.requestFocus(); return; }
         
         if (tieneCud && sesionesSemStr.isEmpty()) {
             etSesionesSemanales.setError("Requerido"); etSesionesSemanales.requestFocus(); return;
@@ -293,7 +295,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
             } catch (Exception ignored) {}
         }
 
-        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(emailPaciente).matches()) {
+        if (!emailPaciente.isEmpty() && !Patterns.EMAIL_ADDRESS.matcher(emailPaciente).matches()) {
             etEmailPaciente.setError("Email inválido"); return;
         }
         if (tieneOS && obraSocial.isEmpty()) {
@@ -305,7 +307,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
 
         final int sesSem = tieneCud ? Integer.parseInt(sesionesSemStr) : 0;
         final int sesTot = !tieneCud ? Integer.parseInt(sesionesTotStr) : 0;
-        final double valorSesion = (!tieneOS && !valorSesionStr.isEmpty()) ? Double.parseDouble(valorSesionStr) : 0.0;
+        final double valorSesion = !tieneOS ? Double.parseDouble(valorSesionStr) : 0.0;
 
         procederConGuardado(nombre, apellido, dni, telefono, direccion, fechaNac, emailPaciente, diagnostico, observaciones, obraSocial, numeroAfiliado, edad, tieneCud, tieneOS, sesSem, sesTot, valorSesion, fechaInicio, fechaFin);
     }

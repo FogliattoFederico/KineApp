@@ -190,7 +190,7 @@
         <TextView
             android:layout_width="50dp"
             android:layout_height="wrap_content"
-            android:text="Estado"
+            android:text="Atendido"
             android:textSize="10sp"
             android:textStyle="bold"
             android:textColor="@color/text_secondary"
