@@ -26,6 +26,7 @@ public class Paciente {
     private String observaciones;
     private String modalidad;        // "domicilio", "consultorio", "ambos"
     private double valorSesion;      // solo para particulares
+    private double adicional;        // opcional para obra social con o sin CUD
     private int sesionesAtendidas;   // contador de sesiones atendidas
     private int sesionesRestantes;   // calculado desde sesionesOrden
     private String fechaNacimiento; // "dd/MM/yyyy"
@@ -125,6 +126,9 @@ public class Paciente {
 
     public double getValorSesion() { return valorSesion; }
     public void setValorSesion(double valorSesion) { this.valorSesion = valorSesion; }
+
+    public double getAdicional() { return adicional; }
+    public void setAdicional(double adicional) { this.adicional = adicional; }
 
     public int getSesionesAtendidas() { return sesionesAtendidas; }
     public void setSesionesAtendidas(int sesionesAtendidas) { this.sesionesAtendidas = sesionesAtendidas; }

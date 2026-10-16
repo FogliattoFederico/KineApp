@@ -1,5 +1,6 @@
 package frgp.utn.edu.kineapp.ui.activity;
 
+import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.app.TimePickerDialog;
 import android.net.Uri;
@@ -19,6 +20,7 @@ import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import java.net.URLEncoder;
@@ -26,6 +28,7 @@ import java.text.Normalizer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -40,10 +43,10 @@ public class FormularioPacienteActivity extends AppCompatActivity {
 
     private TextInputEditText etBuscar, etNombre, etApellido, etDni,
             etTelefono, etDireccion, etDiagnostico, etObservaciones,
-            etObraSocial, etNumeroAfiliado, etSesionesSemanales,
+            etObraSocial, etNumeroAfiliado, etAdicional, etSesionesSemanales,
             etSesionesOrden, etValorSesion, etEmailPaciente;
     private TextInputLayout tilSesionesSemanales, tilSesionesOrden,
-            tilObraSocial, tilNumeroAfiliado, tilValorSesion, tilEmailPaciente, tilBuscar;
+            tilObraSocial, tilNumeroAfiliado, tilAdicional, tilValorSesion, tilEmailPaciente, tilBuscar;
     private SwitchMaterial switchDiscapacidad, switchParticular;
     private ChipGroup chipGroupModalidad;
     private LinearLayout containerHorarios, layoutFormulario;
@@ -96,6 +99,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         etObservaciones = findViewById(R.id.et_observaciones);
         etObraSocial = findViewById(R.id.et_obra_social);
         etNumeroAfiliado = findViewById(R.id.et_numero_afiliado);
+        etAdicional = findViewById(R.id.et_adicional);
         etSesionesSemanales = findViewById(R.id.et_sesiones_semanales);
         etSesionesOrden = findViewById(R.id.et_sesiones_orden);
         etValorSesion = findViewById(R.id.et_valor_sesion);
@@ -105,6 +109,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         tilSesionesOrden = findViewById(R.id.til_sesiones_orden);
         tilObraSocial = findViewById(R.id.til_obra_social);
         tilNumeroAfiliado = findViewById(R.id.til_numero_afiliado);
+        tilAdicional = findViewById(R.id.til_adicional);
         tilValorSesion = findViewById(R.id.til_valor_sesion);
         tilEmailPaciente = findViewById(R.id.til_email_paciente);
 
@@ -318,6 +323,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         etDni.setEnabled(false);
         etTelefono.setEnabled(false);
         etEmailPaciente.setEnabled(false);
+        etAdicional.setEnabled(false);
         switchDiscapacidad.setEnabled(false);
         switchParticular.setEnabled(false);
         etSesionesSemanales.setEnabled(false);
@@ -331,8 +337,15 @@ public class FormularioPacienteActivity extends AppCompatActivity {
         if (tieneOS) {
             findViewById(R.id.card_particular).setVisibility(View.GONE);
             switchParticular.setChecked(false);
+            if (pacienteExistente.getAdicional() > 0) {
+                tilAdicional.setVisibility(View.VISIBLE);
+                etAdicional.setText(String.valueOf(pacienteExistente.getAdicional()));
+            } else {
+                tilAdicional.setVisibility(View.GONE);
+            }
         } else {
             findViewById(R.id.card_particular).setVisibility(View.VISIBLE);
+            tilAdicional.setVisibility(View.GONE);
             switchParticular.setChecked(true);
         }
 
@@ -405,11 +418,11 @@ public class FormularioPacienteActivity extends AppCompatActivity {
             calHoy.set(Calendar.HOUR_OF_DAY, 23);
             calHoy.set(Calendar.MINUTE, 59);
             calHoy.set(Calendar.SECOND, 59);
-            java.util.Date hoy = calHoy.getTime();
+            Date hoy = calHoy.getTime();
 
             for (HorarioAtencion h : lista) {
                 if (h.getFecha() != null && !h.getFecha().isEmpty()) {
-                    java.util.Date f = sdf.parse(h.getFecha());
+                    Date f = sdf.parse(h.getFecha());
                     if (f != null && f.after(hoy)) count++;
                 }
             }
@@ -464,7 +477,7 @@ public class FormularioPacienteActivity extends AppCompatActivity {
 
         Calendar hoy = Calendar.getInstance();
         etFechaTurno.setOnClickListener(v -> {
-            new android.app.DatePickerDialog(this, (dp, y, m, d) -> {
+            new DatePickerDialog(this, (dp, y, m, d) -> {
                 Calendar sel = Calendar.getInstance();
                 sel.set(y, m, d);
                 String[] diasNombres = {"Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"};
@@ -652,10 +665,13 @@ public class FormularioPacienteActivity extends AppCompatActivity {
     private void aplicarCambiosYGuardar(String modalidad, List<HorarioAtencion> horariosFinales, List<HorarioAtencion> horariosNuevos) {
         pacienteExistente.setModalidad(modalidad);
         pacienteExistente.setHorarios(horariosFinales);
-        pacienteExistente.setUltimaActualizacion(com.google.firebase.Timestamp.now());
+        pacienteExistente.setUltimaActualizacion(Timestamp.now());
 
         if (!etValorSesion.getText().toString().isEmpty())
             pacienteExistente.setValorSesion(Double.parseDouble(etValorSesion.getText().toString()));
+
+        if (!etAdicional.getText().toString().isEmpty())
+            pacienteExistente.setAdicional(Double.parseDouble(etAdicional.getText().toString()));
 
         guardarEnFirestore(pacienteExistente, horariosNuevos);
     }
@@ -885,8 +901,8 @@ public class FormularioPacienteActivity extends AppCompatActivity {
     }
 
     private void cargarBoxes() {
-        String uid = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid();
-        com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("usuarios").document(uid).get()
+        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore.getInstance().collection("usuarios").document(uid).get()
                 .addOnSuccessListener(doc -> {
                     Long boxes = doc.getLong("cantidadBoxes");
                     if (boxes != null) cantidadBoxes = boxes.intValue();

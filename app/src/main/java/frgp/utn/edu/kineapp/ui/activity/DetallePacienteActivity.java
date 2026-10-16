@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
@@ -192,6 +193,9 @@ public class DetallePacienteActivity extends AppCompatActivity {
         findViewById(R.id.divider_afiliado).setVisibility(View.GONE);
         findViewById(R.id.label_numero_afiliado).setVisibility(View.GONE);
         findViewById(R.id.tv_numero_afiliado).setVisibility(View.GONE);
+        findViewById(R.id.divider_adicional).setVisibility(View.GONE);
+        findViewById(R.id.label_adicional).setVisibility(View.GONE);
+        findViewById(R.id.tv_adicional).setVisibility(View.GONE);
         findViewById(R.id.divider_sesiones).setVisibility(View.GONE);
         findViewById(R.id.label_sesiones).setVisibility(View.GONE);
         findViewById(R.id.tv_sesiones).setVisibility(View.GONE);
@@ -207,6 +211,11 @@ public class DetallePacienteActivity extends AppCompatActivity {
             if (paciente.getNumeroAfiliado() != null && !paciente.getNumeroAfiliado().isEmpty()) {
                 setVisible(R.id.divider_afiliado, R.id.label_numero_afiliado, R.id.tv_numero_afiliado);
                 mostrarCampo(R.id.tv_numero_afiliado, paciente.getNumeroAfiliado());
+            }
+
+            if (paciente.getAdicional() > 0) {
+                setVisible(R.id.divider_adicional, R.id.label_adicional, R.id.tv_adicional);
+                mostrarCampo(R.id.tv_adicional, String.format(new Locale("es", "AR"), "$ %,.0f", paciente.getAdicional()));
             }
         }
 
@@ -269,7 +278,7 @@ public class DetallePacienteActivity extends AppCompatActivity {
                     ImageView ivEdit = new ImageView(this);
                     ivEdit.setImageResource(R.drawable.ic_edit);
                     ivEdit.setPadding(16, 8, 16, 8);
-                    layoutFila.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                    layoutFila.setGravity(Gravity.CENTER_VERTICAL);
                     layoutFila.addView(ivEdit);
                     
                     ivEdit.setOnClickListener(v -> {

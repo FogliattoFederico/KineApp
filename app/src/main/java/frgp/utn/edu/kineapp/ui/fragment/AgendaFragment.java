@@ -366,9 +366,15 @@ public class AgendaFragment extends Fragment {
 
                             if (coincide) {
                                 String tipoCobertura;
-                                if (p.isParticular()) tipoCobertura = "Particular";
-                                else if (p.isCertificadoDiscapacidad()) tipoCobertura = "CUD";
-                                else tipoCobertura = "Orden";
+                                double montoTurno;
+                                if (p.isParticular()) {
+                                    tipoCobertura = "Particular";
+                                    montoTurno = p.getValorSesion();
+                                } else {
+                                    if (p.isCertificadoDiscapacidad()) tipoCobertura = "CUD";
+                                    else tipoCobertura = "Orden";
+                                    montoTurno = p.getAdicional();
+                                }
 
                                 listaTurnos.add(new TurnoAdapter.Turno(
                                         h.getHoraInicio(),
@@ -380,7 +386,7 @@ public class AgendaFragment extends Fragment {
                                         tipoCobertura,
                                         false,
                                         p.getId(),
-                                        p.getValorSesion(),
+                                        montoTurno,
                                         p.getSesionesAtendidas(),
                                         p.getSesionesOrden(),
                                         p.getModalidad(),

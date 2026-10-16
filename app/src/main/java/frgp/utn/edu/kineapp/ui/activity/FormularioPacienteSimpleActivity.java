@@ -15,6 +15,8 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.firebase.firestore.FirebaseFirestore;
+
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -30,9 +32,9 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
     private TextInputEditText etNombre, etApellido, etDni, etTelefono,
             etDireccion, etFechaNacimiento, etEdad, etNumeroAfiliado,
             etEmailPaciente, etSesionesSemanales, etSesionesOrden, 
-            etDiagnostico, etObservaciones, etValorSesion,
+            etDiagnostico, etObservaciones, etValorSesion, etAdicional,
             etFechaInicioPeriodo, etFechaFinPeriodo;
-    private TextInputLayout tilObraSocial, tilNumeroAfiliado, tilSesionesSemanales, 
+    private TextInputLayout tilObraSocial, tilNumeroAfiliado, tilAdicional, tilSesionesSemanales, 
             tilSesionesOrden, tilValorSesion;
     private LinearLayout layoutPeriodoCud;
     private AutoCompleteTextView etObraSocial;
@@ -81,6 +83,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         etEdad = findViewById(R.id.et_edad);
         etObraSocial = findViewById(R.id.et_obra_social);
         etNumeroAfiliado = findViewById(R.id.et_numero_afiliado);
+        etAdicional = findViewById(R.id.et_adicional);
         etEmailPaciente = findViewById(R.id.et_email_paciente);
         etSesionesSemanales = findViewById(R.id.et_sesiones_semanales);
         etSesionesOrden = findViewById(R.id.et_sesiones_orden);
@@ -92,6 +95,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
 
         tilObraSocial = findViewById(R.id.til_obra_social);
         tilNumeroAfiliado = findViewById(R.id.til_numero_afiliado);
+        tilAdicional = findViewById(R.id.til_adicional);
         tilSesionesSemanales = findViewById(R.id.til_sesiones_semanales);
         tilSesionesOrden = findViewById(R.id.til_sesiones_orden);
         tilValorSesion = findViewById(R.id.til_valor_sesion);
@@ -103,10 +107,12 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         switchObraSocial.setOnCheckedChangeListener((btn, checked) -> {
             tilObraSocial.setVisibility(checked ? View.VISIBLE : View.GONE);
             tilNumeroAfiliado.setVisibility(checked ? View.VISIBLE : View.GONE);
+            tilAdicional.setVisibility(checked ? View.VISIBLE : View.GONE);
             tilValorSesion.setVisibility(checked ? View.GONE : View.VISIBLE);
             if (!checked) {
                 etObraSocial.setText("");
                 etNumeroAfiliado.setText("");
+                etAdicional.setText("");
             } else {
                 etValorSesion.setText("");
             }
@@ -176,7 +182,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
     }
 
     private void cargarPaciente(String pacienteId) {
-        com.google.firebase.firestore.FirebaseFirestore.getInstance()
+        FirebaseFirestore.getInstance()
                 .collection("pacientes")
                 .document(pacienteId)
                 .get()
@@ -202,12 +208,16 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
                         etObraSocial.setText(pacienteExistente.getObraSocial());
                         tilObraSocial.setVisibility(View.VISIBLE);
                         tilNumeroAfiliado.setVisibility(View.VISIBLE);
+                        tilAdicional.setVisibility(View.VISIBLE);
                         tilValorSesion.setVisibility(View.GONE);
                         if (pacienteExistente.getNumeroAfiliado() != null)
                             etNumeroAfiliado.setText(pacienteExistente.getNumeroAfiliado());
+                        if (pacienteExistente.getAdicional() > 0)
+                            etAdicional.setText(String.valueOf(pacienteExistente.getAdicional()));
                     } else {
                         tilObraSocial.setVisibility(View.GONE);
                         tilNumeroAfiliado.setVisibility(View.GONE);
+                        tilAdicional.setVisibility(View.GONE);
                         tilValorSesion.setVisibility(View.VISIBLE);
                         if (pacienteExistente.getValorSesion() > 0)
                             etValorSesion.setText(String.valueOf(pacienteExistente.getValorSesion()));
@@ -257,6 +267,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         final String sesionesSemStr = etSesionesSemanales.getText().toString().trim();
         final String sesionesTotStr = etSesionesOrden.getText().toString().trim();
         final String valorSesionStr = etValorSesion.getText().toString().trim();
+        final String adicionalStr = etAdicional.getText().toString().trim();
         final String fechaInicio = etFechaInicioPeriodo.getText().toString().trim();
         final String fechaFin = etFechaFinPeriodo.getText().toString().trim();
 
@@ -308,11 +319,12 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
         final int sesSem = tieneCud ? Integer.parseInt(sesionesSemStr) : 0;
         final int sesTot = !tieneCud ? Integer.parseInt(sesionesTotStr) : 0;
         final double valorSesion = !tieneOS ? Double.parseDouble(valorSesionStr) : 0.0;
+        final double adicional = (tieneOS && !adicionalStr.isEmpty()) ? Double.parseDouble(adicionalStr) : 0.0;
 
-        procederConGuardado(nombre, apellido, dni, telefono, direccion, fechaNac, emailPaciente, diagnostico, observaciones, obraSocial, numeroAfiliado, edad, tieneCud, tieneOS, sesSem, sesTot, valorSesion, fechaInicio, fechaFin);
+        procederConGuardado(nombre, apellido, dni, telefono, direccion, fechaNac, emailPaciente, diagnostico, observaciones, obraSocial, numeroAfiliado, edad, tieneCud, tieneOS, sesSem, sesTot, valorSesion, adicional, fechaInicio, fechaFin);
     }
 
-    private void procederConGuardado(String nombre, String apellido, String dni, String telefono, String direccion, String fechaNac, String email, String diagnostico, String observaciones, String obraSocial, String numeroAfiliado, int edad, boolean tieneCud, boolean tieneOS, int sesSem, int sesTot, double valorSesion, String fechaInicio, String fechaFin) {
+    private void procederConGuardado(String nombre, String apellido, String dni, String telefono, String direccion, String fechaNac, String email, String diagnostico, String observaciones, String obraSocial, String numeroAfiliado, int edad, boolean tieneCud, boolean tieneOS, int sesSem, int sesTot, double valorSesion, double adicional, String fechaInicio, String fechaFin) {
         if (pacienteExistente == null) {
              repository.buscarPorDni(dni)
                     .addOnSuccessListener(query -> {
@@ -328,6 +340,7 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
                         nuevo.setSesionesSemanales(sesSem);
                         nuevo.setSesionesOrden(sesTot);
                         nuevo.setValorSesion(valorSesion);
+                        nuevo.setAdicional(adicional);
                         nuevo.setObservaciones(observaciones);
                         if (tieneCud) {
                             nuevo.setFechaInicioPeriodo(fechaInicio);
@@ -351,7 +364,9 @@ public class FormularioPacienteSimpleActivity extends AppCompatActivity {
             pacienteExistente.setSesionesSemanales(sesSem);
             pacienteExistente.setSesionesOrden(sesTot);
             pacienteExistente.setValorSesion(valorSesion);
+            pacienteExistente.setAdicional(adicional);
             pacienteExistente.setDiagnostico(diagnostico);
+            pacienteExistente.setObservaciones(observaciones);
             pacienteExistente.setObservaciones(observaciones);
             if (tieneCud) {
                 pacienteExistente.setFechaInicioPeriodo(fechaInicio);
